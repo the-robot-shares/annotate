@@ -114,7 +114,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.oidcClientSecret }}
 - name: OIDC_REDIRECT_URI
-  value: "https://{{ .Values.domain }}/auth/oidc/callback"
+  value: {{ .Values.sso.oidc.redirectUri | default (printf "https://%s/auth/oidc/callback" .Values.domain) | quote }}
+- name: EMBED_OIDC_REDIRECT_URI
+  value: {{ printf "https://%s/embed/callback" (.Values.appDomain | default .Values.domain) | quote }}
 {{- end }}
 {{- if .Values.sso.domains }}
 - name: SSO_DOMAINS
