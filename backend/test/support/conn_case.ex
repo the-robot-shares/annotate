@@ -87,10 +87,16 @@ defmodule AnnotateWeb.ConnCase do
     }
 
     {:ok, access_token, _claims} =
-      Annotate.Guardian.encode_and_sign(session_entity, %{}, token_type: "access", ttl: {1, :hour})
+      Annotate.Guardian.encode_and_sign(session_entity, %{},
+        token_type: "access",
+        ttl: {1, :hour}
+      )
 
     {:ok, refresh_token, %{"jti" => jti}} =
-      Annotate.Guardian.encode_and_sign(session_entity, %{}, token_type: "refresh", ttl: {7, :day})
+      Annotate.Guardian.encode_and_sign(session_entity, %{},
+        token_type: "refresh",
+        ttl: {7, :day}
+      )
 
     Annotate.Auth.TokenStore.store_refresh_jti(jti)
 

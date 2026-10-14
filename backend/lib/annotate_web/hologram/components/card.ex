@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.Card do
+defmodule AnnotateWeb.Hologram.Components.Card do
   @moduledoc "StyleGuideCard — optional href makes the whole card a link."
   use Hologram.Component
 

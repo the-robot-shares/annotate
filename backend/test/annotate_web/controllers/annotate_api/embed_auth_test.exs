@@ -1,0 +1,275 @@
+defmodule AnnotateWeb.AnnotateAPI.EmbedAuthTest do
+  use AnnotateWeb.AnnotateAPICase, async: false
+
+  @provider_cfg [
+    discovery_document_uri: "https://fake.example/.well-known/openid-configuration",
+    client_id: "cid",
+    client_secret: "sec",
+    response_type: "code",
+    scope: "openid email profile"
+  ]
+
+  # Mirrors the real OpenIDConnect surface: authorization_uri → %URI{},
+  # fetch_tokens/2 → {:ok, token_map}, verify/2 → {:ok, claims map}.
+  defmodule FakeOIDC do
+    def authorization_uri(_config, _redirect_uri, params) do
+      send(self(), {:fake_authorize, params})
+
+      %URI{
+        scheme: "https",
+        host: "fake-idp.example",
+        path: "/authorize",
+        query: "state=#{params["state"]}"
+      }
+    end
+
+    def fetch_tokens(_config, kw) do
+      {:ok, %{"id_token" => "fake.id.token", "code" => Keyword.fetch!(kw, :code)}}
+    end
+
+    def verify(_config, _id_token) do
+      {:ok,
+       %{
+         "sub" => "auth-sub-1",
+         "email" => "ella@example.com",
+         "name" => "Ella",
+         "groups" => ["annotate-users"],
+         # echo the nonce the test stashed (fail-closed nonce check: the id
+         # token must carry the nonce from the authorization request)
+         "nonce" => Process.get(:fake_oidc_nonce)
+       }}
+    end
+  end
+
+  setup do
+    {site, _key} = create_site()
+    {:ok, site: site}
+  end
+
+  defp with_fake_oidc(_ctx) do
+    Application.put_env(:annotate, :oidc_impl, FakeOIDC)
+    Application.put_env(:openid_connect, :providers, default: @provider_cfg)
+
+    on_exit(fn ->
+      Application.delete_env(:annotate, :oidc_impl)
+      Application.delete_env(:openid_connect, :providers)
+    end)
+
+    :ok
+  end
+
+  describe "Embed.Policy.check/2" do
+    test "passes with no constraints" do
+      assert :ok == Annotate.Embed.Policy.check(%{"groups" => [], "email" => "a@x.com"}, %{})
+    end
+
+    test "any-of group match" do
+      policy = %{"required_groups" => ["a", "b"]}
+
+      assert :ok == Annotate.Embed.Policy.check(%{"groups" => ["b"]}, policy)
+
+      assert {:error, :group_not_allowed} =
+               Annotate.Embed.Policy.check(%{"groups" => ["c"]}, policy)
+    end
+
+    test "email domain allowlist" do
+      policy = %{"allowed_email_domains" => ["corp.example"]}
+
+      assert :ok == Annotate.Embed.Policy.check(%{"email" => "u@corp.example"}, policy)
+
+      assert {:error, :email_domain_not_allowed} =
+               Annotate.Embed.Policy.check(%{"email" => "u@gmail.com"}, policy)
+    end
+  end
+
+  describe "GET /embed/login" do
+    test "403 on disallowed origin", %{conn: conn, site: site} do
+      conn =
+        conn
+        |> get("/embed/login?site=#{site.slug}&origin=https://evil.example")
+
+      assert %{"error" => "origin_not_allowed"} = json_response(conn, 403)
+    end
+
+    test "503 when OIDC unconfigured", %{conn: conn, site: site} do
+      Application.delete_env(:openid_connect, :providers)
+      on_exit(fn -> Application.delete_env(:openid_connect, :providers) end)
+
+      conn =
+        conn
+        |> get("/embed/login?site=#{site.slug}&origin=#{URI.encode_www_form(@good_origin)}")
+
+      assert conn.status == 503
+    end
+
+    test "stashes state in session and redirects to the IdP", %{conn: conn, site: site} = ctx do
+      :ok = with_fake_oidc(ctx)
+
+      conn =
+        conn
+        |> get("/embed/login?site=#{site.slug}&origin=#{URI.encode_www_form(@good_origin)}")
+
+      assert conn.status == 302
+      assert redirected_to(conn) =~ "https://fake-idp.example/authorize"
+
+      assert %{
+               "site_id" => stashed_site_id,
+               "origin" => @good_origin,
+               "state" => state,
+               "nonce" => nonce
+             } =
+               conn.private.plug_session["embed_state"]
+
+      assert stashed_site_id == site.id
+      assert is_binary(state) and is_binary(nonce)
+      assert_received {:fake_authorize, %{"state" => ^state, "nonce" => ^nonce}}
+    end
+  end
+
+  describe "GET /embed/callback" do
+    test "success: commenter upserted, postMessage HTML with tokens",
+         %{conn: conn, site: site} = ctx do
+      :ok = with_fake_oidc(ctx)
+      Process.put(:fake_oidc_nonce, "nonce-abc")
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session("embed_state", %{
+          "site_id" => site.id,
+          "origin" => @good_origin,
+          "state" => "st-123",
+          "nonce" => "nonce-abc"
+        })
+        |> get("/embed/callback?code=c&state=st-123")
+
+      html = response(conn, 200)
+      assert html =~ "annotate-auth"
+      refute html =~ "annotate-auth-error"
+      assert html =~ @good_origin
+
+      assert commenter =
+               Annotate.Repo.get_by(Annotate.Schema.Annotate.Commenter,
+                 authentik_sub: "auth-sub-1"
+               )
+
+      assert commenter.display_name == "Ella"
+
+      # session state consumed — replay fails the state check
+      replay =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> get("/embed/callback?code=c&state=st-123")
+
+      assert response(replay, 200) =~ "state_mismatch"
+    end
+
+    test "nonce mismatch (id token nonce ≠ session nonce) → nonce_mismatch postMessage",
+         %{conn: conn, site: site} = ctx do
+      :ok = with_fake_oidc(ctx)
+      Process.put(:fake_oidc_nonce, "attacker-nonce")
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session("embed_state", %{
+          "site_id" => site.id,
+          "origin" => @good_origin,
+          "state" => "st-7",
+          "nonce" => "session-nonce"
+        })
+        |> get("/embed/callback?code=c&state=st-7")
+
+      html = response(conn, 200)
+      assert html =~ "nonce_mismatch"
+      refute html =~ "annotate-auth\""
+
+      refute Annotate.Repo.get_by(Annotate.Schema.Annotate.Commenter, authentik_sub: "auth-sub-1")
+    end
+
+    test "missing nonce on either side fails closed → nonce_mismatch",
+         %{conn: conn, site: site} =
+           ctx do
+      :ok = with_fake_oidc(ctx)
+      # fake id token carries NO nonce (Process dict unset) while the session
+      # stashed one — the nil-vs-nil and nil-vs-value cases must both reject.
+      Process.put(:fake_oidc_nonce, nil)
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session("embed_state", %{
+          "site_id" => site.id,
+          "origin" => @good_origin,
+          "state" => "st-8",
+          "nonce" => "session-nonce"
+        })
+        |> get("/embed/callback?code=c&state=st-8")
+
+      assert response(conn, 200) =~ "nonce_mismatch"
+    end
+
+    test "policy rejection → group_not_allowed postMessage", %{conn: conn, site: site} = ctx do
+      :ok = with_fake_oidc(ctx)
+      Process.put(:fake_oidc_nonce, "nonce-9")
+
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site, comment_policy: %{"required_groups" => ["other-group"]})
+      )
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session("embed_state", %{
+          "site_id" => site.id,
+          "origin" => @good_origin,
+          "state" => "st-9",
+          "nonce" => "nonce-9"
+        })
+        |> get("/embed/callback?code=c&state=st-9")
+
+      html = response(conn, 200)
+      assert html =~ "group_not_allowed"
+
+      refute Annotate.Repo.get_by(Annotate.Schema.Annotate.Commenter, authentik_sub: "auth-sub-1")
+    end
+
+    test "state tampering → state_mismatch", %{conn: conn, site: site} = ctx do
+      :ok = with_fake_oidc(ctx)
+
+      conn =
+        conn
+        |> init_test_session(%{})
+        |> put_session("embed_state", %{
+          "site_id" => site.id,
+          "origin" => @good_origin,
+          "state" => "real-state",
+          "nonce" => nil
+        })
+        |> get("/embed/callback?code=c&state=tampered")
+
+      assert response(conn, 200) =~ "state_mismatch"
+    end
+
+    test "missing session state → state_mismatch", %{conn: conn} do
+      conn = get(conn, "/embed/callback?code=c&state=s")
+      assert response(conn, 200) =~ "state_mismatch"
+    end
+
+    test "nonce check: verify_nonce unit (fail closed on nil either side)", %{conn: _conn} do
+      assert :ok == AnnotateWeb.AnnotateAPI.EmbedController.verify_nonce("a", "a")
+
+      assert {:error, :nonce_mismatch} =
+               AnnotateWeb.AnnotateAPI.EmbedController.verify_nonce("a", "b")
+
+      assert {:error, :nonce_mismatch} =
+               AnnotateWeb.AnnotateAPI.EmbedController.verify_nonce("a", nil)
+
+      assert {:error, :nonce_mismatch} =
+               AnnotateWeb.AnnotateAPI.EmbedController.verify_nonce(nil, "a")
+
+      assert {:error, :nonce_mismatch} =
+               AnnotateWeb.AnnotateAPI.EmbedController.verify_nonce(nil, nil)
+    end
+  end
+end

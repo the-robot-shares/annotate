@@ -193,15 +193,20 @@ defmodule AnnotateWeb.Hologram.Components.FloatingAuth do
 
   def action(:set_email, params, component), do: put_state(component, :email, params.event.value)
 
-  def action(:set_password, params, component), do: put_state(component, :password, params.event.value)
+  def action(:set_password, params, component),
+    do: put_state(component, :password, params.event.value)
 
-  def action(:set_user_name, params, component), do: put_state(component, :user_name, params.event.value)
+  def action(:set_user_name, params, component),
+    do: put_state(component, :user_name, params.event.value)
 
-  def action(:set_first_name, params, component), do: put_state(component, :first_name, params.event.value)
+  def action(:set_first_name, params, component),
+    do: put_state(component, :first_name, params.event.value)
 
-  def action(:set_last_name, params, component), do: put_state(component, :last_name, params.event.value)
+  def action(:set_last_name, params, component),
+    do: put_state(component, :last_name, params.event.value)
 
-  def action(:set_mobile_phone, params, component), do: put_state(component, :mobile_phone, params.event.value)
+  def action(:set_mobile_phone, params, component),
+    do: put_state(component, :mobile_phone, params.event.value)
 
   # Typing only updates state — the token lookup runs on blur (or when the
   # user submits), so a keystroke never triggers a bcrypt round on the server.

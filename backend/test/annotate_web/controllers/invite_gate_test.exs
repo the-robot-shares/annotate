@@ -103,10 +103,18 @@ defmodule AnnotateWeb.InviteGateTest do
       end
 
       %{access_token: admin_token} = user_with_status(:pending, admin: true)
-      assert json_response(conn |> authenticated_conn(admin_token) |> get("/api/v1/organizations"), 200)
+
+      assert json_response(
+               conn |> authenticated_conn(admin_token) |> get("/api/v1/organizations"),
+               200
+             )
 
       %{access_token: active_token} = setup_user_and_token()
-      assert json_response(conn |> authenticated_conn(active_token) |> get("/api/v1/organizations"), 200)
+
+      assert json_response(
+               conn |> authenticated_conn(active_token) |> get("/api/v1/organizations"),
+               200
+             )
     end
 
     test "old pending accounts are held — no grandfather cutoff", %{conn: conn} do
@@ -166,7 +174,8 @@ defmodule AnnotateWeb.InviteGateTest do
       assert {:error, %{reason: "invite_required"}} =
                AnnotateWeb.UserSocket.connect(%{"token" => pending_token}, socket_stub(), %{})
 
-      assert {:ok, _} = AnnotateWeb.UserSocket.connect(%{"token" => active_token}, socket_stub(), %{})
+      assert {:ok, _} =
+               AnnotateWeb.UserSocket.connect(%{"token" => active_token}, socket_stub(), %{})
     end
   end
 
@@ -190,9 +199,15 @@ defmodule AnnotateWeb.InviteGateTest do
     end
 
     test "post_auth_path routes gated users to the interstitial" do
-      assert Annotate.Hologram.Auth.post_auth_path(%{invite_required: true}) == "/auth/invite-required"
-      assert Annotate.Hologram.Auth.post_auth_path(%{invite_required: false, status: :pending}) == "/app"
-      assert Annotate.Hologram.Auth.post_auth_path(%{status: "waitlist"}) == "/auth/invite-required"
+      assert Annotate.Hologram.Auth.post_auth_path(%{invite_required: true}) ==
+               "/auth/invite-required"
+
+      assert Annotate.Hologram.Auth.post_auth_path(%{invite_required: false, status: :pending}) ==
+               "/app"
+
+      assert Annotate.Hologram.Auth.post_auth_path(%{status: "waitlist"}) ==
+               "/auth/invite-required"
+
       assert Annotate.Hologram.Auth.post_auth_path(%{status: :active}) == "/app"
     end
   end
@@ -232,13 +247,22 @@ defmodule AnnotateWeb.InviteGateTest do
       assert %{"account_status" => "unverified"} = json_response(gated, 403)
 
       {:ok, %{encoded_key: key}} = Annotate.Auth.SmartTokenAuth.request_email_verification(email)
-      assert json_response(post(recycle(conn), "/api/v1/auth/verify-email/confirm", %{token: key}), 200)
+
+      assert json_response(
+               post(recycle(conn), "/api/v1/auth/verify-email/confirm", %{token: key}),
+               200
+             )
 
       user = Annotate.Repo.get_by!(User, email: email)
       assert user.status == :active
       assert user.approved_at
 
-      open = conn |> recycle() |> authenticated_conn(body["access_token"]) |> get("/api/v1/organizations")
+      open =
+        conn
+        |> recycle()
+        |> authenticated_conn(body["access_token"])
+        |> get("/api/v1/organizations")
+
       assert json_response(open, 200)
     end
 
@@ -262,7 +286,10 @@ defmodule AnnotateWeb.InviteGateTest do
       assert body["user"]["invite_required"] == false
 
       bad = "b-#{uniq()}@gated.example"
-      resp = post(conn, "/api/v1/auth/register", %{user: reg(bad), invite_token: "nope-nope-nope"})
+
+      resp =
+        post(conn, "/api/v1/auth/register", %{user: reg(bad), invite_token: "nope-nope-nope"})
+
       assert resp.status in [401, 403, 422]
       assert Annotate.Repo.get_by(User, email: bad) == nil
     end
@@ -317,9 +344,20 @@ defmodule AnnotateWeb.InviteGateTest do
 
       {:ok, _, used} = invite(max_uses: 1)
       %{access_token: other} = setup_user_and_token()
-      assert json_response(conn |> authenticated_conn(other) |> post("/api/v1/invites/redeem", %{token: used}), 200)
 
-      resp = conn |> recycle() |> authenticated_conn(token) |> post("/api/v1/invites/redeem", %{token: used})
+      assert json_response(
+               conn
+               |> authenticated_conn(other)
+               |> post("/api/v1/invites/redeem", %{token: used}),
+               200
+             )
+
+      resp =
+        conn
+        |> recycle()
+        |> authenticated_conn(token)
+        |> post("/api/v1/invites/redeem", %{token: used})
+
       assert %{"error" => "This invite has already been used"} = json_response(resp, 409)
 
       assert Annotate.Repo.get!(User, user.id).status == :pending
@@ -331,7 +369,13 @@ defmodule AnnotateWeb.InviteGateTest do
       authed = authenticated_conn(conn, token)
 
       assert json_response(post(authed, "/api/v1/invites/redeem", %{token: raw}), 200)
-      assert json_response(post(recycle(authed) |> authenticated_conn(token), "/api/v1/invites/redeem", %{token: raw}), 200)
+
+      assert json_response(
+               post(recycle(authed) |> authenticated_conn(token), "/api/v1/invites/redeem", %{
+                 token: raw
+               }),
+               200
+             )
     end
   end
 
@@ -414,7 +458,9 @@ defmodule AnnotateWeb.InviteGateTest do
   defp gated_routes do
     AnnotateWeb.Router
     |> Phoenix.Router.routes()
-    |> Enum.map(fn route -> {route.verb |> to_string() |> String.upcase(), concrete(route.path)} end)
+    |> Enum.map(fn route ->
+      {route.verb |> to_string() |> String.upcase(), concrete(route.path)}
+    end)
     |> Enum.uniq()
     |> Enum.filter(fn {verb, path} ->
       case Phoenix.Router.route_info(AnnotateWeb.Router, verb, path, "www.example.com") do

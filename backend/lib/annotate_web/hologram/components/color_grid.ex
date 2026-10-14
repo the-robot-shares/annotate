@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.ColorGrid do
+defmodule AnnotateWeb.Hologram.Components.ColorGrid do
   use Hologram.Component
   prop :class, :string, default: ""
 

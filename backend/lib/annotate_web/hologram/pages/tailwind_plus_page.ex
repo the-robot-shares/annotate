@@ -268,7 +268,8 @@ defmodule AnnotateWeb.Hologram.Pages.TailwindPlusPage do
 
   defp entries_for_group(_, _), do: []
 
-  defp find_entry_in_list(entries, export_name) when is_list(entries) and is_binary(export_name) do
+  defp find_entry_in_list(entries, export_name)
+       when is_list(entries) and is_binary(export_name) do
     Enum.find(entries, &(Map.get(&1, "exportName") == export_name))
   end
 
@@ -322,7 +323,8 @@ defmodule AnnotateWeb.Hologram.Pages.TailwindPlusPage do
   end
 
   defp catalog_first_entry do
-    if catalog_available?() and function_exported?(Annotate.StyleGuide.TwpCatalog, :first_entry, 0) do
+    if catalog_available?() and
+         function_exported?(Annotate.StyleGuide.TwpCatalog, :first_entry, 0) do
       Annotate.StyleGuide.TwpCatalog.first_entry()
     else
       nil

@@ -152,7 +152,14 @@ defmodule Annotate.Hologram.Auth do
         flag
 
       _ ->
-        Map.get(user, :status) in [:pending, :waitlist, :unverified, "pending", "waitlist", "unverified"]
+        Map.get(user, :status) in [
+          :pending,
+          :waitlist,
+          :unverified,
+          "pending",
+          "waitlist",
+          "unverified"
+        ]
     end
   end
 
@@ -203,10 +210,15 @@ defmodule Annotate.Hologram.Auth do
   end
 
   @doc "User-facing copy for a failed redeem (PATTERN.md `inviteRedeemErrorMessage`)."
-  def invite_error_message("invalid"), do: "That invite code is invalid or has expired. Check it and try again."
+  def invite_error_message("invalid"),
+    do: "That invite code is invalid or has expired. Check it and try again."
+
   def invite_error_message("used"), do: "That invite code has already been used."
   def invite_error_message("rate_limited"), do: "Too many attempts. Wait a minute and try again."
-  def invite_error_message("unauthenticated"), do: "Your session has ended. Log in again to redeem your invite."
+
+  def invite_error_message("unauthenticated"),
+    do: "Your session has ended. Log in again to redeem your invite."
+
   def invite_error_message("empty"), do: "Enter your invite code."
   def invite_error_message(_), do: "Could not redeem the invite. Try again."
 

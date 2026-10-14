@@ -299,7 +299,10 @@ defmodule AnnotateWeb.Hologram.Pages.OrgMembersPage do
         user_id: to_string(Map.get(m, :user_id) || Map.get(m, "user_id") || ""),
         email: Map.get(m, :email) || Map.get(m, "email") || "member",
         user_name: Map.get(m, :user_name) || Map.get(m, "user_name") || "",
-        role: to_string(Map.get(m, :role) || Map.get(m, "role") || Map.get(m, :group_name) || "viewer")
+        role:
+          to_string(
+            Map.get(m, :role) || Map.get(m, "role") || Map.get(m, :group_name) || "viewer"
+          )
       }
     end)
   rescue

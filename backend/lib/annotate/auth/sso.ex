@@ -70,7 +70,15 @@ defmodule Annotate.Auth.SSO do
 
   # Registration path for an SSO identity. `invite` is nil when none was
   # supplied — the account is then created at InviteGate.signup_status/3.
-  defp invited_sso_registration(email, attrs, provider_ref, provider_id, provider_type, invite, context) do
+  defp invited_sso_registration(
+         email,
+         attrs,
+         provider_ref,
+         provider_id,
+         provider_type,
+         invite,
+         context
+       ) do
     # One transactional seam: the provisioned user, the redemption, and the
     # membership grant commit together. A redemption that loses an exhaustion
     # race rolls the account back entirely — no stranded approved user with
@@ -78,7 +86,15 @@ defmodule Annotate.Auth.SSO do
     result =
       Annotate.Repo.transaction(fn ->
         user =
-          auto_provision_user(email, attrs, provider_ref, provider_id, provider_type, context, invite)
+          auto_provision_user(
+            email,
+            attrs,
+            provider_ref,
+            provider_id,
+            provider_type,
+            context,
+            invite
+          )
 
         if invite do
           with {:ok, _} <- Annotate.Organizations.redeem_invite_for_user(invite, user),
@@ -195,7 +211,15 @@ defmodule Annotate.Auth.SSO do
     |> Annotate.EntityRepo.create(context)
   end
 
-  defp auto_provision_user(email, attrs, provider_ref, _provider_id, provider_type, context, invite) do
+  defp auto_provision_user(
+         email,
+         attrs,
+         provider_ref,
+         _provider_id,
+         provider_type,
+         context,
+         invite
+       ) do
     handle = email |> String.split("@") |> hd() |> String.replace(~r/[^a-z0-9_]/, "_")
     first = get_in(attrs, [:name, :first]) || attrs[:given_name] || handle
     last = get_in(attrs, [:name, :last]) || attrs[:family_name] || "User"
@@ -225,7 +249,8 @@ defmodule Annotate.Auth.SSO do
       approved_at: approved_at
     }
 
-    {:ok, user} = Annotate.Repo.insert(user_schema, on_conflict: :nothing, conflict_target: :email)
+    {:ok, user} =
+      Annotate.Repo.insert(user_schema, on_conflict: :nothing, conflict_target: :email)
 
     %Annotate.Users.Credentials.UserCredential{
       user: {:ref, Annotate.Users.User, user.id},

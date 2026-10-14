@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.StyleCard do
+defmodule AnnotateWeb.Hologram.Components.StyleCard do
   @moduledoc "StyleGuideStyleCard — documentation card for principles / notes."
   use Hologram.Component
 

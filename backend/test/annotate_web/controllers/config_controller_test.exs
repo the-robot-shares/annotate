@@ -1,5 +1,5 @@
-defmodule StarterWeb.ConfigControllerTest do
-  use StarterWeb.ConnCase
+defmodule AnnotateWeb.ConfigControllerTest do
+  use AnnotateWeb.ConnCase
 
   test "GET /api/v1/config/features returns feature list", %{conn: conn} do
     conn = get(conn, "/api/v1/config/features")

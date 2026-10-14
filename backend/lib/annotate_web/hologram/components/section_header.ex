@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.SectionHeader do
+defmodule AnnotateWeb.Hologram.Components.SectionHeader do
   @moduledoc "StyleGuideSectionHeader."
   use Hologram.Component
 

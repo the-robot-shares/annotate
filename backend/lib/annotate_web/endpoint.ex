@@ -17,6 +17,11 @@ defmodule AnnotateWeb.Endpoint do
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :annotate
   end
 
+  # Per-site CORS for /api/v1 (annotate): echoes Access-Control-Allow-Origin
+  # ONLY for origins in the addressed site's allowed_origins — must run before
+  # the parsers so OPTIONS preflights (no body) are handled. The scaffold's
+  # broad CORS plug below still covers every non-/api/v1 path.
+  plug AnnotateWeb.Plugs.AnnotateCORS
   plug AnnotateWeb.Plugs.CORS
   plug Plug.RequestId
   plug AnnotateWeb.Plugs.OtelLoggerMetadata

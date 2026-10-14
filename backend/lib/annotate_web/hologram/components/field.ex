@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.Field do
+defmodule AnnotateWeb.Hologram.Components.Field do
   @moduledoc """
   Form field chrome matching start-app `sg-field` + HUI field tokens.
 

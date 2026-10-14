@@ -1,25 +1,48 @@
-defmodule StarterWeb.Plugs.RateLimit do
+defmodule AnnotateWeb.Plugs.RateLimit do
   @behaviour Plug
   import Plug.Conn
 
   @default_limits %{
     auth: {10, 60_000},
-    auth_sensitive: {5, 60_000}
+    auth_sensitive: {5, 60_000},
+    # Annotate embed API writes (threads/comments/attachments/token endpoints).
+    # Reads pass through uncounted — only write methods consume budget.
+    annotate_write: {60, 60_000}
   }
 
+  # Actions that count POST/PATCH/PUT/DELETE only.
+  @writes_only [:annotate_write]
+
   @impl true
-  # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(opts) do
     action = Keyword.fetch!(opts, :action)
     {limit, period} = @default_limits[action] || {10, 60_000}
-    %{action: action, limit: limit, period: period}
+    %{action: action, limit: limit, period: period, writes_only: action in @writes_only}
   end
 
   @impl true
-  # <REMOVED UUID HERE> call :: auto-generated pointer for public function call
-  def call(conn, %{action: action, limit: limit, period: period}) do
+  def call(conn, %{writes_only: true} = state) do
+    if conn.method in ["GET", "HEAD", "OPTIONS"] do
+      conn
+    else
+      check(conn, state)
+    end
+  end
+
+  def call(conn, state), do: check(conn, state)
+
+  defp check(conn, %{action: action, limit: limit, period: period}) do
     ip = client_ip(conn)
-    key = "#{action}:#{ip}"
+    # Scope the bucket per site when the route addresses one, so a noisy
+    # tenant cannot exhaust another tenant's budget on a shared egress IP.
+    site = conn.params["site"]
+
+    key =
+      if is_binary(site) and site != "" do
+        "#{action}:#{ip}:#{site}"
+      else
+        "#{action}:#{ip}"
+      end
 
     case Hammer.check_rate(key, period, limit) do
       {:allow, _count} ->

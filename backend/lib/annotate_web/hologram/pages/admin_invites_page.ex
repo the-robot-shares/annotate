@@ -159,8 +159,12 @@ defmodule AnnotateWeb.Hologram.Pages.AdminInvitesPage do
 
   def action(:set_email, params, component), do: put_state(component, :email, params.event.value)
   def action(:set_role, params, component), do: put_state(component, :role, params.event.value)
-  def action(:set_max_uses, params, component), do: put_state(component, :max_uses, params.event.value)
-  def action(:set_ttl, params, component), do: put_state(component, :expires_in_days, params.event.value)
+
+  def action(:set_max_uses, params, component),
+    do: put_state(component, :max_uses, params.event.value)
+
+  def action(:set_ttl, params, component),
+    do: put_state(component, :expires_in_days, params.event.value)
 
   def action(:create_invite, _params, component) do
     component

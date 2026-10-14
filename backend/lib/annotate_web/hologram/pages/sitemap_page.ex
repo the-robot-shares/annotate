@@ -1,10 +1,10 @@
-defmodule StarterWeb.Hologram.Pages.SitemapPage do
+defmodule AnnotateWeb.Hologram.Pages.SitemapPage do
   use Hologram.Page
 
   alias Hologram.UI.Link
-  alias StarterWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.MainLayout
 
-  alias StarterWeb.Hologram.Pages.{
+  alias AnnotateWeb.Hologram.Pages.{
     AdminOrgsPage,
     AdminUsersPage,
     AppHomePage,

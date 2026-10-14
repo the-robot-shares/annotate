@@ -1,0 +1,237 @@
+databaseChangeLog:
+  # ── Annotate embeddable comments: core tables ────────────────────
+  # Additive only. Enum types are plain-named: this service owns its
+  # database (no scaffold shared-schema collisions).
+
+  - changeSet:
+      id: annotate-0001-enum-thread-status
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE TYPE thread_status_enum AS ENUM ('open', 'resolved');
+      rollback:
+        - sql:
+            sql: DROP TYPE IF EXISTS thread_status_enum;
+
+  - changeSet:
+      id: annotate-0002-enum-attachment-kind
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE TYPE attachment_kind_enum AS ENUM ('file', 'image', 'screenshot');
+      rollback:
+        - sql:
+            sql: DROP TYPE IF EXISTS attachment_kind_enum;
+
+  - changeSet:
+      id: annotate-0003-enum-attachment-status
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE TYPE attachment_status_enum AS ENUM ('pending', 'ready');
+      rollback:
+        - sql:
+            sql: DROP TYPE IF EXISTS attachment_status_enum;
+
+  - changeSet:
+      id: annotate-0010-create-table-sites
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE sites (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                slug varchar(120) NOT NULL,
+                name varchar(255) NOT NULL,
+                allowed_origins text[] NOT NULL DEFAULT '{}',
+                service_key_hash varchar(128),
+                service_key_encrypted text,
+                settings jsonb NOT NULL DEFAULT '{"public_read":true,"page_key_strategy":"strip_query_hash","max_upload_mb":20}'::jsonb,
+                comment_policy jsonb NOT NULL DEFAULT '{}'::jsonb,
+                owner_commenter_id uuid,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT sites_slug_key UNIQUE (slug)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS sites;
+
+  - changeSet:
+      id: annotate-0011-create-table-commenters
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE commenters (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                authentik_sub varchar(255),
+                external_id varchar(255),
+                site_id uuid REFERENCES sites(id) ON DELETE SET NULL,
+                display_name varchar(255),
+                avatar_url text,
+                email citext,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT commenters_authentik_sub_key UNIQUE (authentik_sub),
+                CONSTRAINT commenters_site_external_key UNIQUE (site_id, external_id)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS commenters;
+
+  - changeSet:
+      id: annotate-0012-create-table-pages
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE pages (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                site_id uuid NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+                page_key varchar(255) NOT NULL,
+                last_url text,
+                title varchar(512),
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT pages_site_page_key UNIQUE (site_id, page_key)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS pages;
+
+  - changeSet:
+      id: annotate-0013-create-table-threads
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE threads (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                page_id uuid NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+                anchor jsonb NOT NULL,
+                status thread_status_enum NOT NULL DEFAULT 'open',
+                created_by uuid REFERENCES commenters(id) ON DELETE SET NULL,
+                resolved_by uuid REFERENCES commenters(id) ON DELETE SET NULL,
+                resolved_at timestamptz,
+                orphaned_at timestamptz,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS threads;
+
+  - changeSet:
+      id: annotate-0014-index-threads-page-id
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE INDEX threads_page_id_index ON threads (page_id);
+      rollback:
+        - sql:
+            sql: DROP INDEX IF EXISTS threads_page_id_index;
+
+  - changeSet:
+      id: annotate-0015-create-table-comments
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE comments (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                thread_id uuid NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+                parent_id uuid,
+                author_id uuid REFERENCES commenters(id) ON DELETE SET NULL,
+                body_md text NOT NULL DEFAULT '',
+                edited_at timestamptz,
+                deleted_at timestamptz,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS comments;
+
+  - changeSet:
+      id: annotate-0016-comments-self-fk-and-indexes
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE comments
+                ADD CONSTRAINT comments_parent_id_fkey
+                FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE;
+              CREATE INDEX comments_thread_id_index ON comments (thread_id);
+              CREATE INDEX comments_parent_id_index ON comments (parent_id);
+      rollback:
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS comments_parent_id_index;
+              DROP INDEX IF EXISTS comments_thread_id_index;
+              ALTER TABLE comments DROP CONSTRAINT IF EXISTS comments_parent_id_fkey;
+
+  - changeSet:
+      id: annotate-0017-create-table-attachments
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE attachments (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                comment_id uuid REFERENCES comments(id) ON DELETE SET NULL,
+                uploader_id uuid NOT NULL REFERENCES commenters(id) ON DELETE CASCADE,
+                site_id uuid NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+                kind attachment_kind_enum NOT NULL DEFAULT 'file',
+                storage_key varchar(512) NOT NULL,
+                content_type varchar(255),
+                bytes bigint,
+                width integer,
+                height integer,
+                annotation jsonb,
+                status attachment_status_enum NOT NULL DEFAULT 'pending',
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS attachments;
+
+  - changeSet:
+      id: annotate-0018-attachment-indexes
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE INDEX attachments_comment_id_index ON attachments (comment_id);
+              CREATE INDEX attachments_site_id_index ON attachments (site_id);
+              CREATE INDEX attachments_status_index ON attachments (status);
+      rollback:
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS attachments_status_index;
+              DROP INDEX IF EXISTS attachments_site_id_index;
+              DROP INDEX IF EXISTS attachments_comment_id_index;
+
+  - changeSet:
+      id: annotate-0019-sites-owner-fk
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE sites
+                ADD CONSTRAINT sites_owner_commenter_id_fkey
+                FOREIGN KEY (owner_commenter_id) REFERENCES commenters(id) ON DELETE SET NULL;
+      rollback:
+        - sql:
+            sql: ALTER TABLE sites DROP CONSTRAINT IF EXISTS sites_owner_commenter_id_fkey;
+
+  - changeSet:
+      id: annotate-0020-thread-status-index
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE INDEX threads_status_index ON threads (status);
+      rollback:
+        - sql:
+            sql: DROP INDEX IF EXISTS threads_status_index;

@@ -1,4 +1,4 @@
-defmodule StarterWeb.Plugs.OtelLoggerMetadata do
+defmodule AnnotateWeb.Plugs.OtelLoggerMetadata do
   @behaviour Plug
 
   @impl true

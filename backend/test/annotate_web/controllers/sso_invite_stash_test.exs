@@ -1,4 +1,4 @@
-defmodule StarterWeb.SSOInviteStashTest do
+defmodule AnnotateWeb.SSOInviteStashTest do
   @moduledoc """
   Regression test for the Ueberauth invite-stash plug ordering.
 
@@ -25,7 +25,7 @@ defmodule StarterWeb.SSOInviteStashTest do
   `invite survives the redirecting request phase` fail.)
   """
 
-  use StarterWeb.ConnCase, async: false
+  use AnnotateWeb.ConnCase, async: false
 
   @invite "regression_invite_raw_token_123"
 
@@ -45,6 +45,7 @@ defmodule StarterWeb.SSOInviteStashTest do
     on_exit(fn ->
       original_providers ||
         Application.delete_env(:ueberauth, Ueberauth)
+
       Application.put_env(:ueberauth, Ueberauth, original_providers)
 
       if original_oauth do

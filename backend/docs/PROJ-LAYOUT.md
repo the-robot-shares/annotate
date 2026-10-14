@@ -19,8 +19,8 @@ backend/
 │   │   ├── hologram/                 # Hologram runtime helpers (auth, etc.)
 │   │   └── style_guide/              # design-system components
 │   │   └── workers/                    # cleanup, email (Oban)
-│   ├── starter_web.ex
-│   ├── starter_web/
+│   ├── annotate_web.ex
+│   ├── annotate_web/
 │   │   ├── endpoint.ex · router.ex · telemetry.ex · gettext.ex
 │   │   ├── controllers/                # auth, sso, org, media, admin, consent, pbac, …
 │   │   ├── plugs/                      # auth pipeline, RBAC, rate_limit, cors, otel
@@ -39,7 +39,7 @@ backend/
 │       ├── migrations/                 # smart_token, Oban
 │       └── seeds.exs · seeds/          # env seeds + auth_providers/
 ├── test/
-│   ├── annotate/ · starter_web/         # auth + controller tests
+│   ├── annotate/ · annotate_web/         # auth + controller tests
 │   └── support/                        # conn_case, data_case
 ├── docs/                               # PROJ-LAYOUT* · PROJ-ARCH*
 ├── Dockerfile · Dockerfile.dev

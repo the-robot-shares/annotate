@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.SpacingScale do
+defmodule AnnotateWeb.Hologram.Components.SpacingScale do
   @moduledoc "StyleGuideSpacingScale — expects `steps` as list of maps `%{label, width}`."
   use Hologram.Component
 

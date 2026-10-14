@@ -2,9 +2,10 @@ import Config
 
 config :annotate, Annotate.Repo,
   username: System.get_env("DB_USER", "annotate"),
-  password: System.get_env("DB_PASS", "starter_dev"),
+  password: System.get_env("DB_PASS", "annotate_dev"),
   hostname: System.get_env("DB_HOST", "localhost"),
-  database: "#{System.get_env("DB_NAME", "annotate")}_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database:
+    "#{System.get_env("DB_NAME", "annotate")}_test#{System.get_env("MIX_TEST_PARTITION")}",
   port: String.to_integer(System.get_env("DB_PORT") || "5432"),
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
@@ -40,3 +41,22 @@ end
 
 # config.exs already captured SENDGRID_API_KEY at load time; pin a dummy.
 config :noizu_sendgrid, api_key: "SG.test-placeholder"
+
+# ── Annotate API test config ─────────────────────────────────────
+config :annotate, Annotate.Auth.ApiToken,
+  secret: "test-annotate-jwt-secret-0123456789abcdef0123456789abcdef"
+
+config :annotate, Annotate.Auth.ServiceKey,
+  enc_secret: "test-annotate-key-enc-secret-0123456789abcdef0123456789abcdef"
+
+config :annotate, :embed, redirect_uri: "http://localhost:4002/embed/callback"
+
+# Offline S3: ExAws signs URLs locally, no network. test_helper strips live
+# AWS_* env above, so these explicit keys are what ExAws uses.
+config :annotate, Annotate.Storage,
+  bucket: "annotate-test-bucket",
+  region: "us-east-1",
+  access_key_id: "test-access-key",
+  secret_access_key: "test-secret-key",
+  scheme: "http://",
+  host: "localhost:9000"

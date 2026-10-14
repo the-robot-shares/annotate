@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.StatusIndicator do
+defmodule AnnotateWeb.Hologram.Components.StatusIndicator do
   @moduledoc "StyleGuideStatusIndicator."
   use Hologram.Component
 

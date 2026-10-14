@@ -16,7 +16,9 @@ defmodule Annotate.Organizations.InvitesTest do
       {:ok, user_b} = create_test_user()
 
       assert {:ok, :ok} = Annotate.Organizations.redeem_invite_for_user(invite, user_a)
-      assert {:error, :invite_exhausted} = Annotate.Organizations.redeem_invite_for_user(invite, user_b)
+
+      assert {:error, :invite_exhausted} =
+               Annotate.Organizations.redeem_invite_for_user(invite, user_b)
 
       token = Annotate.Repo.get!(@token_schema, invite.id)
       assert token.uses == 1
@@ -56,7 +58,9 @@ defmodule Annotate.Organizations.InvitesTest do
       {:ok, user_b} = create_test_user()
 
       assert {:ok, :ok} = Annotate.Organizations.redeem_invite_for_user(invite, user)
-      assert {:ok, :already_redeemed} = Annotate.Organizations.redeem_invite_for_user(invite, user)
+
+      assert {:ok, :already_redeemed} =
+               Annotate.Organizations.redeem_invite_for_user(invite, user)
 
       # The repeat burned nothing — the other use is still available.
       assert Annotate.Repo.get!(@token_schema, invite.id).uses == 1
@@ -73,7 +77,10 @@ defmodule Annotate.Organizations.InvitesTest do
 
       assert {:ok, :ok} = Annotate.Organizations.redeem_invite_for_user(invite, user_a)
       assert {:ok, :ok} = Annotate.Organizations.redeem_invite_for_user(invite, user_b)
-      assert {:error, :invite_exhausted} = Annotate.Organizations.redeem_invite_for_user(invite, user_c)
+
+      assert {:error, :invite_exhausted} =
+               Annotate.Organizations.redeem_invite_for_user(invite, user_c)
+
       assert Annotate.Repo.get!(@token_schema, invite.id).uses == 2
     end
   end
@@ -89,8 +96,13 @@ defmodule Annotate.Organizations.InvitesTest do
                })
 
       assert changeset.errors[:role]
+
       assert {:error, changeset} =
-               Annotate.Organizations.create_invite_token(%{organization_id: org.id, role: "emperor"})
+               Annotate.Organizations.create_invite_token(%{
+                 organization_id: org.id,
+                 role: "emperor"
+               })
+
       assert changeset.errors[:role]
     end
 
@@ -136,7 +148,12 @@ defmodule Annotate.Organizations.InvitesTest do
 
       assert {:error, :invite_exhausted} =
                Annotate.Auth.Registration.register_user_with_invite(
-                 %{user_name: uniq(email), email: email, password: "password123", name: %{first: "Seam", last: "Test"}},
+                 %{
+                   user_name: uniq(email),
+                   email: email,
+                   password: "password123",
+                   name: %{first: "Seam", last: "Test"}
+                 },
                  {:login, {email, "password123"}},
                  [status: :active, invite_token_id: invite.id],
                  invite
@@ -162,13 +179,20 @@ defmodule Annotate.Organizations.InvitesTest do
 
       assert {:ok, user} =
                Annotate.Auth.Registration.register_user_with_invite(
-                 %{user_name: uniq(email), email: email, password: "password123", name: %{first: "Seam", last: "Test"}},
+                 %{
+                   user_name: uniq(email),
+                   email: email,
+                   password: "password123",
+                   name: %{first: "Seam", last: "Test"}
+                 },
                  {:login, {email, "password123"}},
                  [status: :active, invite_token_id: invite.id],
                  invite
                )
 
-      assert {:ok, %{role: "member"}} = Annotate.Authz.authorize(user.id, "organization", org.id, "member")
+      assert {:ok, %{role: "member"}} =
+               Annotate.Authz.authorize(user.id, "organization", org.id, "member")
+
       assert Annotate.Repo.get!(@token_schema, invite.id).uses == 1
     end
   end
@@ -178,7 +202,11 @@ defmodule Annotate.Organizations.InvitesTest do
   # once unique_integer reached 5 digits (seed-dependent {:user_name, :invalid}).
   defp uniq(email) do
     base =
-      email |> String.split("@") |> hd() |> String.replace(~r/[^a-z0-9]/, "") |> String.slice(0, 10)
+      email
+      |> String.split("@")
+      |> hd()
+      |> String.replace(~r/[^a-z0-9]/, "")
+      |> String.slice(0, 10)
 
     "seam_#{base}_#{System.unique_integer([:positive])}"
   end

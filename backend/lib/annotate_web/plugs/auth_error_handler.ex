@@ -1,4 +1,4 @@
-defmodule StarterWeb.AuthErrorHandler do
+defmodule AnnotateWeb.AuthErrorHandler do
   import Plug.Conn
 
   @behaviour Guardian.Plug.ErrorHandler

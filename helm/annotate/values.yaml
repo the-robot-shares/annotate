@@ -40,33 +40,40 @@ migrate:
 database:
   host: app-timescaledb.apps.svc.cluster.local
   port: 5432
-  name: start_app
+  name: annotate
 
 redis:
   host: app-valkey.apps.svc.cluster.local
   port: 6379
-  db: 7
+  # db 16 — per-app logical db (foryou=15, startapp=7, drafts=11, learns=14…)
+  db: 16
 
 fleetIngest:
   # Fleet dashboard ingest endpoint for the daily FleetPush push.
   url: "https://fleet.noizu.com/api/v1/ingest/metrics"
 
 secrets:
-  name: startapp-secrets
+  # Materialized by the InfisicalSecret CR (monorepo apps/init annotate-site.tf)
+  # syncing /apps/annotate.
+  name: annotate-secrets
   keys:
-    dbUser: START_APP_DB_USER
-    dbPassword: START_APP_DB_PASSWORD
-    databaseUrl: START_APP_DATABASE_URL
-    secretKeyBase: START_APP_SECRET_KEY_BASE
-    guardianSecretKey: START_APP_GUARDIAN_SECRET_KEY
-    redisUrl: START_APP_REDIS_URL
+    dbUser: ANNOTATE_DB_USER
+    dbPassword: ANNOTATE_DB_PASSWORD
+    databaseUrl: ANNOTATE_DATABASE_URL
+    secretKeyBase: ANNOTATE_SECRET_KEY_BASE
+    guardianSecretKey: ANNOTATE_GUARDIAN_SECRET_KEY
+    redisUrl: ANNOTATE_REDIS_URL
     # Fleet dashboard (fleet.noizu.com) daily ingest bearer key. Optional
     # secretKeyRef in _helpers.tpl: until it lands in the synced secret the
     # pod boots without it and FleetPush no-ops (logs once).
-    fleetIngestKey: START_APP_FLEET_INGEST_KEY
-    sendgridApiKey: START_APP_SENDGRID_API_KEY
-    oidcClientId: START_APP_OIDC_CLIENT_ID
-    oidcClientSecret: START_APP_OIDC_CLIENT_SECRET
+    fleetIngestKey: ANNOTATE_FLEET_INGEST_KEY
+    sendgridApiKey: ""
+    oidcClientId: ANNOTATE_OIDC_CLIENT_ID
+    oidcClientSecret: ANNOTATE_OIDC_CLIENT_SECRET
+    # MinIO bucket `annotate` scoped user (monorepo kubernetes/init
+    # annotate-minio.tf), same wiring as timely.
+    awsAccessKeyId: AWS_ACCESS_KEY_ID
+    awsSecretAccessKey: AWS_SECRET_ACCESS_KEY
     googleClientId: ""
     googleClientSecret: ""
     facebookClientId: ""
@@ -93,8 +100,12 @@ sso:
   autoApproveDomains: ""
   oidc:
     # Default OIDC issuer for portfolio services (Authentik at auth.derobot.is)
-    # Example: https://auth.derobot.is/application/o/{app-slug}/
-    issuer: ""
+    issuer: "https://auth.derobot.is/application/o/annotate"
+    # Redirect registered on the Authentik client. The embed auth broker is the
+    # primary flow for this app (popup broker on the API host); the site SSO
+    # callback (https://annotate.therobotlives.com/auth/oidc/callback) is also
+    # registered on the same client.
+    redirectUri: "https://annotate-srv.therobotlives.com/embed/callback"
   saml:
     # Samly 1.4 expects raw metadata XML or a local metadata file path; it does
     # not fetch metadata URLs at runtime.
@@ -166,11 +177,16 @@ otel:
   serviceVersion: ""
 
 storage:
-  enabled: false
-  bucket: ""
+  # MinIO bucket `annotate` + scoped IAM user provisioned by Terraform:
+  # terraform/kubernetes/init/annotate-minio.tf (monorepo). Credentials come
+  # from the Infisical /apps/annotate section (AWS_ACCESS_KEY_ID /
+  # AWS_SECRET_ACCESS_KEY), synced into annotate-secrets by the InfisicalSecret
+  # CRD. Same wiring as tracktimo/timely.
+  enabled: true
+  bucket: "annotate"
   region: "us-east-1"
-  endpoint: ""
-  scheme: "https://"
+  endpoint: "http://minio-service.infra.svc.cluster.local:9000"
+  scheme: "http://"
 
 autoscaling:
   enabled: false

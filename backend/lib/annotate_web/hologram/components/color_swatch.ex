@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.ColorSwatch do
+defmodule AnnotateWeb.Hologram.Components.ColorSwatch do
   @moduledoc "StyleGuideColorSwatch."
   use Hologram.Component
 

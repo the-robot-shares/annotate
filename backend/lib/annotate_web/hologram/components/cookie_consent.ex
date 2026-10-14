@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.CookieConsent do
+defmodule AnnotateWeb.Hologram.Components.CookieConsent do
   @moduledoc """
   Category-level cookie consent banner (start-app cookie-consent port).
 

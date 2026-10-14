@@ -3,8 +3,8 @@ services:
     image: postgis/postgis:16-3.4-alpine
     environment:
       POSTGRES_USER: annotate
-      POSTGRES_PASSWORD: starter_ci
-      POSTGRES_DB: starter_test
+      POSTGRES_PASSWORD: annotate_ci
+      POSTGRES_DB: annotate_test
     healthcheck:
       test: pg_isready -U annotate
       interval: 5s
@@ -25,8 +25,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_USER: annotate
-      DB_PASS: starter_ci
-      DB_NAME: starter_test
+      DB_PASS: annotate_ci
+      DB_NAME: annotate_test
       DB_PORT: "5432"
     depends_on:
       postgres:
@@ -37,8 +37,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_USER: annotate
-      DB_PASS: starter_ci
-      DB_NAME: starter_test
+      DB_PASS: annotate_ci
+      DB_NAME: annotate_test
       DB_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY_BASE: ci-secret-key-base-must-be-at-least-64-bytes-long-for-phoenix-framework!!
