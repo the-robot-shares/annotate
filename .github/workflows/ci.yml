@@ -225,7 +225,7 @@ jobs:
   # Releases are gated on the backend suite (fleet rule 2026-10-07).
   build-push:
     needs: [test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository != 'the-robot-lives/annotate.therobotlives.com'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       short: ${{ steps.sha.outputs.short }}
