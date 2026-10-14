@@ -4,6 +4,7 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-14
 
+- Realtime fan-out (Phase 5): websocket-only Phoenix socket at `/socket/annotate` (custom `check_origin` MFA — registry-wide transport gate + per-site binding at connect), read-only `page:<site_slug>:<sha256(page_key)>` channel with join auth mirroring the REST thread listing (anonymous only when `public_read`; token must match site + origin claims), and broadcasts after every Comments commit (`thread_created`, `comment_created`, `comment_updated`, `comment_deleted`, `thread_resolved`, `thread_reopened`, `thread_anchor_updated`) rendered by the same REST JSON renderer; client pushes rejected `read_only`. Docs: `docs/API.md` § Realtime.
 - Phase 1b infra stand-up: chart wired for the annotate hosts — DB `annotate` on app-timescaledb, valkey db 16, secrets renamed `START_APP_*` → `ANNOTATE_*` in `annotate-secrets`, OIDC issuer `auth.derobot.is/application/o/annotate` with embed-broker redirect on annotate-srv, MinIO storage (bucket `annotate`), TLS pinned to the `therobotlives.com` wildcard secret. PR #2.
 - Scaffold hydrated from `the-robot-lives/hologram-start-app` (Starter → Annotate module/app/chart rename, provenance in `.base-hydration.yaml`). PR #1.
 - Phase 1 multi-tenant comments API: sites/commenters/pages/threads/comments/attachments/refresh_tokens schema (Liquibase 028–029), thread + comment + attachment controllers, HS256 access tokens w/ single-use refresh rotation, per-site CORS plug, guest comments, site-owner moderation, presigned S3 uploads + 24h pending sweeper. PR #1.
