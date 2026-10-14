@@ -2,8 +2,8 @@
 # loudly if the Guardian subject handler is missing. A cold build
 # `Code.ensure_loaded?`s every app module (seconds in interactive `mix test`);
 # warming here keeps that cost out of whichever async test lands first.
-Starter.EntityRepo.warm_sref_handlers()
-handlers = Starter.EntityRepo.sref_handlers()
+Annotate.EntityRepo.warm_sref_handlers()
+handlers = Annotate.EntityRepo.sref_handlers()
 
 Map.has_key?(handlers, "user-session") ||
   raise "sref handler table is missing \"user-session\": #{inspect(Map.keys(handlers))}"
@@ -17,9 +17,9 @@ ExUnit.start()
 # uncommitted row (multi-second stalls / pool timeouts). A fresh CI DB always
 # hits that path, so seed them up front here instead.
 for title <- ~w(Login SmartToken OIDC SAML Google Facebook GitHub LinkedIn) do
-  Starter.Repo.insert!(
-    %Starter.Schema.Auth.Providers.Provider{
-      id: UUID.uuid5(:oid, "Starter.Schema.Auth.Providers.Provider@#{title}"),
+  Annotate.Repo.insert!(
+    %Annotate.Schema.Auth.Providers.Provider{
+      id: UUID.uuid5(:oid, "Annotate.Schema.Auth.Providers.Provider@#{title}"),
       title: title
     },
     on_conflict: :nothing,
@@ -27,4 +27,4 @@ for title <- ~w(Login SmartToken OIDC SAML Google Facebook GitHub LinkedIn) do
   )
 end
 
-Ecto.Adapters.SQL.Sandbox.mode(Starter.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Annotate.Repo, :manual)

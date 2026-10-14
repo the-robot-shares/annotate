@@ -1,4 +1,4 @@
-defmodule Starter.Repo.Migrations.AddObanTables do
+defmodule Annotate.Repo.Migrations.AddObanTables do
   use Ecto.Migration
 
   def up do

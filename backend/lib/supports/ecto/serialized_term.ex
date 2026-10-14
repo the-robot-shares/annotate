@@ -1,4 +1,4 @@
-defmodule Starter.Ecto.SerializedTerm do
+defmodule Annotate.Ecto.SerializedTerm do
   use Ecto.Type
 
   @impl true

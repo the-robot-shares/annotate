@@ -27,7 +27,7 @@ sequenceDiagram
   participant U as User
   participant P as Hologram page
   participant C as command (server)
-  participant A as Starter.Hologram.Auth
+  participant A as Annotate.Hologram.Auth
   participant G as Guardian
 
   U->>P: /login email + password
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## Post-auth routing
 
-`Starter.Hologram.Auth.post_auth_path/1`:
+`Annotate.Hologram.Auth.post_auth_path/1`:
 
 1. `requires_profile_completion` → `/complete-registration`
 2. status `pending` / `waitlist` → `/pending-approval`

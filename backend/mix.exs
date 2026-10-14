@@ -1,9 +1,9 @@
-defmodule Starter.MixProject do
+defmodule Annotate.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :starter,
+      app: :annotate,
       version: "0.1.0",
       elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -22,7 +22,7 @@ defmodule Starter.MixProject do
 
   def application do
     [
-      mod: {Starter.Application, []},
+      mod: {Annotate.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -151,7 +151,7 @@ defmodule Starter.MixProject do
       {:opentelemetry_phoenix, "~> 2.0"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:opentelemetry_bandit, "~> 0.2"},
-      # Oban job spans (telemetry-handler bridge; setup() in Starter.Application)
+      # Oban job spans (telemetry-handler bridge; setup() in Annotate.Application)
       {:opentelemetry_oban, "~> 1.2"},
       {:logger_json, "~> 6.0"},
 

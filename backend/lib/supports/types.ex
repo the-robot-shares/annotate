@@ -1,5 +1,5 @@
 Postgrex.Types.define(
-  Starter.PostgrexTypes,
+  Annotate.PostgrexTypes,
   Ecto.Adapters.Postgres.extensions(),
   json: Jason
 )

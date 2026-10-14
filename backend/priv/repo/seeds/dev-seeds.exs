@@ -1,30 +1,30 @@
 dir = Path.dirname(__ENV__.file)
 Code.eval_file("#{dir}/prod-seeds.exs")
 
-alias Starter.Schema.Users.User
-alias Starter.Schema.Organizations.Organization
-alias Starter.Schema.Organizations.Membership
-alias Starter.Schema.Organizations.InviteToken
-alias Starter.Schema.Users.Credentials.UserCredential
-alias Starter.Schema.Versioned.Names.Name
-alias Starter.Schema.Versioned.Descriptions.Description
+alias Annotate.Schema.Users.User
+alias Annotate.Schema.Organizations.Organization
+alias Annotate.Schema.Organizations.Membership
+alias Annotate.Schema.Organizations.InviteToken
+alias Annotate.Schema.Users.Credentials.UserCredential
+alias Annotate.Schema.Versioned.Names.Name
+alias Annotate.Schema.Versioned.Descriptions.Description
 
-admin_id = UUID.uuid5(:oid, "Starter.Dev.Admin")
-dev_org_id = UUID.uuid5(:oid, "Starter.Dev.Organization")
-login_provider_id = UUID.uuid5(:oid, "Starter.Schema.Auth.Providers.Provider@Login")
+admin_id = UUID.uuid5(:oid, "Annotate.Dev.Admin")
+dev_org_id = UUID.uuid5(:oid, "Annotate.Dev.Organization")
+login_provider_id = UUID.uuid5(:oid, "Annotate.Schema.Auth.Providers.Provider@Login")
 
 seed "dev:admin-name" do
-  Starter.Repo.insert!(
-    %Name{id: UUID.uuid5(:oid, "Starter.Dev.Admin.Name"), first: "Admin", last: "User"},
+  Annotate.Repo.insert!(
+    %Name{id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Name"), first: "Admin", last: "User"},
     on_conflict: :nothing,
     conflict_target: :id
   )
 end
 
 seed "dev:admin-description" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %Description{
-      id: UUID.uuid5(:oid, "Starter.Dev.Admin.Description"),
+      id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Description"),
       title: "Admin",
       body: "Default development admin user"
     },
@@ -34,14 +34,14 @@ seed "dev:admin-description" do
 end
 
 seed "dev:admin-user" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %User{
       id: admin_id,
       user_name: "admin",
       handle: "admin",
-      name_id: UUID.uuid5(:oid, "Starter.Dev.Admin.Name"),
-      description_id: UUID.uuid5(:oid, "Starter.Dev.Admin.Description"),
-      email: "admin@starter.local",
+      name_id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Name"),
+      description_id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Description"),
+      email: "admin@annotate.local",
       hashed_password: Bcrypt.hash_pwd_salt("password123"),
       status: :active,
       verified: true,
@@ -53,14 +53,14 @@ seed "dev:admin-user" do
 end
 
 seed "dev:admin-credential" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %UserCredential{
-      id: UUID.uuid5(:oid, "Starter.Dev.Admin.Credential"),
+      id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Credential"),
       user_id: admin_id,
       auth_provider_id: login_provider_id,
       status: :active,
       settings: %{
-        "email" => "admin@starter.local",
+        "email" => "admin@annotate.local",
         "password" => Bcrypt.hash_pwd_salt("password123")
       },
       state: %{},
@@ -72,7 +72,7 @@ seed "dev:admin-credential" do
 end
 
 seed "dev:organization" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %Organization{
       id: dev_org_id,
       slug: "dev",
@@ -84,9 +84,9 @@ seed "dev:organization" do
 end
 
 seed "dev:admin-membership" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %Membership{
-      id: UUID.uuid5(:oid, "Starter.Dev.Admin.Membership"),
+      id: UUID.uuid5(:oid, "Annotate.Dev.Admin.Membership"),
       organization_id: dev_org_id,
       user_id: admin_id,
       role: "owner"
@@ -101,9 +101,9 @@ seed "dev:bootstrap-invite" do
   token_hash = Bcrypt.hash_pwd_salt(raw_token)
   key_prefix = String.slice(raw_token, 0, 8)
 
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %InviteToken{
-      id: UUID.uuid5(:oid, "Starter.Dev.BootstrapInvite"),
+      id: UUID.uuid5(:oid, "Annotate.Dev.BootstrapInvite"),
       organization_id: dev_org_id,
       created_by_user_id: admin_id,
       token_hash: token_hash,
@@ -125,13 +125,13 @@ seed "dev:bootstrap-invite" do
   ╚══════════════════════════════════════════════════════════════╝
 
   Dev admin credentials:
-    Email:    admin@starter.local
+    Email:    admin@annotate.local
     Password: password123
   """)
 end
 
 seed "dev:admin-magic-link-token" do
-  admin_ref = Starter.Users.User.ref(admin_id)
+  admin_ref = Annotate.Users.User.ref(admin_id)
   context = Noizu.Context.system()
 
   token =

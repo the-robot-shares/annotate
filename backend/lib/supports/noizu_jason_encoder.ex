@@ -1,4 +1,4 @@
-defmodule Starter.Support.NoizuJasonEncoder do
+defmodule Annotate.Support.NoizuJasonEncoder do
   @moduledoc false
 
   # <REMOVED UUID HERE> __using__ :: auto-generated pointer for public function __using__

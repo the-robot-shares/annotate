@@ -2,25 +2,29 @@ schema: "noizu.start_app.base_hydration.v1"
 start_app:
   version: "0.1.0"
   source:
-    template_path: "__SOURCE_TEMPLATE__"
-    tarball_path: "__TARBALL_PATH__"
-    tarball_md5: "__TARBALL_MD5__"
+    template_path: "Projects/hologram-start-app"
+    # Manual hydration (hologram-start-app has no tarball / scaffold tool —
+    # app-hydrator playbook: copy + token substitution by hand).
+    tarball_path: null
+    tarball_md5: null
+    template_repo: "the-robot-lives/hologram-start-app"
+    template_sha: "185a073fad38587acd1bd9baac0b89003ebc5f75"
 hydration:
-  tool: "init-proj-scaffold"
-  hydrated_at: "__HYDRATED_AT__"
+  tool: "manual-copy (app-hydrator Lane 1, hologram variant)"
+  hydrated_at: "2026-10-14"
   args:
-    project_dir: "__PROJECT_DIR__"
-    slug: "__SLUG__"
-    elixir_module: "__ELIXIR_MODULE__"
-    target: "__TARGET__"
-    helm_mode: "__HELM_MODE__"
+    project_dir: "annotate.therobotlives.com"
+    slug: "annotate"
+    elixir_module: "Annotate"
+    target: "repo root"
+    helm_mode: "default"
   derived:
-    web_module: "__WEB_MODULE__"
-    otp_app: "__OTP_APP__"
-    otp_app_web: "__OTP_APP_WEB__"
-    db_name: "__DB_NAME__"
-    db_name_test: "__DB_NAME_TEST__"
-    frontend_name: "__FRONTEND_NAME__"
-    host_port: "__HOST_PORT__"
+    web_module: "AnnotateWeb"
+    otp_app: "annotate"
+    otp_app_web: "annotate_web"
+    db_name: "annotate"
+    db_name_test: "annotate_test"
+    frontend_name: null
+    host_port: "8080"
 start_app_scaffold:
   applied: false

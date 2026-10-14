@@ -19,7 +19,7 @@ The Hologram sibling of [`components/start-app`](../start-app) (Next.js frontend
 ```
 Browser ──► nginx ──► Phoenix
                        ├── Hologram.Router  (pages, commands)
-                       └── StarterWeb.Router (JSON API, SSO)
+                       └── AnnotateWeb.Router (JSON API, SSO)
 ```
 
 ## Why
@@ -68,7 +68,7 @@ cd backend && mix test
 
 ## Scaffolding into a project
 
-Same hydration pattern as start-app: rename `Starter` → your module. Prefer the existing `start-app-scaffold` flow once this component is registered, or copy/rsync and sed-rename as with start-app.
+Same hydration pattern as start-app: rename `Annotate` → your module. Prefer the existing `start-app-scaffold` flow once this component is registered, or copy/rsync and sed-rename as with start-app.
 
 ## Comparison with start-app
 
@@ -96,8 +96,8 @@ Entity repo overrides must call `super`, not themselves: the template's
 need the same fix — see "Entity repo overrides call `super`" in
 `docs/TEST-HEALTH.md`.
 
-Entity handler warm-up: `Starter.Application.start/2` calls
-`Starter.EntityRepo.warm_sref_handlers()` (noizu_labs_entities ≥ 0.3.4) once the
+Entity handler warm-up: `Annotate.Application.start/2` calls
+`Annotate.EntityRepo.warm_sref_handlers()` (noizu_labs_entities ≥ 0.3.4) once the
 supervision tree is up, so the first requests after boot don't hit a cold
 sref → handler table (Guardian `ref.user-session.*` lookups would 401); failures
 only log. `backend/test/test_helper.exs` does the same before ExUnit starts and

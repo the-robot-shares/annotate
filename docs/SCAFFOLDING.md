@@ -25,14 +25,14 @@ init-proj-scaffold pos-app.noizu.com pos_app Pos \
 - Builds a tarball of this directory (excluding `.git`, deps/build artifacts,
   and generated `backend/priv/static/hologram/` bundles) and extracts it to
   the target.
-- Rewrites `Starter` / `StarterWeb` / `:starter` to the given module/OTP app
-  across `backend/**/*.{ex,exs}`, and renames `lib/starter*` and
-  `test/starter*` directories to match.
+- Rewrites `Annotate` / `AnnotateWeb` / `:annotate` to the given module/OTP app
+  across `backend/**/*.{ex,exs}`, and renames `lib/annotate*` and
+  `test/annotate*` directories to match.
 - Substitutes the `__TOKEN__` placeholders in `.base-hydration.yaml`
   (source template path, tarball md5, hydration args and derived names).
 - Emits a `docker-compose.override.yaml` port overlay (default host port 8080).
 
-The scaffold ships un-hydrated: `Starter` naming in code, placeholder tokens
+The scaffold ships un-hydrated: `Annotate` naming in code, placeholder tokens
 in `.base-hydration.yaml` with `applied: false`. Do not tokenize scaffold
 files beyond `.base-hydration.yaml` — the hydration tool performs the rename.
 

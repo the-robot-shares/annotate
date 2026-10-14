@@ -87,14 +87,14 @@ design/theme/
 
 > **Minimum viable theme**: `style-guide.meta.yaml` + `style-guide.vars.yaml` + `branding.yaml`. Everything else inherits from the base theme (`theme-style-guide/`).
 
-### Starter theme
+### Annotate theme
 
-A minimal starter theme is provided in `design/themes/starter/`. Copy it to bootstrap a new project:
+A minimal annotate theme is provided in `design/themes/annotate/`. Copy it to bootstrap a new project:
 
 ```bash
 # From the project root
 mkdir -p design/theme
-cp -r design/themes/starter design/theme/theme-myproject
+cp -r design/themes/annotate design/theme/theme-myproject
 
 # Edit the meta to match your project
 vi design/theme/theme-myproject/style-guide.meta.yaml
@@ -248,7 +248,7 @@ import type { StyleGuideConfig } from "@noizu/styleguide/types";
 ## 6. Workflow Summary
 
 ```
-1. Copy themes/starter/ -> design/theme/theme-{slug}/
+1. Copy themes/annotate/ -> design/theme/theme-{slug}/
 2. Edit style-guide.meta.yaml (name, slug)
 3. Edit style-guide.vars.yaml (colors, fonts, spacing)
 4. Edit branding.yaml (logo, intent, audience)
@@ -263,8 +263,8 @@ import type { StyleGuideConfig } from "@noizu/styleguide/types";
 # Scaffold the project
 init-proj-scaffold myproject.com myproject MyProject
 
-# Copy starter theme
-cp -r start-app/design/themes/starter projects/myproject.com/design/theme/theme-myproject
+# Copy annotate theme
+cp -r start-app/design/themes/annotate projects/myproject.com/design/theme/theme-myproject
 
 # Preview in the engine
 ./serve-project.sh myproject.com
@@ -277,4 +277,4 @@ cp -r start-app/design/themes/starter projects/myproject.com/design/theme/theme-
 | Path | Purpose |
 |---|---|
 | `README.md` | This guide |
-| `themes/starter/` | Minimal YAML seed files — copy to start a new theme |
+| `themes/annotate/` | Minimal YAML seed files — copy to start a new theme |

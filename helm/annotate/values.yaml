@@ -1,0 +1,201 @@
+replicas: 1
+domain: annotate.therobotlives.com
+appDomain: annotate-srv.therobotlives.com
+# appDomain is a sibling subdomain (not a child of domain), so the auth cookie
+# must be scoped to the shared parent zone for the OIDC/session flow to work
+# across both hosts. Defaults to ".{domain}" when unset.
+cookieDomain: ".therobotlives.com"
+
+backend:
+  image: ops.noizu.com/annotate/backend:latest
+  port: 4000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Frontend is served by the Phoenix+Hologram backend (no separate Next.js
+# container/image). The `frontend` stanza below exists only because
+# service.yaml/ingress.yaml unconditionally reference `.Values.frontend.port`
+# for a second named Service port -- it points at the same single backend
+# process/port, not a second container. No `image` key: nothing in this
+# chart's templates consumes `.Values.frontend.image`.
+frontend:
+  port: 4000
+
+migrate:
+  enabled: true
+  command: ["bin/annotate", "eval", "Annotate.Release.migrate()"]
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+database:
+  host: app-timescaledb.apps.svc.cluster.local
+  port: 5432
+  name: start_app
+
+redis:
+  host: app-valkey.apps.svc.cluster.local
+  port: 6379
+  db: 7
+
+fleetIngest:
+  # Fleet dashboard ingest endpoint for the daily FleetPush push.
+  url: "https://fleet.noizu.com/api/v1/ingest/metrics"
+
+secrets:
+  name: startapp-secrets
+  keys:
+    dbUser: START_APP_DB_USER
+    dbPassword: START_APP_DB_PASSWORD
+    databaseUrl: START_APP_DATABASE_URL
+    secretKeyBase: START_APP_SECRET_KEY_BASE
+    guardianSecretKey: START_APP_GUARDIAN_SECRET_KEY
+    redisUrl: START_APP_REDIS_URL
+    # Fleet dashboard (fleet.noizu.com) daily ingest bearer key. Optional
+    # secretKeyRef in _helpers.tpl: until it lands in the synced secret the
+    # pod boots without it and FleetPush no-ops (logs once).
+    fleetIngestKey: START_APP_FLEET_INGEST_KEY
+    sendgridApiKey: START_APP_SENDGRID_API_KEY
+    oidcClientId: START_APP_OIDC_CLIENT_ID
+    oidcClientSecret: START_APP_OIDC_CLIENT_SECRET
+    googleClientId: ""
+    googleClientSecret: ""
+    facebookClientId: ""
+    facebookClientSecret: ""
+    githubClientId: ""
+    githubClientSecret: ""
+    linkedinClientId: ""
+    linkedinClientSecret: ""
+    samlSpCert: ""
+    samlSpKey: ""
+
+mail:
+  fromName: ""
+  fromAddress: ""
+
+sso:
+  requireInvite: false
+  # SSO availability by email domain. Format:
+  # "example.com=oidc;corp.example=google,oidc"
+  domains: ""
+  # Domains whose SSO registrations are approved immediately. All other SSO
+  # registrations remain pending unless an invite activates them. Format:
+  # "example.com;corp.example" or "*" for every SSO-enabled domain.
+  autoApproveDomains: ""
+  oidc:
+    # Default OIDC issuer for portfolio services (Authentik at auth.derobot.is)
+    # Example: https://auth.derobot.is/application/o/{app-slug}/
+    issuer: ""
+  saml:
+    # Samly 1.4 expects raw metadata XML or a local metadata file path; it does
+    # not fetch metadata URLs at runtime.
+    idpMetadata: ""
+    idpMetadataFile: ""
+    # Deprecated. Kept for existing values files that used this as a file path.
+    idpMetadataUrl: ""
+    spEntityId: ""
+
+extraEnv: []
+
+configMap:
+  enabled: false
+  data: {}
+
+imagePullSecrets:
+  - name: ops-registry-secret
+
+analytics:
+  ga:
+    measurementId: ""
+  posthog:
+    key: ""
+    host: "https://us.i.posthog.com"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  cloudflareOnly: true
+
+tls:
+  enabled: true
+  secretName: therobotlives-tls
+  infisical:
+    enabled: true
+    resyncInterval: 300
+    hostAPI: https://infisical.noizu.com/api
+    credentialsSecret: universal-auth-credentials
+    credentialsNamespace: infra
+    projectSlug: k8-infra
+    envSlug: prod
+    secretsPath: "/apps/tls/therobotlives"
+    crtKey: THEROBOTLIVES_TLS_CRT
+    keyKey: THEROBOTLIVES_TLS_KEY
+
+# OpenTelemetry → SigNoz wiring (conventions: trl-infra docs/observability/
+# OTEL-CONVENTIONS.md). enabled=false ships NO OTEL_* env vars at all, so the
+# runtime no-ops (SDK disabled, zero connection attempts).
+otel:
+  enabled: true
+  # The fleet site key — MUST equal the site's entry in the fleet repo's
+  # app/priv/sites.yml (generated from docs/site-fleet/REGISTRY.md); SigNoz
+  # deep-links key off it exactly (https://apm.noizu.com/services/<key>).
+  # "annotate-app" is this scaffold's template placeholder.
+  fleetSiteKey: "annotate-app"
+  collectorEndpoint: "http://signoz-otel-collector.infra.svc:4318"
+  protocol: "http/protobuf"
+  sampler: "parentbased_traceidratio"
+  samplerArg: "1.0"
+  serviceNamespace: "portfolio"
+  # deployment.environment: prod | stage | dev per conventions; empty falls
+  # back to the release namespace.
+  deploymentEnvironment: ""
+  # service.version: deployed image sha/tag; empty falls back to the tag part
+  # of backend.image.
+  serviceVersion: ""
+
+storage:
+  enabled: false
+  bucket: ""
+  region: "us-east-1"
+  endpoint: ""
+  scheme: "https://"
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+sandbox:
+  enabled: false
+  image: ops.noizu.com/annotate/sandbox:latest
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  persistence:
+    enabled: false
+    size: 5Gi
+    storageClass: ""
+  service:
+    type: ClusterIP

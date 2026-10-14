@@ -1,6 +1,6 @@
 # Architecture — hologram-start-app
 
-Reusable starter template for portfolio projects that prefer **Hologram** (isomorphic Elixir UI) over Next.js. Two Docker containers — **Phoenix + Hologram backend**, **nginx reverse proxy** — sharing Postgres/Redis on the external Docker network.
+Reusable annotate template for portfolio projects that prefer **Hologram** (isomorphic Elixir UI) over Next.js. Two Docker containers — **Phoenix + Hologram backend**, **nginx reverse proxy** — sharing Postgres/Redis on the external Docker network.
 
 Sibling of [`components/start-app`](../../start-app) (Next.js). Backend domain logic, Liquibase schema, SSO, and style-guide YAML themes are shared; the UI layer is Hologram.
 
@@ -30,12 +30,12 @@ graph TB
 |-----------|---------|
 | **nginx** | Reverse proxy — all traffic to the unified backend |
 | **backend** | Phoenix 1.8 JSON API + Hologram pages/commands |
-| **Hologram UI** | `StarterWeb.Hologram.*` pages, components, sections; auth middleware (`require_auth`, `require_admin`) |
+| **Hologram UI** | `AnnotateWeb.Hologram.*` pages, components, sections; auth middleware (`require_auth`, `require_admin`) |
 | **Style-guide CSS** | YAML-driven design tokens served from `/themes/*`; this app owns the Hologram design-system components |
 | **PBAC engine** | Group/scoped-membership + JSONB policy authorization, evaluated in-database (see [PROJ-SCHEMA.md](PROJ-SCHEMA.md)) |
 | **Auth stack** | Guardian JWT (API), Hologram session (UI), smart tokens (email/magic link), SSO (OIDC via Authentik, domain policy via `SSO_DOMAINS`) |
-| **Workers** | Oban jobs — `CleanupWorker`, `EmailWorker`; webhooks via `Starter.Events.WebhookHandler` |
-| **Media pipeline** | Upload → transform (`Starter.Media.Transform`, ex_aws/vix) → variants cache; short-id + visibility scoping |
+| **Workers** | Oban jobs — `CleanupWorker`, `EmailWorker`; webhooks via `Annotate.Events.WebhookHandler` |
+| **Media pipeline** | Upload → transform (`Annotate.Media.Transform`, ex_aws/vix) → variants cache; short-id + visibility scoping |
 | **Makefile** | Build orchestration and project identity |
 | **helm/hologram-start-app/** | K8s chart (backend pod + migrate job + sandbox lane) |
 
@@ -45,8 +45,8 @@ nginx proxies `/socket` (WebSocket, Hologram client runtime) and `/` to the back
 
 | Pattern | Destination | Notes |
 |---------|-------------|-------|
-| `/api/v1/*`, `/health` | `StarterWeb.Router` | JSON API (JWT) |
-| `/auth/*` (OIDC/OAuth), `/sso/*` | `StarterWeb.Router` | SSO redirect flows + code exchange |
+| `/api/v1/*`, `/health` | `AnnotateWeb.Router` | JSON API (JWT) |
+| `/auth/*` (OIDC/OAuth), `/sso/*` | `AnnotateWeb.Router` | SSO redirect flows + code exchange |
 | `/socket` | `UserSocket` | Hologram client runtime channel |
 | `/themes/*`, `/twp/*`, static | Plug.Static | Design-system CSS + Tailwind Plus demos |
 | `/*` | `Hologram.Router` | Pages (see README for the page map) |
@@ -78,7 +78,7 @@ Access control is policy-based: users/groups hold `scoped_memberships` on resour
 
 ## Background & Events
 
-Oban-backed workers (`CleanupWorker`, `EmailWorker`) handle cleanup and mail; outbound `webhooks` deliver org events via `Starter.Events.WebhookHandler`. Redis backs rate limiting and runtime coordination (`Starter.Redis`).
+Oban-backed workers (`CleanupWorker`, `EmailWorker`) handle cleanup and mail; outbound `webhooks` deliver org events via `Annotate.Events.WebhookHandler`. Redis backs rate limiting and runtime coordination (`Annotate.Redis`).
 
 ## Observability
 

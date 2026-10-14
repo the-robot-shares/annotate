@@ -80,7 +80,7 @@ ENV MIX_ENV=prod
 # Hologram router and 404s every page. Pin the env explicitly.
 ENV HOLOGRAM_ENV=prod
 
-COPY --from=build --chown=nobody:root /app/_build/${MIX_ENV}/rel/starter ./
+COPY --from=build --chown=nobody:root /app/_build/${MIX_ENV}/rel/annotate ./
 
 USER nobody
 
@@ -89,4 +89,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:4000/health || exit 1
 
-CMD ["bin/starter", "start"]
+CMD ["bin/annotate", "start"]

@@ -79,7 +79,7 @@ SLUG_MAP := \
   tobornalp.com=tobornalp \
   foryou.therobotlives.com=foryou
 
-PROJECT_SLUG = $(or $(patsubst $(PROJECT_DIR)=%,%,$(filter $(PROJECT_DIR)=%,$(SLUG_MAP))),starter)
+PROJECT_SLUG = $(or $(patsubst $(PROJECT_DIR)=%,%,$(filter $(PROJECT_DIR)=%,$(SLUG_MAP))),annotate)
 REDIS_DB     = $(or $(patsubst $(PROJECT_DIR)=%,%,$(filter $(PROJECT_DIR)=%,$(REDIS_DB_MAP))),0)
 HOST_PORT    = $(or $(patsubst $(PROJECT_DIR)=%,%,$(filter $(PROJECT_DIR)=%,$(PORT_MAP))),8080)
 DB_NAME      = $(subst .,_,$(subst -,_,$(PROJECT_DIR)))_dev
@@ -91,7 +91,7 @@ DEV_COMPOSE = docker compose -p $(COMPOSE_NAME) -f docker-compose.yaml -f docker
 
 IMAGE_MIGRATIONS = $(PROJECT_DIR)/migrations:$(TAG)
 
-HELM_CHART_DIR    = helm/hologram-start-app
+HELM_CHART_DIR    = helm/annotate
 HELM_OCI_REGISTRY = oci://ghcr.io/the-robot-lives/charts
 
 .PHONY: help init regen \

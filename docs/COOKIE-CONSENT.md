@@ -1,6 +1,6 @@
 # Cookie Consent Policy
 
-This starter treats session, CSRF, security, load-balancing, and auth handoff
+This annotate treats session, CSRF, security, load-balancing, and auth handoff
 cookies as strictly necessary. They are disclosed in the cookie settings UI, but
 they are not optional and are not disabled by the preference form.
 

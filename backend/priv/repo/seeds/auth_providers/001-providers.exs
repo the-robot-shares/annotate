@@ -1,10 +1,10 @@
-alias Starter.Schema.Auth.Providers.Provider
+alias Annotate.Schema.Auth.Providers.Provider
 
-login_id = UUID.uuid5(:oid, "Starter.Schema.Auth.Providers.Provider@Login")
-smart_token_id = UUID.uuid5(:oid, "Starter.Schema.Auth.Providers.Provider@SmartToken")
+login_id = UUID.uuid5(:oid, "Annotate.Schema.Auth.Providers.Provider@Login")
+smart_token_id = UUID.uuid5(:oid, "Annotate.Schema.Auth.Providers.Provider@SmartToken")
 
 seed "auth-provider:login" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %Provider{
       id: login_id,
       title: "Login",
@@ -16,7 +16,7 @@ seed "auth-provider:login" do
 end
 
 seed "auth-provider:smart-token" do
-  Starter.Repo.insert!(
+  Annotate.Repo.insert!(
     %Provider{
       id: smart_token_id,
       title: "SmartToken",

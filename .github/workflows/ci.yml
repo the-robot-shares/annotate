@@ -31,7 +31,7 @@ env:
   # Template root inside the repo. Template repo: "." · hydrated apps: "app".
   APP_DIR: "."
   # Chart values file whose backend image tag CI bumps on release.
-  CHART_VALUES: helm/hologram-start-app/values.yaml
+  CHART_VALUES: helm/annotate/values.yaml
   REGISTRY: ops.noizu.com
   APP_IMAGE: ops.noizu.com/${{ github.event.repository.name }}/backend
   # The template repo itself never releases; hydrated copies do.
@@ -52,7 +52,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 5s --health-retries 10
-      # Starter.Redis (refresh-token JTI store) is a supervised child.
+      # Annotate.Redis (refresh-token JTI store) is a supervised child.
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
@@ -225,7 +225,7 @@ jobs:
   # Releases are gated on the backend suite (fleet rule 2026-10-07).
   build-push:
     needs: [test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository != 'the-robot-lives/hologram-start-app'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository != 'the-robot-lives/annotate.therobotlives.com'
     runs-on: ubuntu-latest
     outputs:
       short: ${{ steps.sha.outputs.short }}

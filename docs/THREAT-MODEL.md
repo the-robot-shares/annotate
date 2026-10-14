@@ -1,6 +1,6 @@
 # Threat Model — hologram-start-app
 
-Security counterpart to [PROJ-ARCH.md](PROJ-ARCH.md). Scope: the two-container stack (Phoenix + Hologram backend `:starter`, nginx reverse proxy), its auth/authz stack, media pipeline, webhook egress, sandbox lane, and the Helm-deployed perimeter. Structure map: [PROJ-LAYOUT.md](PROJ-LAYOUT.md). Because this repo is a **scaffold template**, the model describes the template's controls; hydrated products inherit them and must re-review per product.
+Security counterpart to [PROJ-ARCH.md](PROJ-ARCH.md). Scope: the two-container stack (Phoenix + Hologram backend `:annotate`, nginx reverse proxy), its auth/authz stack, media pipeline, webhook egress, sandbox lane, and the Helm-deployed perimeter. Structure map: [PROJ-LAYOUT.md](PROJ-LAYOUT.md). Because this repo is a **scaffold template**, the model describes the template's controls; hydrated products inherit them and must re-review per product.
 
 ## Trust Boundaries
 
@@ -18,7 +18,7 @@ Crown jewels: the Postgres data (users, credentials hashes, PBAC policies, media
 graph LR
     Internet -->|HTTPS| Ing[k8s Ingress / TLS]
     Ing --> Ng[nginx :80]
-    Ng -->|"/, /socket WS"| BE[Phoenix :starter]
+    Ng -->|"/, /socket WS"| BE[Phoenix :annotate]
     Ng -->|"/otel/"| OTel[OTLP collector]
     BE --> PG[(Postgres)]
     BE --> RD[(Redis)]
@@ -55,4 +55,4 @@ Session security (cross-cutting): SSO flow cookie is signed, `SameSite=Lax`, 900
 
 - **Shared external Docker network**: infra isolation is credential-based; a compromised peer container can reach Postgres/Redis ports. Accepted for the dev topology; k8s deploys use namespace + Secret boundaries.
 - **`/otel/` openness** accepted to keep browser RUM zero-config; revisit if the collector gains multi-tenant or costly backends.
-- **Scaffold drift**: hydrated projects rename `Starter` and may weaken defaults (auto-approve domains, rate limits); the template cannot enforce posture downstream.
+- **Scaffold drift**: hydrated projects rename `Annotate` and may weaken defaults (auto-approve domains, rate limits); the template cannot enforce posture downstream.

@@ -1,6 +1,6 @@
 # merge-notes — sep-1 branch sweep (2026-09-01)
 
-Hologram starter app scaffold. Swept per the 2026-09-01 branch-sweep recipe (session 58fc679b).
+Hologram annotate app scaffold. Swept per the 2026-09-01 branch-sweep recipe (session 58fc679b).
 
 - **Base**: `origin/develop` @98818d5 (2026-09-01) — freshest tip among origin/develop / origin/main / origin/mono-repo-dev by commit date.
 - **sep-1 tag**: skip(local) (points at base tip).

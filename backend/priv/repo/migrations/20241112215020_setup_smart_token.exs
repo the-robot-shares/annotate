@@ -1,4 +1,4 @@
-defmodule Starter.Repo.Migrations.SetupSmartToken do
+defmodule Annotate.Repo.Migrations.SetupSmartToken do
   use Ecto.Migration
 
   def up, do: SmartToken.Migration.up(1)

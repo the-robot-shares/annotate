@@ -1,6 +1,6 @@
 # Architecture Summary — hologram-start-app
 
-Two-container Docker stack: Phoenix 1.8 + Hologram backend (single `:starter` app serving `~HOLO` pages and the `/api/v1/*` JSON API) and nginx reverse proxy; Postgres/Redis on a shared external Docker network. Hologram sibling of `components/start-app` (Next.js); shares backend domain model, Liquibase schema, SSO, and style-guide YAML themes. Deployable via Docker Compose (local) or Helm chart (Kubernetes/ArgoCD).
+Two-container Docker stack: Phoenix 1.8 + Hologram backend (single `:annotate` app serving `~HOLO` pages and the `/api/v1/*` JSON API) and nginx reverse proxy; Postgres/Redis on a shared external Docker network. Hologram sibling of `components/start-app` (Next.js); shares backend domain model, Liquibase schema, SSO, and style-guide YAML themes. Deployable via Docker Compose (local) or Helm chart (Kubernetes/ArgoCD).
 
 ## Components
 
@@ -16,7 +16,7 @@ Two-container Docker stack: Phoenix 1.8 + Hologram backend (single `:starter` ap
 
 ## Request Routing
 
-nginx forwards `/socket` (WebSocket) and `/` to the backend on :4000. Phoenix splits traffic between `StarterWeb.Router` (`/api/v1/*`, `/health`, `/auth/*`, `/sso/*`), static (`/themes/*`, `/twp/*`), and `Hologram.Router` (all pages). Plugs: auth pipeline, CORS, Hammer rate limiting, OTel metadata.
+nginx forwards `/socket` (WebSocket) and `/` to the backend on :4000. Phoenix splits traffic between `AnnotateWeb.Router` (`/api/v1/*`, `/health`, `/auth/*`, `/sso/*`), static (`/themes/*`, `/twp/*`), and `Hologram.Router` (all pages). Plugs: auth pipeline, CORS, Hammer rate limiting, OTel metadata.
 
 ## Auth & SSO
 
@@ -36,7 +36,7 @@ Local: `make init` → `make build` → `make run`; dev mode `make run-dev` (`mi
 
 ## Scaffold Flow
 
-Same hydration pattern as start-app: `init-proj-scaffold` builds/caches the tarball, extracts to the target project, and hydrates (rename `Starter` → module, `:starter` → otp_app, per `.base-hydration.yaml` placeholders). See `docs/SCAFFOLDING.md`.
+Same hydration pattern as start-app: `init-proj-scaffold` builds/caches the tarball, extracts to the target project, and hydrates (rename `Annotate` → module, `:annotate` → otp_app, per `.base-hydration.yaml` placeholders). See `docs/SCAFFOLDING.md`.
 
 ## Technology Stack
 

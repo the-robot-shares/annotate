@@ -1,18 +1,18 @@
-defmodule StarterWeb.ConnCase do
+defmodule AnnotateWeb.ConnCase do
   use ExUnit.CaseTemplate
 
   using do
     quote do
       import Plug.Conn
       import Phoenix.ConnTest
-      import StarterWeb.ConnCase
+      import AnnotateWeb.ConnCase
 
-      @endpoint StarterWeb.Endpoint
+      @endpoint AnnotateWeb.Endpoint
     end
   end
 
   setup tags do
-    Starter.DataCase.setup_sandbox(tags)
+    Annotate.DataCase.setup_sandbox(tags)
     n = System.unique_integer([:positive])
     remote_ip = {127, rem(div(n, 65_536), 256), rem(div(n, 256), 256), rem(n, 256)}
     {:ok, conn: %{Phoenix.ConnTest.build_conn() | remote_ip: remote_ip}}
@@ -26,11 +26,11 @@ defmodule StarterWeb.ConnCase do
   """
   # <REMOVED UUID HERE> setup_user_and_token :: Creates a test user with login credential and returns access/refresh tokens.
   def setup_user_and_token(_context \\ %{}) do
-    login_provider_id = UUID.uuid5(:oid, "Starter.Schema.Auth.Providers.Provider@Login")
+    login_provider_id = UUID.uuid5(:oid, "Annotate.Schema.Auth.Providers.Provider@Login")
 
     # Ensure the login auth provider exists (idempotent)
-    Starter.Repo.insert!(
-      %Starter.Schema.Auth.Providers.Provider{
+    Annotate.Repo.insert!(
+      %Annotate.Schema.Auth.Providers.Provider{
         id: login_provider_id,
         title: "Login",
         description: "Email and password authentication"
@@ -44,7 +44,7 @@ defmodule StarterWeb.ConnCase do
     password = "password123"
     hashed = Bcrypt.hash_pwd_salt(password)
 
-    user = %Starter.Schema.Users.User{
+    user = %Annotate.Schema.Users.User{
       id: Ecto.UUID.generate(),
       email: email,
       user_name: "testuser#{uniq}",
@@ -55,9 +55,9 @@ defmodule StarterWeb.ConnCase do
       flagged: false
     }
 
-    {:ok, user} = Starter.Repo.insert(user)
+    {:ok, user} = Annotate.Repo.insert(user)
 
-    credential = %Starter.Schema.Users.Credentials.UserCredential{
+    credential = %Annotate.Schema.Users.Credentials.UserCredential{
       id: Ecto.UUID.generate(),
       user_id: user.id,
       auth_provider_id: login_provider_id,
@@ -67,32 +67,32 @@ defmodule StarterWeb.ConnCase do
       fingerprint: "#{email}:#{hashed}"
     }
 
-    {:ok, _credential} = Starter.Repo.insert(credential)
+    {:ok, _credential} = Annotate.Repo.insert(credential)
 
-    session = %Starter.Schema.Users.Sessions.UserSession{
+    session = %Annotate.Schema.Users.Sessions.UserSession{
       id: Ecto.UUID.generate(),
       user_id: user.id,
       status: :active,
       details: %{}
     }
 
-    {:ok, session} = Starter.Repo.insert(session)
+    {:ok, session} = Annotate.Repo.insert(session)
 
     # Build entity-layer session struct for Guardian signing
-    session_entity = %Starter.Users.Sessions.UserSession{
+    session_entity = %Annotate.Users.Sessions.UserSession{
       id: session.id,
-      user: {:ref, Starter.Users.User, user.id},
+      user: {:ref, Annotate.Users.User, user.id},
       status: :active,
       details: %{}
     }
 
     {:ok, access_token, _claims} =
-      Starter.Guardian.encode_and_sign(session_entity, %{}, token_type: "access", ttl: {1, :hour})
+      Annotate.Guardian.encode_and_sign(session_entity, %{}, token_type: "access", ttl: {1, :hour})
 
     {:ok, refresh_token, %{"jti" => jti}} =
-      Starter.Guardian.encode_and_sign(session_entity, %{}, token_type: "refresh", ttl: {7, :day})
+      Annotate.Guardian.encode_and_sign(session_entity, %{}, token_type: "refresh", ttl: {7, :day})
 
-    Starter.Auth.TokenStore.store_refresh_jti(jti)
+    Annotate.Auth.TokenStore.store_refresh_jti(jti)
 
     %{
       user: user,

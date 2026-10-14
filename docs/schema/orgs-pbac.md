@@ -17,7 +17,7 @@ Organizations plus the policy-based access control (PBAC) family (changesets 013
 
 ## memberships (legacy)
 
-Original flat role table. Changeset 021 migrated its rows into `scoped_memberships` and renamed the table to `memberships_legacy` (kept for rollback safety). Do not write to it; `Starter.Schema.Organizations.Membership` retains a read-side schema.
+Original flat role table. Changeset 021 migrated its rows into `scoped_memberships` and renamed the table to `memberships_legacy` (kept for rollback safety). Do not write to it; `Annotate.Schema.Organizations.Membership` retains a read-side schema.
 
 | Column | Type | Nullable | Default |
 |--------|------|----------|---------|

@@ -32,9 +32,9 @@ protocol, resource attributes) has house defaults.
 | `OTEL_TRACES_SAMPLER_ARG` | ratio for ratio samplers (`"1.0"` default) | chart `observability.samplerArg` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` = `http://signoz-otel-collector.infra.svc:4318` | in-cluster OTLP (HTTP/protobuf) | chart default; `:4317`+`grpc` is the alternative |
 
-Pure helper: `Starter.Observability` (unit-tested) builds resource attrs and
+Pure helper: `Annotate.Observability` (unit-tested) builds resource attrs and
 maps sampler/protocol values. Log correlation: the endpoint plug
-`StarterWeb.Plugs.OtelLoggerMetadata` lifts the active span's ids into
+`AnnotateWeb.Plugs.OtelLoggerMetadata` lifts the active span's ids into
 `Logger.metadata`, and the default formatter's metadata allowlist
 (`[:request_id, :trace_id, :span_id]`) renders them; with no span the plug
 is a no-op. (Per-request/per-job processes keep the ids scoped; the Erlang
@@ -48,7 +48,7 @@ the same endpoint gate also arms a metrics reader
 interval, `v1/metrics` appended to the same collector endpoint). Metrics ride
 the identical `service.name` resource as traces — no separate identity.
 
-`Starter.Observability.Metrics.setup()` runs at boot next to the four trace
+`Annotate.Observability.Metrics.setup()` runs at boot next to the four trace
 setups and, when the endpoint is set:
 
 1. registers observable gauges for the telemetry_poller-canonical BEAM
@@ -100,7 +100,7 @@ in-cluster kill switch if a site ever needs tracing off.
 
 ## Relation to FleetPush
 
-The FleetPush worker (PR #31, `Starter.FleetPush`) pushes **fleet activity
+The FleetPush worker (PR #31, `Annotate.FleetPush`) pushes **fleet activity
 metrics** to fleet.noizu.com daily — a separate concern from OTel tracing.
 Both may run at once; they use different env keys
 (`FLEET_INGEST_URL`/`FLEET_INGEST_KEY` vs `OTEL_*`) and different
@@ -108,7 +108,7 @@ destinations.
 
 ## Frontend note
 
-This starter has **no Node/Next.js frontend** — the UI is Hologram
+This annotate has **no Node/Next.js frontend** — the UI is Hologram
 (isomorphic Elixir) served by the same BEAM process, so there is no
-separate frontend service to instrument. For the Elixir + Next.js starter
+separate frontend service to instrument. For the Elixir + Next.js annotate
 (with a browser-side OTel setup), see **start-app**.

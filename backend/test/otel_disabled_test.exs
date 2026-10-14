@@ -6,7 +6,7 @@ defmodule OtelDisabledTest do
   forever, spamming deploy logs with failed_connect errors.
   """
   use ExUnit.Case, async: false
-  # async: false — Starter.ObservabilityLiveTest restarts the SDK globally
+  # async: false — Annotate.ObservabilityLiveTest restarts the SDK globally
   # (stop → sdk_disabled: false → start) to prove live-span log correlation;
   # this test asserts the disabled state, so the two must not interleave.
 

@@ -1,7 +1,7 @@
 import Config
 
-config :starter, Starter.Repo,
-  username: System.get_env("DB_USER", "starter"),
+config :annotate, Annotate.Repo,
+  username: System.get_env("DB_USER", "annotate"),
   password: System.get_env("DB_PASS", "starter_dev"),
   hostname: System.get_env("DB_HOST", "localhost"),
   database: System.get_env("DB_NAME", "starter_dev"),
@@ -10,7 +10,7 @@ config :starter, Starter.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :starter, StarterWeb.Endpoint,
+config :annotate, AnnotateWeb.Endpoint,
   http: [
     ip:
       case System.get_env("PHX_IP") do
@@ -23,10 +23,10 @@ config :starter, StarterWeb.Endpoint,
   code_reloader: true,
   debug_errors: true
 
-config :starter, dev_routes: true
+config :annotate, dev_routes: true
 
 # Public app URL — Hologram UI is served by this Phoenix app (same host/port).
-config :starter, :frontend_url, System.get_env("FRONTEND_URL", "http://localhost:5585")
+config :annotate, :frontend_url, System.get_env("FRONTEND_URL", "http://localhost:5585")
 
 config :logger, :default_formatter, format: "[$level] $message\n"
 

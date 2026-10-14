@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 011-create-webhooks
-      author: starter
+      author: annotate
       changes:
         - createTable:
             tableName: webhooks

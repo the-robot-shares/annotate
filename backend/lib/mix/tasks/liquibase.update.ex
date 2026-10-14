@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Liquibase.Update do
       Mix.raise("liquibase CLI is required to apply the canonical start-app schema")
     end
 
-    repo_config = Application.fetch_env!(:starter, Starter.Repo)
+    repo_config = Application.fetch_env!(:annotate, Annotate.Repo)
     host = Keyword.get(repo_config, :hostname, "localhost")
     port = Keyword.get(repo_config, :port, 5432)
     database = Keyword.fetch!(repo_config, :database)

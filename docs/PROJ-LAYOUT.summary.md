@@ -2,8 +2,8 @@
 
 ```
 hologram-start-app/
-├── backend/                        # Phoenix 1.8 + Hologram app (:starter) — see backend/docs/PROJ-LAYOUT.md
-│   ├── lib/                        #   Starter + StarterWeb (entities, schema, auth, authz, hologram, style_guide)
+├── backend/                        # Phoenix 1.8 + Hologram app (:annotate) — see backend/docs/PROJ-LAYOUT.md
+│   ├── lib/                        #   Annotate + AnnotateWeb (entities, schema, auth, authz, hologram, style_guide)
 │   ├── config/                     #   Mix config (dev/test/prod/runtime)
 │   ├── themes/                     #   Live theme YAML (runtime-discovered)
 │   ├── db/                         #   Liquibase changelogs 000–025 + migration runner image
@@ -15,7 +15,7 @@ hologram-start-app/
 ├── assets/                         # Design-system source
 │   ├── theme-style-guide/          #   Canonical theme YAML
 │   └── scripts/generate-css.ts     #   CSS generator (make regen)
-├── design/                         # Design artifacts (themes/starter seed)
+├── design/                         # Design artifacts (themes/annotate seed)
 ├── nginx/                          # Reverse proxy (nginx.conf, Dockerfile)
 ├── helm/hologram-start-app/        # Helm chart (templates + values.yaml, values-sandbox.yaml)
 ├── sandbox/                        # Sandbox container config (supervisord, smb.conf, entrypoint)

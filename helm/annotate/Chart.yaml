@@ -1,0 +1,17 @@
+apiVersion: v2
+name: annotate
+description: "Annotate — embeddable comments service (Phoenix API + Hologram marketing site)"
+version: 0.1.0
+appVersion: "0.1.0"
+type: application
+keywords:
+  - annotate
+  - hologram
+  - phoenix
+  - elixir
+  - scaffold
+maintainers:
+  - name: Keith Brings
+    email: keith.brings@noizu.com
+sources:
+  - https://github.com/the-robot-lives/incubator

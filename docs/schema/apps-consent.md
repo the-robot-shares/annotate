@@ -2,7 +2,7 @@
 
 ## webhooks
 
-Org-scoped outbound webhook endpoints (011). Delivery handled by `Starter.Events.WebhookHandler`.
+Org-scoped outbound webhook endpoints (011). Delivery handled by `Annotate.Events.WebhookHandler`.
 
 | Column | Type | Nullable | Default |
 |--------|------|----------|---------|
@@ -40,7 +40,7 @@ Org-scoped projects (017); also the second `resource_type` in the PBAC model.
 
 ## cookie_consents
 
-Cookie consent records per user or anonymous browser session (025). Mirrors `Starter.Schema.CookieConsent`; feature notes in `docs/COOKIE-CONSENT.md`.
+Cookie consent records per user or anonymous browser session (025). Mirrors `Annotate.Schema.CookieConsent`; feature notes in `docs/COOKIE-CONSENT.md`.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|

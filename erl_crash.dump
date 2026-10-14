@@ -89390,7 +89390,7 @@ date_to_gregorian_days
 '-crash_linked/2-fun-0-'
 format_stacktrace_entry
 '-format_stacktrace/1-fun-0-'
-starter
+annotate
 sup_name
 sup_context
 report_supervisor_progress

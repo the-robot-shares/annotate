@@ -1,13 +1,13 @@
 # Project Layout — hologram-start-app
 
-Hologram sibling of `components/start-app`. Two-container Docker stack: **Phoenix 1.8 + Hologram backend** (single app `:starter` serving both `~HOLO` pages and the `/api/v1/*` JSON API) and **nginx reverse proxy** — orchestrated by Make and docker-compose, connecting to shared Postgres/Redis on a shared Docker network. No separate frontend; UI is Elixir (Hologram 0.10).
+Hologram sibling of `components/start-app`. Two-container Docker stack: **Phoenix 1.8 + Hologram backend** (single app `:annotate` serving both `~HOLO` pages and the `/api/v1/*` JSON API) and **nginx reverse proxy** — orchestrated by Make and docker-compose, connecting to shared Postgres/Redis on a shared Docker network. No separate frontend; UI is Elixir (Hologram 0.10).
 
 Design system: **@noizu/styleguide** YAML themes → CSS. This app owns the design-system Hologram components and the interactive style-guide viewer (`/styleguide`).
 
 ```
 hologram-start-app/
-├── backend/                        # Phoenix + Hologram app (:starter) → [backend/docs/PROJ-LAYOUT.md](../backend/docs/PROJ-LAYOUT.md)
-│   ├── lib/                        #   Starter + StarterWeb (entities, schema, auth, authz, hologram pages/components, style_guide)
+├── backend/                        # Phoenix + Hologram app (:annotate) → [backend/docs/PROJ-LAYOUT.md](../backend/docs/PROJ-LAYOUT.md)
+│   ├── lib/                        #   Annotate + AnnotateWeb (entities, schema, auth, authz, hologram pages/components, style_guide)
 │   ├── config/                     #   Mix config per environment (+ runtime.exs)
 │   ├── themes/                     #   Live theme YAML (theme-style-guide, theme-swiss, theme-sumi-e, theme-cyberpunk) — discovered at runtime
 │   ├── db/                         #   Liquibase schema management → [PROJ-SCHEMA.md](PROJ-SCHEMA.md)
@@ -23,7 +23,7 @@ hologram-start-app/
 │   ├── theme-style-guide/          #   Canonical theme YAML (vars, palettes, typography, glyphs, snippets, …)
 │   └── scripts/generate-css.ts     #   CSS generator (Node side of @noizu/styleguide; `make regen`)
 ├── design/                         # Design artifacts → [design/README.md](../design/README.md)
-│   └── themes/starter/             #   Starter theme seed (branding, meta, vars)
+│   └── themes/annotate/             #   Annotate theme seed (branding, meta, vars)
 ├── nginx/                          # Reverse proxy
 │   ├── nginx.conf                  #   Routes: /socket → backend (WS), /otel/ → collector, / → backend (Hologram pages + API)
 │   └── Dockerfile                  #   Nginx container build

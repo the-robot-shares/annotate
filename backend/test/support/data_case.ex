@@ -1,24 +1,24 @@
-defmodule Starter.DataCase do
+defmodule Annotate.DataCase do
   use ExUnit.CaseTemplate
 
   using do
     quote do
-      alias Starter.Repo
+      alias Annotate.Repo
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Starter.DataCase
+      import Annotate.DataCase
     end
   end
 
   setup tags do
-    Starter.DataCase.setup_sandbox(tags)
+    Annotate.DataCase.setup_sandbox(tags)
     :ok
   end
 
   # <REMOVED UUID HERE> setup_sandbox :: auto-generated pointer for public function setup_sandbox
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Starter.Repo, shared: not tags[:async])
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Annotate.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 end

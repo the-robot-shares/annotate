@@ -1,11 +1,11 @@
-defmodule Starter.Migration do
+defmodule Annotate.Migration do
   # <REMOVED UUID HERE> __using__ :: auto-generated pointer for public function __using__
   defmacro __using__(_) do
     quote do
       use Ecto.Migration
       import Ecto.Query
       import Ecto.Changeset
-      import Starter.Migration
+      import Annotate.Migration
     end
   end
 

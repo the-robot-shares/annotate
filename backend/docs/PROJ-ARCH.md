@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phoenix 1.8 JSON API backend (app name: `Starter`) with JWT authentication, PostgreSQL with spatial/vector extensions, and an OTP supervision tree. Serves as the incubator starter template — projects fork from this base.
+Phoenix 1.8 JSON API backend (app name: `Annotate`) with JWT authentication, PostgreSQL with spatial/vector extensions, and an OTP supervision tree. Serves as the incubator annotate template — projects fork from this base.
 
 API-only (no LiveView rendering). Bandit HTTP server. All responses are JSON.
 
@@ -11,19 +11,19 @@ API-only (no LiveView rendering). Bandit HTTP server. All responses are JSON.
 ```mermaid
 graph TB
     Client[Client App] -->|HTTP JSON| Endpoint
-    Endpoint[StarterWeb.Endpoint] -->|CORS → RequestId → Telemetry → Parsers| Router
-    Router[StarterWeb.Router] -->|public| PublicRoutes["/health, /api/v1/auth/*"]
+    Endpoint[AnnotateWeb.Endpoint] -->|CORS → RequestId → Telemetry → Parsers| Router
+    Router[AnnotateWeb.Router] -->|public| PublicRoutes["/health, /api/v1/auth/*"]
     Router -->|authenticated pipeline| ProtectedRoutes["/api/v1/auth/me"]
     ProtectedRoutes --> AuthPipeline[Guardian AuthPipeline]
     AuthPipeline -->|VerifyHeader → EnsureAuthenticated → LoadResource| Controllers
 
     PublicRoutes --> AuthCtrl[AuthController]
     Controllers --> AuthCtrl
-    AuthCtrl --> Accounts[Starter.Accounts]
-    Accounts --> Repo[Starter.Repo]
+    AuthCtrl --> Accounts[Annotate.Accounts]
+    Accounts --> Repo[Annotate.Repo]
     Repo --> PG[(PostgreSQL + PostGIS + pgvector)]
 
-    AuthCtrl --> Guardian[Starter.Guardian]
+    AuthCtrl --> Guardian[Annotate.Guardian]
     Guardian -->|JWT encode/decode| AuthCtrl
 ```
 
@@ -31,14 +31,14 @@ graph TB
 
 | Component | Purpose |
 |-----------|---------|
-| `Starter.Application` | OTP supervisor — boots Telemetry, Repo, Migrator, DNSCluster, PubSub, Endpoint |
-| `Starter.Repo` | Ecto repo — Postgres with UUID primary keys, custom Postgrex types |
-| `Starter.Accounts` | User context — registration, lookup, bcrypt authentication |
-| `Starter.Guardian` | JWT token encoding/decoding via Guardian |
-| `StarterWeb.Endpoint` | HTTP entry point — CORS, request parsing, routing |
-| `StarterWeb.Router` | Route definitions — public + authenticated pipelines |
-| `StarterWeb.AuthPipeline` | Guardian plug pipeline — Bearer header verification |
-| `StarterWeb.Plugs.CORS` | Custom CORS plug — reflects request origin |
+| `Annotate.Application` | OTP supervisor — boots Telemetry, Repo, Migrator, DNSCluster, PubSub, Endpoint |
+| `Annotate.Repo` | Ecto repo — Postgres with UUID primary keys, custom Postgrex types |
+| `Annotate.Accounts` | User context — registration, lookup, bcrypt authentication |
+| `Annotate.Guardian` | JWT token encoding/decoding via Guardian |
+| `AnnotateWeb.Endpoint` | HTTP entry point — CORS, request parsing, routing |
+| `AnnotateWeb.Router` | Route definitions — public + authenticated pipelines |
+| `AnnotateWeb.AuthPipeline` | Guardian plug pipeline — Bearer header verification |
+| `AnnotateWeb.Plugs.CORS` | Custom CORS plug — reflects request origin |
 
 ## Authentication Flow
 
@@ -48,7 +48,7 @@ Guardian encodes user ID as JWT subject. `AuthPipeline` verifies + loads the use
 
 ## Data Layer
 
-PostgreSQL with custom Postgrex type module (`Starter.PostgrexTypes`) registering:
+PostgreSQL with custom Postgrex type module (`Annotate.PostgrexTypes`) registering:
 - **pgvector** — vector similarity search
 - **PostGIS** — spatial data types
 

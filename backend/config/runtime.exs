@@ -1,7 +1,7 @@
 import Config
 
 if System.get_env("PHX_SERVER") do
-  config :starter, StarterWeb.Endpoint, server: true
+  config :annotate, AnnotateWeb.Endpoint, server: true
 end
 
 # Secret material for dev/test: prefer an injected value (.env) and otherwise
@@ -18,19 +18,19 @@ secret_key_base =
     :crypto.strong_rand_bytes(48) |> Base.encode64() |> binary_part(0, 64)
 
 # Plug options are evaluated at compile time, so the session salt is read at
-# runtime by StarterWeb.Plugs.Session.init/1 from app env (see config.exs:
+# runtime by AnnotateWeb.Plugs.Session.init/1 from app env (see config.exs:
 # :plug_init_mode, :runtime).
 session_signing_salt =
   System.get_env("SESSION_SIGNING_SALT") ||
     :crypto.strong_rand_bytes(24) |> Base.encode16(case: :lower) |> binary_part(0, 48)
 
-config :starter, StarterWeb.Endpoint,
+config :annotate, AnnotateWeb.Endpoint,
   secret_key_base: secret_key_base,
   session_signing_salt: session_signing_salt
 
-config :starter, :redis,
+config :annotate, :redis,
   uri: System.get_env("REDIS_URL") || "redis://localhost:6379/0",
-  key_prefix: System.get_env("REDIS_KEY_PREFIX", "starter:")
+  key_prefix: System.get_env("REDIS_KEY_PREFIX", "annotate:")
 
 parse_sso_domains = fn
   nil ->
@@ -97,30 +97,30 @@ end
 # failed_connect errors.
 if otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT") do
   config :opentelemetry_exporter,
-    otlp_protocol: Starter.Observability.protocol(System.get_env("OTEL_EXPORTER_OTLP_PROTOCOL")),
+    otlp_protocol: Annotate.Observability.protocol(System.get_env("OTEL_EXPORTER_OTLP_PROTOCOL")),
     otlp_endpoint: otel_endpoint
 
   otel_resource =
     %{}
-    |> Map.new(Starter.Observability.resource_env_keys(), fn key ->
+    |> Map.new(Annotate.Observability.resource_env_keys(), fn key ->
       {key, System.get_env(key)}
     end)
-    |> Starter.Observability.resource_attributes()
+    |> Annotate.Observability.resource_attributes()
     |> Map.put_new(
       "service.version",
-      Application.spec(:starter, :vsn) |> to_string()
+      Application.spec(:annotate, :vsn) |> to_string()
     )
 
   config :opentelemetry,
     span_processor: :batch,
     sampler:
-      Starter.Observability.sampler_spec(
+      Annotate.Observability.sampler_spec(
         System.get_env("OTEL_TRACES_SAMPLER", "parentbased_traceidratio"),
         System.get_env("OTEL_TRACES_SAMPLER_ARG", "1.0")
       ),
     resource: otel_resource
 
-  # Metrics leg (Starter.Observability.Metrics): one periodic reader exporting
+  # Metrics leg (Annotate.Observability.Metrics): one periodic reader exporting
   # over OTLP. The exporter reads OTEL_EXPORTER_OTLP_ENDPOINT itself and appends
   # v1/metrics; the resource (service.name/namespace/version) comes from the
   # same env the traces resource uses, so metrics land on the same service.
@@ -150,7 +150,7 @@ if config_env() == :prod do
       For example: ecto://user:pass@host/database
       """
 
-  config :starter, Starter.Repo,
+  config :annotate, Annotate.Repo,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
@@ -171,7 +171,7 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
-  config :starter, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :annotate, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   guardian_secret =
     System.get_env("GUARDIAN_SECRET_KEY") ||
@@ -180,24 +180,24 @@ if config_env() == :prod do
       You can generate one by calling: mix guardian.gen.secret
       """
 
-  config :starter, Starter.Guardian,
-    issuer: "starter",
+  config :annotate, Annotate.Guardian,
+    issuer: "annotate",
     secret_key: guardian_secret
 
-  config :starter, :frontend_url, System.get_env("FRONTEND_URL")
+  config :annotate, :frontend_url, System.get_env("FRONTEND_URL")
 
   if sendgrid_key = System.get_env("SENDGRID_API_KEY") do
     config :noizu_sendgrid, api_key: sendgrid_key
   end
 
-  config :starter,
+  config :annotate,
          :mail_from,
-         {System.get_env("MAIL_FROM_NAME", "Starter"),
-          System.get_env("MAIL_FROM_ADDRESS", "noreply@starter.local")}
+         {System.get_env("MAIL_FROM_NAME", "Annotate"),
+          System.get_env("MAIL_FROM_ADDRESS", "noreply@annotate.local")}
 
   # ── Storage (S3/MinIO) ──────────────────────────────────────────
   if s3_bucket = System.get_env("S3_BUCKET") do
-    config :starter, Starter.Storage,
+    config :annotate, Annotate.Storage,
       bucket: s3_bucket,
       region: System.get_env("S3_REGION", "us-east-1"),
       host: System.get_env("S3_ENDPOINT"),
@@ -229,7 +229,7 @@ if config_env() == :prod do
         scope: "openid email profile"
       ]
 
-    config :starter, :oidc_enabled, true
+    config :annotate, :oidc_enabled, true
   end
 
   # ── SSO: SAML ──────────────────────────────────────────────────
@@ -258,24 +258,24 @@ if config_env() == :prod do
           id: "default",
           sp_id: "default",
           base_url: "https://#{host}/sso/saml",
-          pre_session_create_pipeline: StarterWeb.SAMLHandler
+          pre_session_create_pipeline: AnnotateWeb.SAMLHandler
         }
         |> Map.merge(Map.new(saml_metadata))
       ]
 
-    config :starter, :saml_enabled, true
+    config :annotate, :saml_enabled, true
   end
 
   # ── SSO: Social OAuth (each enabled when *_CLIENT_ID is set) ──
   # Retired: no longer an access control (see config.exs). Parsed for zero env
-  # churn only — signup status comes from Starter.Auth.InviteGate.signup_status/3.
-  config :starter, :sso_require_invite, System.get_env("SSO_REQUIRE_INVITE", "true") == "true"
+  # churn only — signup status comes from Annotate.Auth.InviteGate.signup_status/3.
+  config :annotate, :sso_require_invite, System.get_env("SSO_REQUIRE_INVITE", "true") == "true"
   sso_domains = parse_sso_domains.(System.get_env("SSO_DOMAINS"))
   sso_auto_approve_domains = parse_domain_list.(System.get_env("SSO_AUTO_APPROVE_DOMAINS"))
-  config :starter, :sso_domains, sso_domains
-  config :starter, :sso_auto_approve_domains, sso_auto_approve_domains
+  config :annotate, :sso_domains, sso_domains
+  config :annotate, :sso_auto_approve_domains, sso_auto_approve_domains
 
-  config :starter,
+  config :annotate,
          :sso_domain_policies,
          build_sso_domain_policies.(sso_domains, sso_auto_approve_domains)
 
@@ -287,7 +287,7 @@ if config_env() == :prod do
         client_id: google_id,
         client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
 
-      config :starter, :google_enabled, true
+      config :annotate, :google_enabled, true
       [{:google, {Ueberauth.Strategy.Google, [default_scope: "email profile"]}} | oauth_providers]
     else
       oauth_providers
@@ -299,7 +299,7 @@ if config_env() == :prod do
         client_id: fb_id,
         client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
 
-      config :starter, :facebook_enabled, true
+      config :annotate, :facebook_enabled, true
 
       [
         {:facebook, {Ueberauth.Strategy.Facebook, [default_scope: "email,public_profile"]}}
@@ -315,7 +315,7 @@ if config_env() == :prod do
         client_id: gh_id,
         client_secret: System.get_env("GITHUB_CLIENT_SECRET")
 
-      config :starter, :github_enabled, true
+      config :annotate, :github_enabled, true
       [{:github, {Ueberauth.Strategy.Github, [default_scope: "user:email"]}} | oauth_providers]
     else
       oauth_providers
@@ -327,7 +327,7 @@ if config_env() == :prod do
   #     config :ueberauth, Ueberauth.Strategy.LinkedIn.OAuth,
   #       client_id: li_id,
   #       client_secret: System.get_env("LINKEDIN_CLIENT_SECRET")
-  #     config :starter, :linkedin_enabled, true
+  #     config :annotate, :linkedin_enabled, true
   #     [{:linkedin, {Ueberauth.Strategy.LinkedIn, [default_scope: "r_liteprofile r_emailaddress"]}} | oauth_providers]
   #   else
   #     oauth_providers
@@ -339,11 +339,11 @@ if config_env() == :prod do
 
   # Fleet dashboard (fleet.noizu.com) daily metrics push. Unset/blank
   # FLEET_INGEST_KEY ⇒ the worker logs once and no-ops; nothing is pushed.
-  config :starter, Starter.FleetPush,
+  config :annotate, Annotate.FleetPush,
     url: System.get_env("FLEET_INGEST_URL", "https://fleet.noizu.com/api/v1/ingest/metrics"),
     key: System.get_env("FLEET_INGEST_KEY")
 
-  config :starter, StarterWeb.Endpoint,
+  config :annotate, AnnotateWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
       ip: {0, 0, 0, 0, 0, 0, 0, 0},

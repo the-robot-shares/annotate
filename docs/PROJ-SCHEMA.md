@@ -503,4 +503,4 @@ Ecto migrations in `backend/priv/repo/migrations/` (applied by the release migra
 | 20260526000000_add_oban_tables | oban_jobs + Oban support tables |
 | 20260527000000_update_oban_to_v14 | Oban v14 index/state updates |
 
-Oban queue tables back the `Starter.Workers` (cleanup, email) — see `backend/lib/starter/workers/`.
+Oban queue tables back the `Annotate.Workers` (cleanup, email) — see `backend/lib/annotate/workers/`.
