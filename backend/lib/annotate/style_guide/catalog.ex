@@ -326,7 +326,7 @@ defmodule Annotate.StyleGuide.Catalog do
   end
 
   defp discover_themes_from_css do
-    root = @static_themes_root
+    root = static_themes_root()
 
     if File.dir?(root) do
       root
@@ -350,6 +350,21 @@ defmodule Annotate.StyleGuide.Catalog do
     end
   rescue
     _ -> []
+  end
+
+  # A mix release ships priv/ under lib/annotate-<vsn>/, so the compile-time
+  # __DIR__ expansion points at a path that only exists in a dev checkout —
+  # both discoverers returned [] in the release and MainLayout crashed on a
+  # nil theme. Resolve against the app dir at runtime; keep the dev path as
+  # fallback for checkouts where the app-dir priv symlink is absent.
+  defp static_themes_root do
+    shipped = Application.app_dir(:annotate, "priv/static/themes")
+
+    if File.dir?(shipped) do
+      shipped
+    else
+      @static_themes_root
+    end
   end
 
   defp prefer_slug_first(themes, slug) do
