@@ -132,3 +132,65 @@ Endpoint-level plug (`AnnotateWeb.Plugs.AnnotateCORS`), scoped to `/api/v1*`:
 - No Origin header (curl/native) → passes through untouched.
 - Preflight (`OPTIONS` + `Access-Control-Request-Method`) → `204` when allowed.
 - No `Allow-Credentials` — the API is token-bearer, not cookie-based (except the `/embed/*` popup, same-origin to annotate itself).
+
+## Realtime
+
+WebSocket-only Phoenix socket at **`/socket/annotate`** (no longpoll). The
+widget connects after REST bootstrap and keeps a channel open per page;
+everything stays read-only — writes still go through the REST API, and
+committed changes fan out as broadcasts.
+
+### Connect
+
+```js
+new Socket("/socket/annotate", { params: { site: "<site_slug>", token: "<access-jwt (optional)>" } })
+```
+
+Origin checking is two-layered (Phoenix's transport `check_origin` hook only
+sees the raw `Origin` header, not the connect params):
+
+1. **Transport gate** (CSWSH protection): a well-formed `http(s)` `Origin`
+   registered in *some* annotate site's `allowed_origins` is required
+   (registry-wide check, ports significant, default ports normalized away).
+   No `Origin` header → allowed through (native clients), same tolerance the
+   REST API has for origin-less reads.
+2. **Per-site binding at `connect`**: the validated handshake origin must be
+   in the *connecting site's* `allowed_origins` — an origin registered to a
+   different site cannot ride along. Unknown site slug →
+   `{"error": "site_not_found"}`; presented-but-invalid token →
+   `{"error": "invalid_token"}` (never falls back to anonymous — same rule as
+   the REST plug).
+
+### Join
+
+Topic per page: **`page:<site_slug>:<sha256_hex_lower(page_key)>`** — the
+client hashes its `page_key` with sha256 (lowercase hex, 64 chars). The topic's
+site must equal the connected site (`site_mismatch` otherwise).
+
+Join authorization mirrors the REST thread listing:
+
+- anonymous join (no token) only when `site.settings.public_read` is true;
+- otherwise the token must verify with `site` claim == the connected site
+  (`site_mismatch`) and `origin` claim in that site's `allowed_origins`
+  (`origin_mismatch`).
+
+Denied joins are rejected before the channel comes up (`{"error": "<reason>"}`).
+
+### Events
+
+Broadcast after the REST commit lands; payloads are rendered by the same JSON
+renderer the REST API uses, so shapes are identical (attachment presigned GET
+urls included):
+
+| Event | Payload | Fires after |
+|---|---|---|
+| `thread_created` | `{"thread": <thread>}` | `POST /api/v1/sites/:site/threads` |
+| `comment_created` | `{"comment": <comment>}` | reply / thread create |
+| `comment_updated` | `{"comment": <comment>}` | comment body edit |
+| `comment_deleted` | `{"comment": <comment>}` | soft delete (key removal off `id`) |
+| `thread_resolved` | `{"thread": <thread>}` | resolve |
+| `thread_reopened` | `{"thread": <thread>}` | reopen |
+| `thread_anchor_updated` | `{"thread": <thread>}` | anchor move |
+
+The channel is **broadcast-only**: any client `push` is answered with
+`{"error": "read_only"}` — there are no write handlers over the socket.

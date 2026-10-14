@@ -62,6 +62,9 @@ secrets:
     databaseUrl: ANNOTATE_DATABASE_URL
     secretKeyBase: ANNOTATE_SECRET_KEY_BASE
     guardianSecretKey: ANNOTATE_GUARDIAN_SECRET_KEY
+    sessionSigningSalt: ANNOTATE_SESSION_SIGNING_SALT
+    jwtSecret: ANNOTATE_JWT_SECRET
+    keyEncSecret: ANNOTATE_KEY_ENC_SECRET
     redisUrl: ANNOTATE_REDIS_URL
     # Fleet dashboard (fleet.noizu.com) daily ingest bearer key. Optional
     # secretKeyRef in _helpers.tpl: until it lands in the synced secret the
