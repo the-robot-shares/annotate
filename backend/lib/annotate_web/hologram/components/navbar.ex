@@ -32,7 +32,7 @@ defmodule AnnotateWeb.Hologram.Components.Navbar do
                 Log Out
               </button>
             {%else}
-              <FloatingAuth />
+              <FloatingAuth cid="floating_auth" />
             {/if}
           {/if}
         </div>
