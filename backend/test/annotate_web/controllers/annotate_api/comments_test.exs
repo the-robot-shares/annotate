@@ -153,10 +153,11 @@ defmodule AnnotateWeb.AnnotateAPI.CommentsTest do
     end
 
     test "site owner may soft-delete a guest comment", %{conn: conn, site: site, thread: thread} do
-      # guest (anonymous) comment
-      {:ok, _} = Annotate.Comments.add_comment(thread, nil, %{"body_md" => "guest"})
+      # guest (anonymous) comment — authored via a site-scoped guest row
+      {:ok, guest} = Annotate.Sites.upsert_guest_commenter(site, "Guest Greta")
+      {:ok, _} = Annotate.Comments.add_comment(thread, guest, %{"body_md" => "guest"})
       thread = Annotate.Repo.preload(thread, [comments: []], force: true)
-      guest_comment = thread.comments |> Enum.find(&is_nil(&1.author_id))
+      guest_comment = thread.comments |> Enum.find(&(&1.author_id == guest.id))
 
       owner = create_commenter()
       set_owner!(site, owner)
@@ -168,6 +169,13 @@ defmodule AnnotateWeb.AnnotateAPI.CommentsTest do
         |> delete("/api/v1/comments/#{guest_comment.id}?site=#{site.slug}")
 
       assert conn.status == 204
+    end
+
+    test "library refuses a NULL author (guests must resolve to a commenter row)", %{
+      thread: thread
+    } do
+      assert {:error, :invalid_author} =
+               Annotate.Comments.add_comment(thread, nil, %{"body_md" => "guest"})
     end
   end
 

@@ -107,10 +107,14 @@ defmodule Annotate.Auth.ApiToken do
     )
   end
 
-  @doc "Issues an access token + a fresh rotating refresh token."
-  def issue_pair(commenter, site, origin) do
+  @doc """
+  Issues an access token + a fresh rotating refresh token. `identity_claims`
+  (see `Annotate.Embed.Policy.identity_claims/1`) are persisted on the refresh
+  token so rotation can re-check the site's current `comment_policy`.
+  """
+  def issue_pair(commenter, site, origin, identity_claims \\ nil) do
     access = issue_access(commenter, site, origin)
-    {:ok, refresh} = Annotate.Auth.RefreshTokens.issue(commenter, site)
+    {:ok, refresh} = Annotate.Auth.RefreshTokens.issue(commenter, site, identity_claims)
     {:ok, %{access_token: access, refresh_token: refresh}}
   end
 

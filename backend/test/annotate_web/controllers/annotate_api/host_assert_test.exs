@@ -129,6 +129,87 @@ defmodule AnnotateWeb.AnnotateAPI.HostAssertTest do
       assert %{"error" => "service_key_not_configured"} = json_response(conn, 422)
     end
 
+    test "comment_policy.required_groups: groups claim outside policy → 403", %{conn: conn} do
+      {site, key} =
+        create_site(comment_policy: %{"required_groups" => ["annotate-users"]})
+
+      token =
+        host_jwt(key, %{
+          "sub" => "u1",
+          "name" => "Outside Otis",
+          "groups" => ["some-other-group"],
+          "exp" => @now + 60
+        })
+
+      conn =
+        conn
+        |> post("/api/v1/sites/#{site.slug}/token/assert", %{"token" => token})
+
+      assert %{"error" => "group_not_allowed"} = json_response(conn, 403)
+      refute Annotate.Repo.get_by(Annotate.Schema.Annotate.Commenter, external_id: "u1")
+    end
+
+    test "comment_policy.required_groups: matching groups claim → 201", %{conn: conn} do
+      {site, key} =
+        create_site(comment_policy: %{"required_groups" => ["annotate-users"]})
+
+      token =
+        host_jwt(key, %{
+          "sub" => "u2",
+          "name" => "Inside Iris",
+          "groups" => ["annotate-users", "other"],
+          "exp" => @now + 60
+        })
+
+      conn =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/sites/#{site.slug}/token/assert", %{"token" => token})
+
+      assert %{"commenter" => _} = json_response(conn, 201)
+    end
+
+    test "comment_policy.allowed_email_domains: asserted email outside policy → 403", %{
+      conn: conn
+    } do
+      {site, key} =
+        create_site(comment_policy: %{"allowed_email_domains" => ["corp.example"]})
+
+      token =
+        host_jwt(key, %{
+          "sub" => "u3",
+          "name" => "Gmail Gary",
+          "email" => "gary@gmail.com",
+          "exp" => @now + 60
+        })
+
+      conn =
+        conn
+        |> post("/api/v1/sites/#{site.slug}/token/assert", %{"token" => token})
+
+      assert %{"error" => "email_domain_not_allowed"} = json_response(conn, 403)
+    end
+
+    test "comment_policy.allowed_email_domains: matching email → 201", %{conn: conn} do
+      {site, key} =
+        create_site(comment_policy: %{"allowed_email_domains" => ["corp.example"]})
+
+      token =
+        host_jwt(key, %{
+          "sub" => "u4",
+          "name" => "Corp Carla",
+          "email" => "carla@corp.example",
+          "exp" => @now + 60
+        })
+
+      conn =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/sites/#{site.slug}/token/assert", %{"token" => token})
+
+      assert %{"commenter" => _} = json_response(conn, 201)
+    end
+
     test "unknown site → 404", %{conn: conn} do
       conn =
         conn

@@ -36,6 +36,11 @@ defmodule AnnotateWeb.Router do
     plug AnnotateWeb.Plugs.RateLimit, action: :auth_sensitive
   end
 
+  # Annotate embed API write budget: per (ip, site), write methods only.
+  pipeline :annotate_rate_limited do
+    plug AnnotateWeb.Plugs.RateLimit, action: :annotate_write
+  end
+
   pipeline :org_viewer do
     plug AnnotateWeb.Plugs.RequireRole, role: "viewer"
   end
@@ -57,8 +62,9 @@ defmodule AnnotateWeb.Router do
   end
 
   # ── Annotate embeddable-comments API ─────────────────────────
-  # :optional = anonymous reads allowed when settings.public_read (writes on
-  # this scope stay open too — guests may post); :required = valid
+  # :optional = anonymous reads allowed when settings.public_read; anonymous
+  # POST (guest threads) only when comment_policy.allow_anonymous — otherwise
+  # writes require a token like every other write. :required = valid
   # Annotate.Auth.ApiToken mandatory. Binding checks (origin/site claims) live
   # in AnnotateWeb.Plugs.AnnotateAuth.
   pipeline :annotate_auth_optional do
@@ -224,14 +230,14 @@ defmodule AnnotateWeb.Router do
   # body) can be authorized — see docs/API.md.
 
   scope "/api/v1/sites/:site", AnnotateWeb.AnnotateAPI do
-    pipe_through [:api, :annotate_auth_optional]
+    pipe_through [:api, :annotate_rate_limited, :annotate_auth_optional]
 
     get "/threads", SiteThreadsController, :index
     post "/threads", SiteThreadsController, :create
   end
 
   scope "/api/v1", AnnotateWeb.AnnotateAPI do
-    pipe_through [:api, :annotate_auth_required]
+    pipe_through [:api, :annotate_rate_limited, :annotate_auth_required]
 
     post "/threads/:id/comments", ThreadCommentsController, :create
     post "/threads/:id/resolve", ThreadCommentsController, :resolve
@@ -244,7 +250,7 @@ defmodule AnnotateWeb.Router do
   end
 
   scope "/api/v1", AnnotateWeb.AnnotateAPI do
-    pipe_through [:api]
+    pipe_through [:api, :annotate_rate_limited]
 
     post "/token/refresh", TokenController, :refresh
     post "/sites/:site/token/assert", TokenController, :host_assert

@@ -73,7 +73,7 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
          :ok <- Policy.check(claims, site.comment_policy || %{}),
          {:ok, commenter} <- Sites.upsert_commenter_by_sub(site, claims),
          {:ok, %{access_token: access, refresh_token: refresh}} =
-           ApiToken.issue_pair(commenter, site, st["origin"]) do
+           ApiToken.issue_pair(commenter, site, st["origin"], Policy.identity_claims(claims)) do
       render_postmessage(
         conn,
         %{
@@ -124,13 +124,15 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
     if Plug.Crypto.secure_compare(expected, received), do: :ok, else: {:error, :state_mismatch}
   end
 
+  # Fail closed: a nonce from the session AND a nonce from the id token must
+  # both be present and match. Either side nil → mismatch (a missing claim
+  # must not bypass replay protection).
   @doc false
-  def verify_nonce(_expected, nil), do: :ok
-  def verify_nonce(nil, _received), do: :ok
-
-  def verify_nonce(expected, received) do
+  def verify_nonce(expected, received) when is_binary(expected) and is_binary(received) do
     if Plug.Crypto.secure_compare(expected, received), do: :ok, else: {:error, :nonce_mismatch}
   end
+
+  def verify_nonce(_expected, _received), do: {:error, :nonce_mismatch}
 
   defp render_postmessage(conn, payload, origin) do
     send_html(conn, postmessage_body(Jason.encode!(payload), origin))

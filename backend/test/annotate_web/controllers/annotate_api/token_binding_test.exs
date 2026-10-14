@@ -134,4 +134,140 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
 
     assert %{"error" => "invalid_refresh_token"} = json_response(reuse, 401)
   end
+
+  describe "POST /api/v1/token/refresh (comment_policy re-check)" do
+    test "policy tightened after issuance → 403 policy_violation, token revoked", %{
+      conn: conn,
+      site: site,
+      commenter: commenter
+    } do
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
+          "email" => commenter.email,
+          "groups" => ["annotate-users"]
+        })
+
+      # site tightens policy to a group the identity does not have
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site, comment_policy: %{"required_groups" => ["board-members"]})
+      )
+
+      denied =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+
+      assert %{"error" => "policy_violation"} = json_response(denied, 403)
+
+      # the presented token was revoked on the failed rotate — reuse is dead too
+      reuse =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+
+      assert %{"error" => "invalid_refresh_token"} = json_response(reuse, 401)
+    end
+
+    test "policy satisfied → rotation succeeds and carries identity claims forward", %{
+      conn: conn,
+      site: site,
+      commenter: commenter
+    } do
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site, comment_policy: %{"required_groups" => ["annotate-users"]})
+      )
+
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
+          "email" => commenter.email,
+          "groups" => ["annotate-users"]
+        })
+
+      ok =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+
+      assert %{"access_token" => _, "refresh_token" => refresh2} = json_response(ok, 200)
+
+      # the fresh token still passes the (unchanged) policy on the next rotate
+      ok2 =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh2})
+
+      assert %{"refresh_token" => _} = json_response(ok2, 200)
+    end
+
+    test "legacy token without stored claims: email-domain policy still enforced, required_groups fails closed",
+         %{conn: conn, site: site, commenter: commenter} do
+      raw = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+
+      # insert a pre-claims (legacy) refresh token row directly
+      %Annotate.Schema.Annotate.RefreshToken{}
+      |> Ecto.Changeset.change(%{
+        commenter_id: commenter.id,
+        site_id: site.id,
+        token_hash: Annotate.Auth.RefreshTokens.hash(raw),
+        identity_claims: nil,
+        expires_at: DateTime.add(DateTime.utc_now(), 1, :day)
+      })
+      |> Annotate.Repo.insert!()
+
+      # email domain allowlist that MATCHES the commenter's stored email → ok
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site,
+          comment_policy: %{"allowed_email_domains" => ["ok.example"]}
+        )
+      )
+
+      commenter = Annotate.Repo.reload!(commenter)
+      # ensure the email matches the policy for this leg
+      Annotate.Repo.update!(Ecto.Changeset.change(commenter, email: "legacy@ok.example"))
+
+      legacy =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => raw})
+
+      assert %{"access_token" => _, "refresh_token" => fresh} = json_response(legacy, 200)
+
+      # tighten to required_groups — legacy claims cannot prove membership → fail closed
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site, comment_policy: %{"required_groups" => ["staff"]})
+      )
+
+      denied =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => fresh})
+
+      assert %{"error" => "policy_violation"} = json_response(denied, 403)
+    end
+
+    test "email-domain policy tightened against the stored identity → 403", %{
+      conn: conn,
+      site: site,
+      commenter: commenter
+    } do
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
+          "email" => "someone@freemail.example",
+          "groups" => []
+        })
+
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site,
+          comment_policy: %{"allowed_email_domains" => ["corp.example"]}
+        )
+      )
+
+      denied =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+
+      assert %{"error" => "policy_violation"} = json_response(denied, 403)
+    end
+  end
 end

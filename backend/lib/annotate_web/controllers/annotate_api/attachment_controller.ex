@@ -51,22 +51,30 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentController do
 
   def complete(conn, params) do
     site = conn.assigns.annotate_site
+    uploader = conn.assigns.annotate_commenter
 
     case Comments.get_attachment_for_site(params["id"], site.id) do
       %Annotate.Schema.Annotate.Attachment{} = attachment ->
-        case Comments.complete_attachment(attachment, params) do
-          {:ok, attachment} ->
-            json(conn, %{"attachment" => Renderer.attachment(attachment)})
+        cond do
+          # Only the uploader may complete their own pending attachment.
+          is_nil(uploader) or attachment.uploader_id != uploader.id ->
+            conn |> put_status(:forbidden) |> json(%{"error" => "forbidden"})
 
-          {:error, :not_pending} ->
-            conn
-            |> put_status(:conflict)
-            |> json(%{"error" => "not_pending"})
+          true ->
+            case Comments.complete_attachment(attachment, params) do
+              {:ok, attachment} ->
+                json(conn, %{"attachment" => Renderer.attachment(attachment)})
 
-          {:error, _} ->
-            conn
-            |> put_status(:unprocessable_entity)
-            |> json(%{"error" => "invalid_request"})
+              {:error, :not_pending} ->
+                conn
+                |> put_status(:conflict)
+                |> json(%{"error" => "not_pending"})
+
+              {:error, _} ->
+                conn
+                |> put_status(:unprocessable_entity)
+                |> json(%{"error" => "invalid_request"})
+            end
         end
 
       nil ->

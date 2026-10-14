@@ -104,10 +104,51 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentTest do
       again =
         build_conn()
         |> Map.put(:host, @site_host)
+        |> put_req_header("origin", @good_origin)
         |> put_req_header("authorization", "Bearer #{issue_access(uploader, site)}")
         |> post("/api/v1/attachments/#{attachment.id}/complete?site=#{site.slug}", %{})
 
       assert %{"error" => "not_pending"} = json_response(again, 409)
+    end
+
+    test "non-uploader cannot complete someone else's attachment → 403", %{
+      conn: conn,
+      site: site,
+      uploader: uploader
+    } do
+      {:ok, attachment, _url} =
+        Annotate.Comments.create_pending_attachment(site, uploader, %{
+          filename: "theirs.png",
+          content_type: "image/png",
+          bytes: 10,
+          kind: :image
+        })
+
+      other = create_commenter()
+
+      hijack =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{issue_access(other, site)}")
+        |> post("/api/v1/attachments/#{attachment.id}/complete?site=#{site.slug}", %{
+          "width" => 1
+        })
+
+      assert %{"error" => "forbidden"} = json_response(hijack, 403)
+
+      # still pending — the hijack did not mutate it
+      assert Annotate.Repo.reload!(attachment).status == :pending
+
+      # the real uploader can still complete it
+      ok =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{issue_access(uploader, site)}")
+        |> post("/api/v1/attachments/#{attachment.id}/complete?site=#{site.slug}", %{})
+
+      assert %{"attachment" => %{"status" => "ready"}} = json_response(ok, 200)
     end
 
     test "unknown attachment id → 404", %{conn: conn, site: site} do

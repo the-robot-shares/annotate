@@ -1,0 +1,14 @@
+databaseChangeLog:
+  # ── Annotate: refresh-token identity claims (policy re-check on refresh) ──
+
+  - changeSet:
+      id: annotate-0032-refresh-token-identity-claims
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE refresh_tokens
+                ADD COLUMN identity_claims jsonb;
+      rollback:
+        - sql:
+            sql: ALTER TABLE refresh_tokens DROP COLUMN IF EXISTS identity_claims;

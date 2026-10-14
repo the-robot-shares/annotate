@@ -3,17 +3,22 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
   Token issuance endpoints:
 
   - `POST /api/v1/token/refresh` — rotating refresh (opaque token, hashed at
-    rest, 30-day TTL; reuse of a rotated token fails).
+    rest, 30-day TTL; reuse of a rotated token fails). The site's CURRENT
+    `comment_policy` is re-checked against the identity captured at issuance;
+    on failure the presented token is revoked → `403 policy_violation`.
   - `POST /api/v1/sites/:site/token/assert` — host-asserted identity: a JWT
     signed HS256 with the site's SERVICE KEY (claims `sub`, `name`, `email?`,
-    `avatar?`, `exp` ≤ 5 min). Upserts the commenter by `(site_id, external_id)`
-    and issues the standard access/refresh pair.
+    `avatar?`, `groups?`, `exp` ≤ 5 min). The site's `comment_policy` is
+    enforced (`allowed_email_domains` against the asserted email,
+    `required_groups` against the optional `groups` claim) before an
+    access/refresh pair is issued for the `(site_id, external_id)` commenter.
   """
   use AnnotateWeb, :controller
 
   alias Annotate.Auth.ApiToken
   alias Annotate.Auth.RefreshTokens
   alias Annotate.Auth.ServiceKey
+  alias Annotate.Embed.Policy
   alias Annotate.Sites
   alias AnnotateWeb.AnnotateAPI.Renderer
 
@@ -30,6 +35,9 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
           "commenter" => Renderer.commenter(commenter)
         })
 
+      {:error, :policy} ->
+        conn |> put_status(:forbidden) |> json(%{"error" => "policy_violation"})
+
       {:error, :invalid} ->
         conn |> put_status(:unauthorized) |> json(%{"error" => "invalid_refresh_token"})
     end
@@ -45,10 +53,14 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
     with %{} = site <- site || {:error, :site_not_found},
          {:ok, service_key} <- decrypt_key(site),
          {:ok, claims} <- verify_host_assert(service_key, token),
+         # comment_policy applies to host-asserted identities too: the email
+         # domain rule reads the asserted email, required_groups the optional
+         # `groups` claim.
+         :ok <- Policy.check(claims, site.comment_policy || %{}),
          {:ok, commenter} <- Sites.upsert_commenter_by_external(site, claims["sub"], claims) do
       origin = claims_origin(conn, site)
 
-      case ApiToken.issue_pair(commenter, site, origin) do
+      case ApiToken.issue_pair(commenter, site, origin, Policy.identity_claims(claims)) do
         {:ok, %{access_token: access, refresh_token: refresh}} ->
           conn
           |> put_status(:created)
@@ -78,6 +90,10 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
 
       {:error, :exp_too_far} ->
         conn |> put_status(:unauthorized) |> json(%{"error" => "exp_window_exceeded"})
+
+      {:error, policy_reason}
+      when policy_reason in [:group_not_allowed, :email_domain_not_allowed] ->
+        conn |> put_status(:forbidden) |> json(%{"error" => to_string(policy_reason)})
     end
   end
 

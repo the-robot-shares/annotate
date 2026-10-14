@@ -10,8 +10,15 @@ defmodule AnnotateWeb.Plugs.AnnotateAuth do
   - `:required` — a valid token is mandatory.
   - `:optional` — anonymous requests continue WITHOUT a commenter when the
     site's `settings.public_read` is true and the method is GET/HEAD, or for
-    POST (guest thread creation). Other writes and public_read=false reads
-    require a token.
+    POST when the site opts in via `comment_policy.allow_anonymous` (guest
+    thread creation; the controller then requires a `guest_name`). Other
+    writes and public_read=false reads require a token.
+
+  Binding checks for a *presented* token:
+  - `site` claim must equal the site addressed by the path/query → else 403.
+  - `origin` claim must equal the request Origin header → else 401; a write
+    (non-GET/HEAD) presenting a token **without** an Origin header is also
+    rejected (401) — reads tolerate a missing Origin for non-browser clients.
 
   On success assigns `:annotate_site`, `:annotate_commenter`, `:annotate_claims`.
   """
@@ -67,9 +74,16 @@ defmodule AnnotateWeb.Plugs.AnnotateAuth do
   end
 
   defp check_bindings(conn, site, claims) do
+    write? = conn.method not in ["GET", "HEAD"]
+
     cond do
       claims["site"] != site.id ->
         {:error, respond(conn, "site_mismatch", :forbidden)}
+
+      # Origin binding: a write carrying a token but no Origin header cannot
+      # prove the origin the token was minted for — reject rather than skip.
+      write? and origin_missing?(conn) ->
+        {:error, respond(conn, "origin_required", :unauthorized)}
 
       origin_mismatch?(conn, claims) ->
         {:error, respond(conn, "origin_mismatch", :unauthorized)}
@@ -95,6 +109,10 @@ defmodule AnnotateWeb.Plugs.AnnotateAuth do
     end
   end
 
+  defp origin_missing?(conn) do
+    get_req_header(conn, "origin") == []
+  end
+
   defp origin_mismatch?(conn, claims) do
     case get_req_header(conn, "origin") do
       [origin | _] -> claims["origin"] != origin
@@ -104,8 +122,11 @@ defmodule AnnotateWeb.Plugs.AnnotateAuth do
 
   defp anonymous_fallback(conn, site, :optional) do
     read? = conn.method in ["GET", "HEAD"] and Sites.public_read?(site)
-    # POST on this pipeline is thread creation — guests may comment.
-    guest_post? = conn.method == "POST"
+
+    # POST on this pipeline is thread creation — allowed token-less only when
+    # the site opts in via comment_policy.allow_anonymous (then the controller
+    # requires a non-empty guest_name and stores a site-scoped guest row).
+    guest_post? = conn.method == "POST" and Sites.allow_anonymous?(site)
 
     if read? or guest_post? do
       {:ok, site, assign(conn, :annotate_commenter, nil)}

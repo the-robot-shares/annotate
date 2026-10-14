@@ -60,17 +60,21 @@ defmodule Annotate.Comments do
 
   @doc """
   Creates a page (upsert), thread, and root comment in one transaction,
-  binding `attachment_ids` (must be pending, unbound, and owned by the site).
+  binding `attachment_ids` (must be the author's OWN, `ready`, unbound, and
+  on the same site). Requires a non-nil commenter — guests are resolved to a
+  site-scoped guest row by the caller.
   """
   def create_thread(%Site{} = site, commenter, attrs) do
     page_key = attrs["page_key"]
     anchor = attrs["anchor"]
     body_md = attrs["body_md"]
 
-    with :ok <- validate_page_key(page_key),
+    with :ok <- require_author(commenter),
+         :ok <- validate_page_key(page_key),
          :ok <- validate_anchor(anchor),
          :ok <- validate_body(body_md),
-         {:ok, attachments} <- fetch_bindable_attachments(site, attrs["attachment_ids"]) do
+         {:ok, attachments} <-
+           fetch_bindable_attachments(site, attrs["attachment_ids"], commenter) do
       Repo.transaction(fn ->
         page = upsert_page(site, page_key, attrs["url"], attrs["title"])
 
@@ -79,7 +83,7 @@ defmodule Annotate.Comments do
           |> Thread.changeset(%{
             page_id: page.id,
             anchor: anchor,
-            created_by: commenter && commenter.id
+            created_by: commenter.id
           })
           |> Repo.insert!()
 
@@ -87,7 +91,7 @@ defmodule Annotate.Comments do
           %Comment{}
           |> Comment.changeset(%{
             thread_id: thread.id,
-            author_id: commenter && commenter.id,
+            author_id: commenter.id,
             body_md: body_md
           })
           |> Repo.insert!()
@@ -106,16 +110,17 @@ defmodule Annotate.Comments do
     body_md = attrs["body_md"]
 
     with :ok <- validate_body(body_md),
+         :ok <- require_author(commenter),
          {:ok, parent_id} <- validate_parent(thread, attrs["parent_id"]),
          {:ok, attachments} <-
-           fetch_bindable_attachments(thread_site(thread), attrs["attachment_ids"]) do
+           fetch_bindable_attachments(thread_site(thread), attrs["attachment_ids"], commenter) do
       Repo.transaction(fn ->
         comment =
           %Comment{}
           |> Comment.changeset(%{
             thread_id: thread.id,
             parent_id: parent_id,
-            author_id: commenter && commenter.id,
+            author_id: commenter.id,
             body_md: body_md
           })
           |> Repo.insert!()
@@ -265,6 +270,13 @@ defmodule Annotate.Comments do
   defp validate_page_key(pk) when is_binary(pk) and byte_size(pk) in 1..255, do: :ok
   defp validate_page_key(_), do: {:error, :invalid_page_key}
 
+  # Comments never carry a NULL author: callers must resolve an author (token
+  # commenter or site-scoped guest row) before writing. Anonymous HTTP access
+  # is decided at the plug/controller layer, never inside the context.
+  defp require_author(%Annotate.Schema.Annotate.Commenter{}), do: :ok
+  defp require_author(nil), do: {:error, :invalid_author}
+  defp require_author(_), do: {:error, :invalid_author}
+
   defp validate_anchor(a) when is_map(a), do: :ok
   defp validate_anchor(_), do: {:error, :invalid_anchor}
 
@@ -287,14 +299,23 @@ defmodule Annotate.Comments do
 
   defp validate_parent(_, _), do: {:error, :invalid_parent}
 
-  defp fetch_bindable_attachments(_site, nil), do: {:ok, []}
+  defp fetch_bindable_attachments(_site, nil, _commenter), do: {:ok, []}
 
-  defp fetch_bindable_attachments(%Site{} = site, ids) when is_list(ids) do
+  # Only the author's OWN attachments on the same site, still unbound, and
+  # already completed (`ready`) — pending uploads cannot be smuggled onto a
+  # comment before their content landed, and foreign uploads cannot be bound.
+  defp fetch_bindable_attachments(%Site{} = site, ids, commenter) when is_list(ids) do
     unique_ids = Enum.uniq(ids)
+
+    uploader_id = commenter && commenter.id
 
     attachments =
       from(a in Attachment,
-        where: a.id in ^unique_ids and a.site_id == ^site.id and is_nil(a.comment_id)
+        where: a.id in ^unique_ids,
+        where: a.site_id == ^site.id,
+        where: is_nil(a.comment_id),
+        where: a.uploader_id == ^uploader_id,
+        where: a.status == :ready
       )
       |> Repo.all()
 
@@ -305,7 +326,7 @@ defmodule Annotate.Comments do
     end
   end
 
-  defp fetch_bindable_attachments(_, _), do: {:error, :attachment_mismatch}
+  defp fetch_bindable_attachments(_, _, _), do: {:error, :attachment_mismatch}
 
   defp bind_attachments(attachments, comment_id) do
     Enum.each(attachments, fn a ->

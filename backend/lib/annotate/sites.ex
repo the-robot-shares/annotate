@@ -58,6 +58,19 @@ defmodule Annotate.Sites do
   def public_read?(%Site{} = site), do: get_in_settings(site, ["public_read"], true) == true
   def public_read?(_), do: false
 
+  @doc """
+  Per-site opt-in for anonymous (token-less) thread creation, default **false**.
+
+  Stored on `comment_policy["allow_anonymous"]` (not `settings`) so it sits
+  next to the other comment-admission rules enforced by `Annotate.Embed.Policy`.
+  When false (the default), thread creation requires a token like every other
+  write.
+  """
+  def allow_anonymous?(%Site{comment_policy: policy}) when is_map(policy),
+    do: policy["allow_anonymous"] == true
+
+  def allow_anonymous?(_), do: false
+
   def max_upload_mb(%Site{} = site) do
     case get_in_settings(site, ["max_upload_mb"], 20) do
       n when is_integer(n) and n > 0 -> n
@@ -120,6 +133,33 @@ defmodule Annotate.Sites do
           display_name: display_name(claims),
           email: claims["email"],
           avatar_url: claims["avatar"]
+        })
+        |> Repo.insert()
+    end
+  end
+
+  @doc """
+  Upserts a site-scoped **guest** commenter row for an anonymous display name.
+
+  Guests have no credentials (no `authentik_sub`, no host assertion): the row
+  exists only so comments never carry a NULL author. `external_id` is derived
+  as `"guest:" <> name` and unique per site, so repeat posts under the same
+  name reuse one row; names are namespaced per site and never collide across
+  sites. Guest rows can never authenticate (no token path issues for them).
+  """
+  def upsert_guest_commenter(%Site{} = site, guest_name) when is_binary(guest_name) do
+    external_id = "guest:" <> guest_name
+
+    case Repo.get_by(Commenter, site_id: site.id, external_id: external_id) do
+      %Commenter{} = commenter ->
+        {:ok, commenter}
+
+      nil ->
+        %Commenter{}
+        |> Commenter.changeset(%{
+          site_id: site.id,
+          external_id: external_id,
+          display_name: guest_name
         })
         |> Repo.insert()
     end

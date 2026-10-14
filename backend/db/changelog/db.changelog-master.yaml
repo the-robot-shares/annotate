@@ -89,3 +89,6 @@ databaseChangeLog:
   - include:
       file: 029-annotate-refresh-tokens.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 030-annotate-refresh-token-identity-claims.yaml
+      relativeToChangelogFile: true

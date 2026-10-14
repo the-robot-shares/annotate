@@ -17,9 +17,13 @@ Widget-side flow:
    `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET`; redirect URI from
    `EMBED_OIDC_REDIRECT_URI`, default `https://annotate-srv.therobotlives.com/embed/callback`).
 3. Authentik redirects back; the callback exchanges the code server-side,
-   verifies `state` (constant-time) and `nonce`, enforces the site's
-   `comment_policy` (any-of `required_groups`, `allowed_email_domains`), upserts
-   the commenter by Authentik `sub`, and mints an access + refresh pair.
+   verifies `state` (constant-time) and `nonce` — **failing closed**: both the
+   session nonce and the id-token `nonce` claim must be present and equal, a
+   missing claim on either side is a `nonce_mismatch` — enforces the site's
+   `comment_policy` (any-of `required_groups`, `allowed_email_domains`),
+   upserts the commenter by Authentik `sub`, and mints an access + refresh
+   pair (the policy-relevant identity — `email`/`groups` — is stored on the
+   refresh token for the rotation-time policy re-check described below).
 4. The popup renders a tiny page that `postMessage`s to the **exact** opener
    origin:
 
@@ -44,8 +48,33 @@ copy):
 ```
 
 Claims: `sub` (required — external user id, upsert key per site), `exp`
-(required — must be within **300 s**), `name` / `email` / `avatar` optional
-profile fields. → `201 {"access_token", "refresh_token", "commenter"}`.
+(required — must be within **300 s**), `name` / `email` / `avatar` / `groups`
+optional profile fields. The site's `comment_policy` is enforced at assert
+time: `allowed_email_domains` applies to the asserted `email`,
+`required_groups` to the optional `groups` claim → failures are
+`403 {"error": "group_not_allowed" | "email_domain_not_allowed"}` (no
+commenter is created). → `201 {"access_token", "refresh_token", "commenter"}`.
+
+## Comment policy re-check (`/token/refresh`)
+
+The site's `comment_policy` is enforced **at issuance** (popup callback and
+host-assert) **and again on every refresh rotation**: the refresh token stores
+the policy-relevant identity captured at issuance (`email`, `groups`), and
+`POST /api/v1/token/refresh` re-checks it against the site's **current**
+policy. A failure revokes the presented (rotated) token →
+`403 {"error": "policy_violation"}` — tightening a policy kills non-conforming
+sessions at their next refresh. Tokens issued before claims were stored fall
+back to the commenter's stored email; for them a `required_groups` policy
+fails closed (re-authentication required once, after which claims are
+persisted).
+
+## Anonymous posting (opt-in)
+
+Guest thread creation is disabled by default. A site may opt in via
+`comment_policy.allow_anonymous: true`; token-less `POST
+/api/v1/sites/:site/threads` must then carry a non-empty `guest_name`, and the
+comment is attributed to a site-scoped guest commenter row (never a NULL
+author). Guest rows hold no credentials and can never obtain tokens.
 
 Why the service key is *sealed*, not just hashed: host-assert needs to mint
 response tokens with the exact key the host holds, so annotate must recover the

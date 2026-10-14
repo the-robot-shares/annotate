@@ -12,6 +12,20 @@ defmodule Annotate.Embed.Policy do
   @type policy :: map()
   @type claims :: map()
 
+  @doc """
+  Projects the policy-relevant identity claims (`email`, `groups`) out of a
+  full claims map. The projection is what gets persisted on the refresh token
+  at issuance so `/token/refresh` can re-check the site's CURRENT policy
+  against the identity as originally established (groups/email are not
+  re-derivable from a commenter row at refresh time).
+  """
+  @spec identity_claims(claims) :: map()
+  def identity_claims(claims) when is_map(claims) do
+    %{"email" => claims["email"], "groups" => claims["groups"]}
+  end
+
+  def identity_claims(_), do: %{"email" => nil, "groups" => nil}
+
   @spec check(claims, policy) :: :ok | {:error, :group_not_allowed | :email_domain_not_allowed}
   def check(claims, policy) do
     with :ok <- check_groups(claims, policy) do

@@ -4,6 +4,9 @@ defmodule Annotate.Schema.Annotate.RefreshToken do
 
   Only the sha256 of the raw token is stored; rotation revokes the presented
   token and issues a fresh one (see `Annotate.Auth.RefreshTokens`).
+  `identity_claims` (jsonb) captures the policy-relevant identity (`email`,
+  `groups`) at issuance so rotation can re-check the site's current
+  `comment_policy` (see `Annotate.Embed.Policy`).
   """
   use Ecto.Schema
 
@@ -12,6 +15,7 @@ defmodule Annotate.Schema.Annotate.RefreshToken do
     belongs_to :commenter, Annotate.Schema.Annotate.Commenter, type: Ecto.UUID
     belongs_to :site, Annotate.Schema.Annotate.Site, type: Ecto.UUID
     field :token_hash, :string
+    field :identity_claims, :map
     field :expires_at, :utc_datetime_usec
     field :revoked_at, :utc_datetime_usec
 

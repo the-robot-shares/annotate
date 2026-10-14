@@ -2,8 +2,24 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
   use AnnotateWeb.AnnotateAPICase, async: true
 
   describe "POST /api/v1/sites/:site/threads" do
-    test "creates page, thread and root comment; anonymous guest allowed", %{conn: conn} do
+    test "token-less create rejected by default (allow_anonymous not opted in)", %{conn: conn} do
       {site, _key} = create_site()
+
+      conn =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/0",
+          "anchor" => %{"css" => "#x"},
+          "body_md" => "nope"
+        })
+
+      assert %{"error" => "invalid_token"} = json_response(conn, 401)
+    end
+
+    test "allow_anonymous opt-in: guest_name creates thread attributed to a site-scoped guest row",
+         %{conn: conn} do
+      {site, _key} = create_site(comment_policy: %{"allow_anonymous" => true})
 
       conn =
         conn
@@ -13,19 +29,55 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
           "url" => "https://good.example/p/1",
           "title" => "Page 1",
           "anchor" => %{"css" => "#hero"},
-          "body_md" => "hello thread"
+          "body_md" => "hello thread",
+          "guest_name" => "  Guest Gary  "
         })
 
       assert %{"thread" => thread} = json_response(conn, 201)
       assert thread["status"] == "open"
-      assert thread["anchor"] == %{"css" => "#hero"}
-      assert [%{"body_md" => "hello thread", "author" => nil}] = thread["comments"]
+      assert [%{"body_md" => "hello thread", "author" => author}] = thread["comments"]
+      assert author["display_name"] == "Guest Gary"
+
+      # guest row: site-scoped, no credentials, display_name = trimmed name
+      guest = Annotate.Repo.get!(Annotate.Schema.Annotate.Commenter, author["id"])
+      assert guest.site_id == site.id
+      assert guest.display_name == "Guest Gary"
+      assert guest.external_id == "guest:Guest Gary"
+      assert is_nil(guest.authentik_sub)
 
       # page upserted
       assert Annotate.Repo.get_by!(Annotate.Schema.Annotate.Page,
                site_id: site.id,
                page_key: "/p/1"
              ).title == "Page 1"
+    end
+
+    test "allow_anonymous opt-in: missing/blank guest_name → 400", %{conn: conn} do
+      {site, _key} = create_site(comment_policy: %{"allow_anonymous" => true})
+
+      missing =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/1a",
+          "anchor" => %{"css" => "#x"},
+          "body_md" => "anon"
+        })
+
+      assert %{"error" => "guest_name_required"} = json_response(missing, 400)
+
+      blank =
+        build_conn()
+        |> Map.put(:host, @site_host)
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/1b",
+          "anchor" => %{"css" => "#x"},
+          "body_md" => "anon",
+          "guest_name" => "   "
+        })
+
+      assert %{"error" => "guest_name_required"} = json_response(blank, 400)
     end
 
     test "attributed to token commenter when Authorization present", %{conn: conn} do
@@ -59,10 +111,18 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
           kind: :image
         })
 
+      {:ok, _} = Annotate.Comments.complete_attachment(attachment, %{})
+
       create_thread!(site, uploader, %{"attachment_ids" => [attachment.id]})
+
+      # already-bound attachment (and, per the same check, foreign/pending
+      # uploads) is refused with 422 even with a valid token
+      other = create_commenter()
 
       conn =
         conn
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{issue_access(other, site)}")
         |> post("/api/v1/sites/#{site.slug}/threads", %{
           "page_key" => "/p/3",
           "anchor" => %{"css" => "h1"},
@@ -73,14 +133,100 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
       assert %{"error" => "attachment_mismatch"} = json_response(conn, 422)
     end
 
-    test "400 on missing anchor", %{conn: conn} do
+    test "422 binding someone else's ready attachment (not the author's own)", %{conn: conn} do
       {site, _key} = create_site()
+      owner = create_commenter()
+      attacker = create_commenter()
+
+      {:ok, attachment, _url} =
+        Annotate.Comments.create_pending_attachment(site, owner, %{
+          filename: "mine.png",
+          content_type: "image/png",
+          bytes: 10,
+          kind: :image
+        })
+
+      {:ok, _} = Annotate.Comments.complete_attachment(attachment, %{})
+
+      token = issue_access(attacker, site)
 
       conn =
         conn
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/4",
+          "anchor" => %{"css" => "h1"},
+          "body_md" => "sticker theft",
+          "attachment_ids" => [attachment.id]
+        })
+
+      assert %{"error" => "attachment_mismatch"} = json_response(conn, 422)
+    end
+
+    test "422 binding a still-pending attachment (not ready)", %{conn: conn} do
+      {site, _key} = create_site()
+      uploader = create_commenter()
+      token = issue_access(uploader, site)
+
+      {:ok, attachment, _url} =
+        Annotate.Comments.create_pending_attachment(site, uploader, %{
+          filename: "notyet.png",
+          content_type: "image/png",
+          bytes: 10,
+          kind: :image
+        })
+
+      conn =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/5",
+          "anchor" => %{"css" => "h1"},
+          "body_md" => "premature",
+          "attachment_ids" => [attachment.id]
+        })
+
+      assert %{"error" => "attachment_mismatch"} = json_response(conn, 422)
+    end
+
+    test "400 on missing anchor", %{conn: conn} do
+      {site, _key} = create_site()
+      token = issue_access(create_commenter(), site)
+
+      conn =
+        conn
+        |> put_req_header("origin", @good_origin)
+        |> put_req_header("authorization", "Bearer #{token}")
         |> post("/api/v1/sites/#{site.slug}/threads", %{"page_key" => "/p", "body_md" => "x"})
 
       assert %{"error" => "invalid_anchor"} = json_response(conn, 400)
+    end
+
+    test "token-bound create without Origin header → 401 origin_required", %{conn: conn} do
+      {site, _key} = create_site()
+      token = issue_access(create_commenter(), site)
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> post("/api/v1/sites/#{site.slug}/threads", %{
+          "page_key" => "/p/6",
+          "anchor" => %{"css" => "#x"},
+          "body_md" => "originless"
+        })
+
+      assert %{"error" => "origin_required"} = json_response(conn, 401)
+    end
+
+    test "token-less read without Origin header still allowed (reads unchanged)", %{conn: conn} do
+      {site, _key} = create_site()
+      create_thread!(site, create_commenter())
+
+      conn = get(conn, "/api/v1/sites/#{site.slug}/threads?page_key=/some/page")
+
+      assert %{"threads" => [_]} = json_response(conn, 200)
     end
   end
 
