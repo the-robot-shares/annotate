@@ -49,7 +49,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 - name: DB_NAME
   value: {{ .Values.database.name | quote }}
 # Fleet dashboard (fleet.noizu.com) daily metrics push. The key secretKeyRef
-# is optional: until START_APP_FLEET_INGEST_KEY lands in the synced secret the
+# is optional: until ANNOTATE_FLEET_INGEST_KEY lands in the synced secret the
 # pod starts without it and FleetPush no-ops (logs once, exits :ok).
 - name: FLEET_INGEST_URL
   value: {{ .Values.fleetIngest.url | quote }}
