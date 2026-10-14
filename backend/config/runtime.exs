@@ -101,8 +101,8 @@ if otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT") do
     otlp_endpoint: otel_endpoint
 
   otel_resource =
-    %{}
-    |> Map.new(Annotate.Observability.resource_env_keys(), fn key ->
+    Annotate.Observability.resource_env_keys()
+    |> Map.new(fn key ->
       {key, System.get_env(key)}
     end)
     |> Annotate.Observability.resource_attributes()
