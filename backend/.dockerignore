@@ -1,0 +1,16 @@
+_build/
+deps/
+cover/
+doc/
+.fetch
+tmp/
+*.db
+*.db-*
+.git
+.gitignore
+Dockerfile
+.dockerignore
+erl_crash.dump
+npm-debug.log
+# Source maps embed builder-absolute paths — keep them out of the build context.
+**/*.js.map

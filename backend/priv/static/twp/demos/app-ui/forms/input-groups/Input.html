@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Input</title>
+  <link rel="stylesheet" href="/twp/demo-bridge.css" />
+  <script src="/twp/demo-bridge.js"></script>
+</head>
+<body class="h-full">
+  
+  <div class="twp-root">
+    <div class="space-y-6 max-w-sm">
+  <div>
+    <label for="email" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Email</label>
+    <div class="mt-2">
+      <input type="email" id="email" name="email" placeholder="you@example.com" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10"/>
+    </div>
+  </div>
+  <div>
+    <label for="name" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Name</label>
+    <div class="mt-2">
+      <input type="text" id="name" name="name" value="Ada Lovelace" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10"/>
+    </div>
+  </div>
+  <div>
+    <label for="err" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Email</label>
+    <div class="mt-2">
+      <input type="email" id="err" value="not-an-email" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-red-300 focus:outline-2 focus:-outline-offset-2 focus:outline-red-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-red-500/50"/>
+    </div>
+    <p class="mt-2 text-sm text-red-600 dark:text-red-400">Not a valid email address.</p>
+  </div>
+  <div>
+    <label for="dis" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Disabled</label>
+    <div class="mt-2">
+      <input type="text" id="dis" disabled value="Read only" class="block w-full rounded-md bg-gray-50 px-3 py-1.5 text-base text-gray-500 outline-1 -outline-offset-1 outline-gray-200 sm:text-sm/6 dark:bg-white/5 dark:text-gray-400 dark:outline-white/10"/>
+    </div>
+  </div>
+</div>
+  </div>
+</body>
+</html>

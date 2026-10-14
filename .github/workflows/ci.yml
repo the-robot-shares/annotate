@@ -1,0 +1,289 @@
+name: CI
+
+# Hologram scaffold CI — fleet template default (see docs/TEST-HEALTH.md).
+#
+#   test          backend suite (Liquibase schema + Ecto migrations + ExUnit
+#                 --cover with the mix.exs threshold gate)
+#   docker-build  backend image smoke build (no push), from t=0 in parallel
+#   build-push    release image (main only, gated on `test`)
+#   bump-chart    CI commits the helm tag bump (main only)
+#
+# HYDRATED APPS: init-proj-scaffold extracts this template into <repo>/app, so
+# move this file to <repo>/.github/workflows/ and set APP_DIR / CHART_VALUES
+# below. Nothing else needs editing — image names derive from the repo name.
+
+on:
+  push:
+    # develop pushes seed the mix + docker caches that feature PRs restore
+    # (PR-ref caches are invisible to sibling PRs). Every push/bump job below
+    # stays guarded to main.
+    branches: [main, develop, stage]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Only PR runs cancel: a newer push cancelling an in-flight release would
+  # leave a merged commit built but never bumped (or bumped but never built).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Template root inside the repo. Template repo: "." · hydrated apps: "app".
+  APP_DIR: "."
+  # Chart values file whose backend image tag CI bumps on release.
+  CHART_VALUES: helm/hologram-start-app/values.yaml
+  REGISTRY: ops.noizu.com
+  APP_IMAGE: ops.noizu.com/${{ github.event.repository.name }}/backend
+  # The template repo itself never releases; hydrated copies do.
+  TEMPLATE_REPO: the-robot-lives/hologram-start-app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      # vector/cube/earthdistance/pg_trgm/citext are all created by the
+      # Liquibase changelog; pgvector's image carries every one of them.
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      # Starter.Redis (refresh-token JTI store) is a supervised child.
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Job-level so deps.get/compile/test share ONE _build/test (a bare
+      # `mix compile` in dev followed by MIX_ENV=test compiles everything twice).
+      MIX_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_USER: postgres
+      DB_PASS: postgres
+      REDIS_URL: redis://127.0.0.1:6379/0
+      TOBOR_KIT_HOLOGRAM_PATH: ${{ github.workspace }}/_tobor-kit/hologram
+      LIQUIBASE_VERSION: "4.29.2"
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}/backend
+    steps:
+      - uses: actions/checkout@v4
+      # tobor_kit_hologram is a path dep on the private tobor-kit repo.
+      - name: Check tobor-kit access
+        working-directory: .
+        env:
+          APP_ID: ${{ secrets.TRR_GITHUB_APP_ID }}
+        run: |
+          test -n "$APP_ID" || { echo "::error::TRR_GITHUB_APP_ID / TRR_GITHUB_APP_PRIVATE_KEY are not available to this repo; they are needed to check out the private tobor-kit repo (tobor_kit_hologram path dep)."; exit 1; }
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.TRR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TRR_GITHUB_APP_PRIVATE_KEY }}
+          owner: the-robot-lives
+          repositories: tobor-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: the-robot-lives/tobor-kit
+          token: ${{ steps.app-token.outputs.token }}
+          path: _tobor-kit
+      # Runs on the checkout, BEFORE mix compile regenerates the maps.
+      # Gate is structural: NO .js.map may be committed, at all. Hologram's
+      # bundler hardcodes --sourcemap --sources-content=true, so every build
+      # machine (macOS /Users/..., Linux CI /home/runner/..., container
+      # /app/...) emits maps whose sourcesContent embed builder-absolute
+      # paths — a filesystem-layout disclosure on a public repo. A content
+      # grep only catches the path prefixes it knows; the structural gate is
+      # OS-independent. backend/.gitignore carries *.js.map; this fails the
+      # build if one lands anyway (e.g. git add -f).
+      - name: No committed source maps (builder-path leak surface)
+        run: |
+          maps=$(git ls-files '*.js.map')
+          if [ -n "$maps" ]; then
+            echo "$maps"
+            echo "::error::.js.map artifacts must not be committed (gitignored); they are regenerated at build time and embed builder-absolute paths"
+            exit 1
+          fi
+          # Second net for other .map formats: no tracked map may embed
+          # sourcesContent or an absolute macOS builder path.
+          leaked=$(git ls-files '*.map' | grep -v '\.js\.map$' | xargs -r grep -l -E 'sourcesContent|/Users/' 2>/dev/null || true)
+          if [ -n "$leaked" ]; then
+            echo "$leaked"
+            echo "::error::tracked .map file embeds sourcesContent or an absolute builder path"
+            exit 1
+          fi
+      # Toolchain = .tool-versions = Dockerfile BASE_IMAGE (keep all three in
+      # lockstep; strict so a new patch release can't drift CI from local).
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: ${{ env.APP_DIR }}/.tool-versions
+          version-type: strict
+      # Hologram's compiler bundles Elixir → JS with node.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ${{ env.APP_DIR }}/.tool-versions
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      # Liquibase owns the schema (`mix test` alias runs liquibase.update).
+      - uses: actions/cache@v4
+        id: liquibase-cache
+        with:
+          path: ${{ runner.temp }}/liquibase
+          key: liquibase-${{ runner.os }}-${{ env.LIQUIBASE_VERSION }}-pg42.7.4
+      - name: Install Liquibase
+        if: steps.liquibase-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir -p liquibase
+          curl -fsSL "https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz" | tar -xz -C liquibase
+          curl -fsSL "https://jdbc.postgresql.org/download/postgresql-42.7.4.jar" -o liquibase/lib/postgresql.jar
+      - run: echo "${{ runner.temp }}/liquibase" >> "$GITHUB_PATH"
+      # Restore/save split: the key carries the sha so it re-saves (an exact
+      # lock-hash hit never saves again and _build drifts), and the save runs
+      # after the suite with always() so a red test step still leaves a warm
+      # cache (and it runs AFTER mix test: Hologram npm-installs its assets at
+      # test boot, which a post-compile save would miss). PRs restore only:
+      # PR-ref caches are invisible to other PRs and per-commit saves churn the
+      # 10 GB repo cache; develop/main pushes seed.
+      - uses: actions/cache/restore@v4
+        id: mix-cache
+        with:
+          path: |
+            ${{ env.APP_DIR }}/backend/deps
+            ${{ env.APP_DIR }}/backend/_build
+          key: mix-test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles(format('{0}/backend/mix.lock', env.APP_DIR)) }}-${{ github.sha }}
+          restore-keys: |
+            mix-test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles(format('{0}/backend/mix.lock', env.APP_DIR)) }}-
+            mix-test-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+      - run: mix local.hex --force && mix local.rebar --force
+      - run: mix deps.get
+      # Same as the Dockerfile: the path dep's own :hologram compiler looks for
+      # hologram's JS assets under ITS deps dir — point it at ours.
+      - name: Link tobor-kit deps
+        run: ln -sfn "$PWD/deps" "$TOBOR_KIT_HOLOGRAM_PATH/deps"
+      - id: compile
+        run: mix compile
+      # Alias: ecto.create → liquibase.update → ecto.migrate → test. --cover
+      # applies the mix.exs test_coverage threshold (the ratchet gate).
+      # Never add --slowest/--trace here: they force max_cases: 1 (serial).
+      - run: mix test --cover
+      - uses: actions/cache/save@v4
+        if: always() && steps.compile.outcome == 'success' && steps.mix-cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        with:
+          path: |
+            ${{ env.APP_DIR }}/backend/deps
+            ${{ env.APP_DIR }}/backend/_build
+          key: ${{ steps.mix-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: ${{ env.APP_DIR }}/backend/cover
+          if-no-files-found: ignore
+
+  # Smoke build on PRs, develop pushes and manual runs. develop seeds the gha
+  # cache scope (exporting a PR-ref cache costs time on the critical path and
+  # no other ref can read it, so PRs only read).
+  docker-build:
+    if: github.event_name != 'push' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.TRR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TRR_GITHUB_APP_PRIVATE_KEY }}
+          owner: the-robot-lives
+          repositories: tobor-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: the-robot-lives/tobor-kit
+          token: ${{ steps.app-token.outputs.token }}
+          path: _tobor-kit
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}/backend
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.APP_IMAGE }}:ci
+          build-contexts: |
+            tobor_kit_hologram=_tobor-kit/hologram
+          cache-from: type=gha,scope=backend
+          cache-to: ${{ github.event_name != 'pull_request' && 'type=gha,scope=backend,mode=max' || '' }}
+
+  # Releases are gated on the backend suite (fleet rule 2026-10-07).
+  build-push:
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository != 'the-robot-lives/hologram-start-app'
+    runs-on: ubuntu-latest
+    outputs:
+      short: ${{ steps.sha.outputs.short }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.TRR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TRR_GITHUB_APP_PRIVATE_KEY }}
+          owner: the-robot-lives
+          repositories: tobor-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: the-robot-lives/tobor-kit
+          token: ${{ steps.app-token.outputs.token }}
+          path: _tobor-kit
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}/backend
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.APP_IMAGE }}:sha-${{ steps.sha.outputs.short }}
+          build-contexts: |
+            tobor_kit_hologram=_tobor-kit/hologram
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  bump-chart:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump backend image tag
+        run: |
+          SHORT=${GITHUB_SHA::7}
+          VALUES="${APP_DIR}/${CHART_VALUES}"
+          sed -i -E "s|(image: ${REGISTRY//./\\.}/[^/]+/backend:).*|\1sha-${SHORT}|" "$VALUES"
+      - name: Commit & push
+        run: |
+          git config user.name "${{ github.event.repository.name }}-ci"
+          git config user.email "ci@noizu.com"
+          git add "${APP_DIR}/${CHART_VALUES}"
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: deploy backend sha-${GITHUB_SHA::7} [skip ci]"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin ${{ github.ref_name }} && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

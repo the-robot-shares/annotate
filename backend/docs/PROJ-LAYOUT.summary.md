@@ -1,0 +1,22 @@
+# Project Layout Summary — hologram-start-app/backend
+
+```
+backend/
+├── lib/
+│   ├── starter.ex
+│   ├── starter/                    # auth, authz, entities, schema, workers
+│   │   └── + hologram/, style_guide/
+│   ├── starter_web/                # controllers, plugs, channels
+│   ├── mix/tasks/liquibase.update.ex
+│   └── supports/
+├── config/
+├── themes/                         # theme CSS sources
+├── db/changelog/                   # Liquibase 000–025
+├── priv/repo/                      # migrations, seeds
+├── test/                           # starter · starter_web · support
+├── docs/
+├── Dockerfile · Dockerfile.dev
+└── mix.exs                         # :starter
+```
+
+See [PROJ-LAYOUT.md](PROJ-LAYOUT.md).

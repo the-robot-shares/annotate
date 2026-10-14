@@ -1,0 +1,58 @@
+# Dev-mode overrides — run with:
+#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+#   or: make run-dev
+#
+# Mounts source as volumes, runs mix holo (Phoenix + Hologram).
+
+services:
+  migrations:
+    build:
+      context: ./backend/db
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+      - backend/.env
+    environment:
+      DB_HOST: db
+    networks:
+      - infra
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    image: ${PROJECT_DIR:-hologram-start-app}/backend:dev
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    command: >
+      bash -c "mix deps.get && mix ecto.migrate && mix holo"
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_build:/app/_build
+      - backend_deps:/app/deps
+    env_file:
+      - .env
+      - backend/.env
+    environment:
+      MIX_ENV: dev
+      PHX_SERVER: "true"
+      PHX_IP: "0.0.0.0"
+      PORT: "4000"
+      DB_HOST: db
+      HOLOGRAM_START: "1"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:8080}"
+    expose:
+      - "4000"
+    networks:
+      - app
+      - infra
+    restart: "no"
+
+  # nginx: inherits production config (all traffic → backend)
+
+volumes:
+  backend_build:
+  backend_deps:

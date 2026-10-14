@@ -1,0 +1,26 @@
+schema: "noizu.start_app.base_hydration.v1"
+start_app:
+  version: "0.1.0"
+  source:
+    template_path: "__SOURCE_TEMPLATE__"
+    tarball_path: "__TARBALL_PATH__"
+    tarball_md5: "__TARBALL_MD5__"
+hydration:
+  tool: "init-proj-scaffold"
+  hydrated_at: "__HYDRATED_AT__"
+  args:
+    project_dir: "__PROJECT_DIR__"
+    slug: "__SLUG__"
+    elixir_module: "__ELIXIR_MODULE__"
+    target: "__TARGET__"
+    helm_mode: "__HELM_MODE__"
+  derived:
+    web_module: "__WEB_MODULE__"
+    otp_app: "__OTP_APP__"
+    otp_app_web: "__OTP_APP_WEB__"
+    db_name: "__DB_NAME__"
+    db_name_test: "__DB_NAME_TEST__"
+    frontend_name: "__FRONTEND_NAME__"
+    host_port: "__HOST_PORT__"
+start_app_scaffold:
+  applied: false

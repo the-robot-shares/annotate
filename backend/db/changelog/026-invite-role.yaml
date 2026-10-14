@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 026-add-invite-role
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE invite_tokens
+                ADD COLUMN role role_name_enum NOT NULL DEFAULT 'viewer';
+      rollback:
+        - sql:
+            sql: |
+              ALTER TABLE invite_tokens DROP COLUMN IF EXISTS role;

@@ -1,0 +1,52 @@
+name: Nightly
+
+# Release-cache warmer. Releases to main are often > 7 days apart, which is
+# longer than GitHub keeps an unused cache — so every release image would
+# build cold. This rebuilds the backend image (no push) and exports the same
+# gha scope the release build-push reads.
+#
+# Scheduled workflows run only from the DEFAULT branch: with default = main
+# this is inert until it lands on main via a release. (Default = develop seeds
+# develop-scope caches, which main can read.)
+#
+# HYDRATED APPS: move to <repo>/.github/workflows/ with ci.yml and set APP_DIR.
+
+on:
+  push:
+    branches: [stage]
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+
+env:
+  APP_DIR: "."
+  APP_IMAGE: ops.noizu.com/${{ github.event.repository.name }}/backend
+
+jobs:
+  warm-docker-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.TRR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TRR_GITHUB_APP_PRIVATE_KEY }}
+          owner: the-robot-lives
+          repositories: tobor-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: the-robot-lives/tobor-kit
+          token: ${{ steps.app-token.outputs.token }}
+          path: _tobor-kit
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}/backend
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.APP_IMAGE }}:nightly
+          build-contexts: |
+            tobor_kit_hologram=_tobor-kit/hologram
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max

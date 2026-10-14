@@ -1,0 +1,52 @@
+# Per-project compose — nginx → Phoenix+Hologram backend
+# Connects to shared PG/Redis via external lets-go_default network
+#
+# Images are built by `make build` — this file only runs them.
+# Usage:
+#   make init    — generate .env with secrets + credentials
+#   make build   — build all images
+#   make run     — start containers
+
+services:
+  migrations:
+    build:
+      context: ./backend/db
+      dockerfile: Dockerfile
+    env_file: .env
+    networks:
+      - infra
+    restart: "no"
+
+  nginx:
+    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-hologram-start-app}/nginx:${TAG:-latest}
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - app
+    restart: unless-stopped
+
+  backend:
+    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-hologram-start-app}/backend:${TAG:-latest}
+    env_file: .env
+    environment:
+      PHX_SERVER: "true"
+      PORT: "4000"
+      HOLOGRAM_START: "1"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:8080}"
+    expose:
+      - "4000"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - app
+      - infra
+    restart: unless-stopped
+
+networks:
+  app:
+  infra:
+    external: true
+    name: lets-go_default

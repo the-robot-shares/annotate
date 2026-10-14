@@ -1,0 +1,96 @@
+databaseChangeLog:
+  - changeSet:
+      id: 025-add-pending-user-status
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: ALTER TYPE user_status_enum ADD VALUE IF NOT EXISTS 'pending';
+      rollback:
+        - sql:
+            sql: SELECT 1;
+
+  - changeSet:
+      id: 025-add-registration-profile-fields
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE users
+                ADD COLUMN mobile_phone varchar(32),
+                ADD COLUMN invite_token_id uuid REFERENCES invite_tokens(id) ON DELETE SET NULL,
+                ADD COLUMN profile_completed_at timestamptz,
+                ADD COLUMN approved_at timestamptz,
+                ADD COLUMN approved_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL;
+      rollback:
+        - sql:
+            sql: |
+              ALTER TABLE users
+                DROP COLUMN IF EXISTS approved_by_user_id,
+                DROP COLUMN IF EXISTS approved_at,
+                DROP COLUMN IF EXISTS profile_completed_at,
+                DROP COLUMN IF EXISTS invite_token_id,
+                DROP COLUMN IF EXISTS mobile_phone;
+
+  - changeSet:
+      id: 025-add-invite-token-window-and-redemptions
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE invite_tokens
+                ADD COLUMN starts_at timestamptz,
+                ADD COLUMN redemption_count integer NOT NULL DEFAULT 0;
+
+              CREATE TABLE invite_token_redemptions (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                invite_token_id uuid NOT NULL REFERENCES invite_tokens(id) ON DELETE CASCADE,
+                user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                redeemed_at timestamptz NOT NULL DEFAULT now(),
+                remote_ip text,
+                user_agent text,
+                inserted_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now()
+              );
+
+              CREATE INDEX idx_invite_token_redemptions_invite_token_id
+                ON invite_token_redemptions(invite_token_id);
+              CREATE INDEX idx_invite_token_redemptions_user_id
+                ON invite_token_redemptions(user_id);
+      rollback:
+        - sql:
+            sql: |
+              DROP TABLE IF EXISTS invite_token_redemptions;
+              ALTER TABLE invite_tokens
+                DROP COLUMN IF EXISTS redemption_count,
+                DROP COLUMN IF EXISTS starts_at;
+
+  - changeSet:
+      id: 025-create-cookie-consents
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE cookie_consents (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+                browser_session_id uuid,
+                version integer NOT NULL,
+                categories jsonb NOT NULL DEFAULT '{}'::jsonb,
+                required_session_allowed boolean NOT NULL DEFAULT true,
+                accepted_at timestamptz,
+                updated_choice_at timestamptz NOT NULL DEFAULT now(),
+                inserted_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT cookie_consents_identity_check
+                  CHECK (user_id IS NOT NULL OR browser_session_id IS NOT NULL)
+              );
+
+              CREATE UNIQUE INDEX idx_cookie_consents_user_id
+                ON cookie_consents(user_id)
+                WHERE user_id IS NOT NULL;
+              CREATE UNIQUE INDEX idx_cookie_consents_browser_session_id
+                ON cookie_consents(browser_session_id)
+                WHERE user_id IS NULL AND browser_session_id IS NOT NULL;
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS cookie_consents;

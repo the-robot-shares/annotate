@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Combobox</title>
+  <link rel="stylesheet" href="/twp/demo-bridge.css" />
+  <script src="/twp/demo-bridge.js"></script>
+</head>
+<body class="h-full">
+  
+  <div class="twp-root">
+    <div class="space-y-8 max-w-sm">
+  <div>
+    <label for="framework" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Framework</label>
+    <div class="relative mt-2">
+      <input id="framework" type="text" value="React" class="block w-full rounded-md bg-white py-1.5 pr-10 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10" placeholder="Search frameworks…"/>
+      <button type="button" class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-hidden">
+        <svg class="size-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.53 3.47a.75.75 0 0 0-1.06 0L6.22 6.72a.75.75 0 0 0 1.06 1.06L10 5.06l2.72 2.72a.75.75 0 1 0 1.06-1.06l-3.25-3.25Zm-4.25 9.75a.75.75 0 0 0-1.06 1.06l3.25 3.25a.75.75 0 0 0 1.06 0l3.25-3.25a.75.75 0 1 0-1.06-1.06L10 14.94l-2.72-2.72Z" clip-rule="evenodd"/></svg>
+      </button>
+      <ul class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-hidden sm:text-sm dark:bg-gray-800 dark:ring-white/10">
+        <li class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none bg-indigo-600 text-white"><span class="block truncate font-semibold">React</span><span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white"><svg class="size-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/></svg></span></li>
+        <li class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none dark:text-white"><span class="block truncate">Vue</span></li>
+        <li class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none dark:text-white"><span class="block truncate">Svelte</span></li>
+        <li class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none dark:text-white"><span class="block truncate">Angular</span></li>
+        <li class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none dark:text-white"><span class="block truncate">SolidJS</span></li>
+      </ul>
+    </div>
+  </div>
+  <div>
+    <label for="fw-err" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Framework</label>
+    <div class="mt-2">
+      <input id="fw-err" type="text" class="block w-full rounded-md bg-white py-1.5 pr-10 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-red-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-red-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-red-500/50" placeholder="Search frameworks…"/>
+    </div>
+    <p class="mt-2 text-sm text-red-600 dark:text-red-400">Please select a framework.</p>
+  </div>
+</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Select</title>
+  <link rel="stylesheet" href="/twp/demo-bridge.css" />
+  <script src="/twp/demo-bridge.js"></script>
+</head>
+<body class="h-full">
+  
+  <div class="twp-root">
+    <div class="space-y-6 max-w-sm">
+  <div>
+    <label for="country" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Country</label>
+    <div class="mt-2 grid grid-cols-1">
+      <select id="country" name="country" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-white/10">
+        <option value="">Select a country…</option>
+        <option>United States</option>
+        <option selected>Canada</option>
+        <option>Mexico</option>
+        <option>United Kingdom</option>
+      </select>
+      <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
+    </div>
+  </div>
+  <div>
+    <label for="country-err" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Country</label>
+    <div class="mt-2 grid grid-cols-1">
+      <select id="country-err" class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-red-300 focus:outline-2 focus:-outline-offset-2 focus:outline-red-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:outline-red-500/50">
+        <option value="">Select a country…</option>
+        <option>United States</option>
+        <option>Canada</option>
+      </select>
+      <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 sm:size-4" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/></svg>
+    </div>
+    <p class="mt-2 text-sm text-red-600 dark:text-red-400">Please select a country.</p>
+  </div>
+  <div>
+    <label for="country-dis" class="block text-sm/6 font-medium text-gray-900 dark:text-white">Country</label>
+    <div class="mt-2 grid grid-cols-1">
+      <select id="country-dis" disabled class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-gray-50 py-1.5 pr-8 pl-3 text-base text-gray-500 outline-1 -outline-offset-1 outline-gray-200 sm:text-sm/6 dark:bg-white/5 dark:text-gray-400 dark:outline-white/10">
+        <option selected>United States</option>
+      </select>
+    </div>
+  </div>
+</div>
+  </div>
+</body>
+</html>

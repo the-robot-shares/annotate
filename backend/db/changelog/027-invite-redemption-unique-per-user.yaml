@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 027-invite-redemption-unique-per-user
+      author: starter-scaffold
+      changes:
+        - sql:
+            sql: |
+              CREATE UNIQUE INDEX IF NOT EXISTS invite_token_redemptions_invite_user_uidx
+                ON invite_token_redemptions (invite_token_id, user_id);
+      rollback:
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS invite_token_redemptions_invite_user_uidx;
