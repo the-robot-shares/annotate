@@ -4,6 +4,7 @@ defmodule Annotate.Comments do
   """
 
   import Ecto.Query
+  alias Annotate.Realtime
   alias Annotate.Repo
   alias Annotate.Schema.Annotate.Attachment
   alias Annotate.Schema.Annotate.Comment
@@ -75,33 +76,40 @@ defmodule Annotate.Comments do
          :ok <- validate_body(body_md),
          {:ok, attachments} <-
            fetch_bindable_attachments(site, attrs["attachment_ids"], commenter) do
-      Repo.transaction(fn ->
-        page = upsert_page(site, page_key, attrs["url"], attrs["title"])
+      case Repo.transaction(fn ->
+             page = upsert_page(site, page_key, attrs["url"], attrs["title"])
 
-        thread =
-          %Thread{}
-          |> Thread.changeset(%{
-            page_id: page.id,
-            anchor: anchor,
-            created_by: commenter.id
-          })
-          |> Repo.insert!()
+             thread =
+               %Thread{}
+               |> Thread.changeset(%{
+                 page_id: page.id,
+                 anchor: anchor,
+                 created_by: commenter.id
+               })
+               |> Repo.insert!()
 
-        comment =
-          %Comment{}
-          |> Comment.changeset(%{
-            thread_id: thread.id,
-            author_id: commenter.id,
-            body_md: body_md
-          })
-          |> Repo.insert!()
+             comment =
+               %Comment{}
+               |> Comment.changeset(%{
+                 thread_id: thread.id,
+                 author_id: commenter.id,
+                 body_md: body_md
+               })
+               |> Repo.insert!()
 
-        bind_attachments(attachments, comment.id)
+             bind_attachments(attachments, comment.id)
 
-        thread
-        |> Repo.preload([:page, :creator])
-        |> Map.put(:comments, [Repo.preload(comment, [:author, :attachments])])
-      end)
+             thread
+             |> Repo.preload([:page, :creator])
+             |> Map.put(:comments, [Repo.preload(comment, [:author, :attachments])])
+           end) do
+        {:ok, thread} ->
+          Realtime.thread_created(site, page_key, thread)
+          {:ok, thread}
+
+        error ->
+          error
+      end
     end
   end
 
@@ -114,45 +122,63 @@ defmodule Annotate.Comments do
          {:ok, parent_id} <- validate_parent(thread, attrs["parent_id"]),
          {:ok, attachments} <-
            fetch_bindable_attachments(thread_site(thread), attrs["attachment_ids"], commenter) do
-      Repo.transaction(fn ->
-        comment =
-          %Comment{}
-          |> Comment.changeset(%{
-            thread_id: thread.id,
-            parent_id: parent_id,
-            author_id: commenter.id,
-            body_md: body_md
-          })
-          |> Repo.insert!()
+      case Repo.transaction(fn ->
+             comment =
+               %Comment{}
+               |> Comment.changeset(%{
+                 thread_id: thread.id,
+                 parent_id: parent_id,
+                 author_id: commenter.id,
+                 body_md: body_md
+               })
+               |> Repo.insert!()
 
-        bind_attachments(attachments, comment.id)
-        Repo.preload(comment, [:author, :attachments])
-      end)
+             bind_attachments(attachments, comment.id)
+             Repo.preload(comment, [:author, :attachments])
+           end) do
+        {:ok, comment} ->
+          Realtime.comment_created(thread.page_id, comment)
+          {:ok, comment}
+
+        error ->
+          error
+      end
     end
   end
 
   def resolve_thread(%Thread{} = thread, commenter) do
-    thread
-    |> Thread.changeset(%{
-      status: :resolved,
-      resolved_by: commenter && commenter.id,
-      resolved_at: now_usec()
-    })
-    |> Repo.update()
+    with {:ok, thread} <-
+           thread
+           |> Thread.changeset(%{
+             status: :resolved,
+             resolved_by: commenter && commenter.id,
+             resolved_at: now_usec()
+           })
+           |> Repo.update() do
+      Realtime.thread_event(thread, :thread_resolved)
+      {:ok, thread}
+    end
   end
 
   def reopen_thread(%Thread{} = thread) do
-    thread
-    |> Thread.changeset(%{status: :open, resolved_by: nil, resolved_at: nil})
-    |> Repo.update()
+    with {:ok, thread} <-
+           thread
+           |> Thread.changeset(%{status: :open, resolved_by: nil, resolved_at: nil})
+           |> Repo.update() do
+      Realtime.thread_event(thread, :thread_reopened)
+      {:ok, thread}
+    end
   end
 
   @doc "Re-anchor repair: replaces the anchor and clears `orphaned_at`."
   def set_thread_anchor(%Thread{} = thread, anchor) do
-    with :ok <- validate_anchor(anchor) do
-      thread
-      |> Thread.changeset(%{anchor: anchor, orphaned_at: nil})
-      |> Repo.update()
+    with :ok <- validate_anchor(anchor),
+         {:ok, thread} <-
+           thread
+           |> Thread.changeset(%{anchor: anchor, orphaned_at: nil})
+           |> Repo.update() do
+      Realtime.thread_event(thread, :thread_anchor_updated)
+      {:ok, thread}
     end
   end
 
@@ -176,17 +202,24 @@ defmodule Annotate.Comments do
   end
 
   def update_comment_body(%Comment{} = comment, body_md) do
-    with :ok <- validate_body(body_md) do
-      comment
-      |> Comment.changeset(%{body_md: body_md, edited_at: now_usec()})
-      |> Repo.update()
+    with :ok <- validate_body(body_md),
+         {:ok, comment} <-
+           comment
+           |> Comment.changeset(%{body_md: body_md, edited_at: now_usec()})
+           |> Repo.update() do
+      Realtime.comment_event(comment, :comment_updated)
+      {:ok, comment}
     end
   end
 
   def soft_delete_comment(%Comment{} = comment) do
-    comment
-    |> Comment.changeset(%{deleted_at: now_usec()})
-    |> Repo.update()
+    with {:ok, comment} <-
+           comment
+           |> Comment.changeset(%{deleted_at: now_usec()})
+           |> Repo.update() do
+      Realtime.comment_event(comment, :comment_deleted)
+      {:ok, comment}
+    end
   end
 
   @doc "True when the commenter may edit/delete: author, else site owner."

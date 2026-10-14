@@ -53,6 +53,20 @@ defmodule Annotate.Sites do
 
   def allowed_origin?(_, _), do: false
 
+  @doc """
+  True when at least one site lists `origin` in its `allowed_origins`.
+
+  First gate of the annotate websocket handshake (`AnnotateWeb.AnnotateSocket.
+  check_origin/1`): Phoenix hands that MFA only the parsed Origin header, so
+  the registry-wide check runs at the transport and the per-site binding
+  runs in `connect/3` where the site connect param is available.
+  """
+  def origin_registered?(origin) when is_binary(origin) do
+    Repo.exists?(from(s in Site, where: ^origin in s.allowed_origins))
+  end
+
+  def origin_registered?(_), do: false
+
   # Settings accessors (jsonb-backed; tolerant of absent keys).
 
   def public_read?(%Site{} = site), do: get_in_settings(site, ["public_read"], true) == true

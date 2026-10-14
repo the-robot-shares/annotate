@@ -5,6 +5,15 @@ defmodule AnnotateWeb.Endpoint do
     websocket: [timeout: 45_000],
     longpoll: false
 
+  # Annotate embed realtime (page topics) — websocket only; origins are
+  # validated per-site by AnnotateWeb.AnnotateSocket.check_origin/1 (MFA).
+  socket "/socket/annotate", AnnotateWeb.AnnotateSocket,
+    websocket: [
+      timeout: 45_000,
+      check_origin: {AnnotateWeb.AnnotateSocket, :check_origin, []}
+    ],
+    longpoll: false
+
   # Style-guide CSS + Hologram client bundles
   plug Plug.Static,
     at: "/",
