@@ -76,6 +76,23 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.guardianSecretKey }}
+# Prod fail-closed in runtime.exs (raise on boot when unset). JWT/key-enc
+# back the embed auth broker (Phase 1a); the chart predates them.
+- name: SESSION_SIGNING_SALT
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.sessionSigningSalt }}
+- name: ANNOTATE_JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.jwtSecret }}
+- name: ANNOTATE_KEY_ENC_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.keyEncSecret }}
 - name: REDIS_URL
   valueFrom:
     secretKeyRef:
