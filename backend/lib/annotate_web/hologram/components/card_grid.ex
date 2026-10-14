@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.CardGrid do
+defmodule AnnotateWeb.Hologram.Components.CardGrid do
   use Hologram.Component
   prop :class, :string, default: ""
 

@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.Navbar do
+defmodule AnnotateWeb.Hologram.Components.Navbar do
   @moduledoc """
   Sticky auth-aware navbar using style-guide `sg-navbar*` classes
   (ported from start-app `frontend/src/components/navbar.tsx`).
@@ -6,10 +6,10 @@ defmodule StarterWeb.Hologram.Components.Navbar do
   use Hologram.Component
 
   alias Hologram.UI.Link
-  alias StarterWeb.Hologram.Components.FloatingAuth
-  alias StarterWeb.Hologram.Pages.AppHomePage
-  alias StarterWeb.Hologram.Pages.HomePage
-  alias StarterWeb.Hologram.Pages.StyleGuidePage
+  alias AnnotateWeb.Hologram.Components.FloatingAuth
+  alias AnnotateWeb.Hologram.Pages.AppHomePage
+  alias AnnotateWeb.Hologram.Pages.HomePage
+  alias AnnotateWeb.Hologram.Pages.StyleGuidePage
 
   prop :user, :map, default: nil
   prop :brand, :string, default: "Start-App: Tagline"

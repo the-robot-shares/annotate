@@ -85,8 +85,13 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
   end
 
   defp human_error("not_provisioned"), do: "Your account is not provisioned for SSO."
-  defp human_error("invite_required"), do: "Sign-up is invite-only. Open an invite link, then continue with SSO."
-  defp human_error("invalid_invite"), do: "That invite link is invalid or has expired. Ask your inviter for a new one."
+
+  defp human_error("invite_required"),
+    do: "Sign-up is invite-only. Open an invite link, then continue with SSO."
+
+  defp human_error("invalid_invite"),
+    do: "That invite link is invalid or has expired. Ask your inviter for a new one."
+
   defp human_error("sso_unavailable"), do: "SSO is not available for this email domain."
   defp human_error("sso_failed"), do: "SSO failed. Try again or contact support."
   defp human_error("oidc_failed"), do: "Authentik sign-in failed. Try again."

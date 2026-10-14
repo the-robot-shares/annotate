@@ -1,5 +1,5 @@
-defmodule StarterWeb.OrganizationControllerTest do
-  use StarterWeb.ConnCase
+defmodule AnnotateWeb.OrganizationControllerTest do
+  use AnnotateWeb.ConnCase
 
   describe "organizations" do
     test "create and list organizations", %{conn: conn} do

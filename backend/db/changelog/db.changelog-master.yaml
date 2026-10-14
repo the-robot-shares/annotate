@@ -83,3 +83,9 @@ databaseChangeLog:
   - include:
       file: 027-invite-redemption-unique-per-user.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 028-annotate-core.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: 029-annotate-refresh-tokens.yaml
+      relativeToChangelogFile: true

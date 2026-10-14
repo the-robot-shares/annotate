@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.TypeSpecimen do
+defmodule AnnotateWeb.Hologram.Components.TypeSpecimen do
   @moduledoc "StyleGuideTypeSpecimen."
   use Hologram.Component
 

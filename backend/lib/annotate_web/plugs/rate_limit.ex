@@ -1,4 +1,4 @@
-defmodule StarterWeb.Plugs.RateLimit do
+defmodule AnnotateWeb.Plugs.RateLimit do
   @behaviour Plug
   import Plug.Conn
 

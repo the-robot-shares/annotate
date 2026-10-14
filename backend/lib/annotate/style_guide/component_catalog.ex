@@ -94,7 +94,8 @@ defmodule Annotate.StyleGuide.ComponentCatalog do
     %{
       slug: "interaction",
       label: "Interaction",
-      description: "HUI interactive control patterns (see Interaction → HUI Controls for full suite).",
+      description:
+        "HUI interactive control patterns (see Interaction → HUI Controls for full suite).",
       count: 3,
       entries: [
         %{

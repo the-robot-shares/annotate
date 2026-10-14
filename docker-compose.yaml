@@ -18,7 +18,7 @@ services:
     restart: "no"
 
   nginx:
-    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-hologram-start-app}/nginx:${TAG:-latest}
+    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-annotate}/nginx:${TAG:-latest}
     ports:
       - "${PORT:-8080}:80"
     depends_on:
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-hologram-start-app}/backend:${TAG:-latest}
+    image: ${REGISTRY:-ops.noizu.com}/${PROJECT_DIR:-annotate}/backend:${TAG:-latest}
     env_file: .env
     environment:
       PHX_SERVER: "true"

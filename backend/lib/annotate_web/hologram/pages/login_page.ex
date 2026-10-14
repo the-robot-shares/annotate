@@ -124,11 +124,13 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
 
   def action(:submit_email, _params, component) do
     email = component.state.email
-    providers = Auth.matching_sso_providers(email, %{
-      providers: component.state.sso_providers,
-      domain_policies: component.state.sso_domains,
-      domains: component.state.sso_domains
-    })
+
+    providers =
+      Auth.matching_sso_providers(email, %{
+        providers: component.state.sso_providers,
+        domain_policies: component.state.sso_domains,
+        domains: component.state.sso_domains
+      })
 
     step = if providers != [], do: "sso", else: "password"
 
@@ -140,7 +142,9 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
   end
 
   def action(:use_password, _params, component), do: put_state(component, :step, "password")
-  def action(:back_to_email, _params, component), do: put_state(component, step: "email", error: nil)
+
+  def action(:back_to_email, _params, component),
+    do: put_state(component, step: "email", error: nil)
 
   def action(:submit_password, _params, component) do
     component
@@ -179,6 +183,7 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
   end
 
   defp path_to_page("/auth/invite-required"), do: AnnotateWeb.Hologram.Pages.InviteRequiredPage
+
   defp path_to_page("/complete-registration"),
     do: AnnotateWeb.Hologram.Pages.CompleteRegistrationPage
 

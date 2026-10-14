@@ -22,7 +22,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    image: ${PROJECT_DIR:-hologram-start-app}/backend:dev
+    image: ${PROJECT_DIR:-annotate}/backend:dev
     depends_on:
       migrations:
         condition: service_completed_successfully

@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Pages.TkSmokePage do
+defmodule AnnotateWeb.Hologram.Pages.TkSmokePage do
   @moduledoc """
   Smoke page for the `:tobor_kit_hologram` mirror package (browser
   verification of the PORTING.md §6.1–6.3 interactive contract — compile /
@@ -17,7 +17,7 @@ defmodule StarterWeb.Hologram.Pages.TkSmokePage do
   """
   use Hologram.Page
 
-  alias StarterWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.MainLayout
   alias ToborKit.Hologram.ChatThread.Thread
   alias ToborKit.Hologram.Faq.Faq
   alias ToborKit.Hologram.ModeToggle.Toggle, as: ModeToggle
@@ -36,7 +36,10 @@ defmodule StarterWeb.Hologram.Pages.TkSmokePage do
       event_count: 0,
       faq_items: [
         %{"question" => "What is tobor-kit?", "answer" => "An agent-guide component kit."},
-        %{"question" => "Why a smoke page?", "answer" => "Browser-proof the interactive contract."}
+        %{
+          "question" => "Why a smoke page?",
+          "answer" => "Browser-proof the interactive contract."
+        }
       ],
       personas: [
         %{"id" => "sheggoth", "name" => "Sheggoth", "handle" => "@sheggoth"},
@@ -109,7 +112,11 @@ defmodule StarterWeb.Hologram.Pages.TkSmokePage do
   end
 
   def action(:tobor_mode_change, params, component) do
-    handle_event(component, "tobor-mode-change", params.mode <> " (was " <> params.previous <> ")")
+    handle_event(
+      component,
+      "tobor-mode-change",
+      params.mode <> " (was " <> params.previous <> ")"
+    )
   end
 
   def action(:persona_select, params, component) do

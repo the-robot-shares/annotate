@@ -1,16 +1,16 @@
-defmodule StarterWeb.Hologram.Pages.HomePage do
+defmodule AnnotateWeb.Hologram.Pages.HomePage do
   @moduledoc "Landing page — style-guide cards + CTAs (start-app home)."
   use Hologram.Page
 
   alias Hologram.UI.Link
-  alias StarterWeb.Hologram.Components.ButtonRow
-  alias StarterWeb.Hologram.Components.Card
-  alias StarterWeb.Hologram.Components.CardGrid
-  alias StarterWeb.Hologram.Layouts.MainLayout
-  alias StarterWeb.Hologram.Pages.LoginPage
-  alias StarterWeb.Hologram.Pages.SignupPage
-  alias StarterWeb.Hologram.Pages.SitemapPage
-  alias StarterWeb.Hologram.Pages.StyleGuidePage
+  alias AnnotateWeb.Hologram.Components.ButtonRow
+  alias AnnotateWeb.Hologram.Components.Card
+  alias AnnotateWeb.Hologram.Components.CardGrid
+  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Pages.LoginPage
+  alias AnnotateWeb.Hologram.Pages.SignupPage
+  alias AnnotateWeb.Hologram.Pages.SitemapPage
+  alias AnnotateWeb.Hologram.Pages.StyleGuidePage
 
   route "/"
   layout MainLayout, page_title: "Start-App: Tagline"

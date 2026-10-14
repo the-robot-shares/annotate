@@ -208,7 +208,9 @@ defmodule Annotate.StyleGuide.ThemeData do
   def save_variant(slug, section, variant, content)
       when is_binary(section) and is_binary(variant) and is_binary(content) do
     section = section |> String.replace(~r/[^a-z0-9-]/, "") |> String.trim("-")
-    variant = variant |> String.downcase() |> String.replace(~r/[^a-z0-9-]/, "-") |> String.trim("-")
+
+    variant =
+      variant |> String.downcase() |> String.replace(~r/[^a-z0-9-]/, "-") |> String.trim("-")
 
     cond do
       section == "" ->
@@ -335,7 +337,8 @@ defmodule Annotate.StyleGuide.ThemeData do
         Enum.map(List.wrap(zones), fn z ->
           %{
             label: Map.get(z, "label") || Map.get(z, :label) || "Zone",
-            background: Map.get(z, "background") || Map.get(z, :background) || "var(--surface-alt)",
+            background:
+              Map.get(z, "background") || Map.get(z, :background) || "var(--surface-alt)",
             color: Map.get(z, "color") || Map.get(z, :color) || "var(--text-muted)",
             ratio: Map.get(z, "ratio") || Map.get(z, :ratio) || 1
           }
@@ -372,7 +375,8 @@ defmodule Annotate.StyleGuide.ThemeData do
     if is_map(part) do
       %{
         label: Map.get(part, "label") || Map.get(part, :label) || String.capitalize(key),
-        background: Map.get(part, "background") || Map.get(part, :background) || "var(--surface-alt)",
+        background:
+          Map.get(part, "background") || Map.get(part, :background) || "var(--surface-alt)",
         color: Map.get(part, "color") || Map.get(part, :color) || "var(--text)",
         height: Map.get(part, "height") || Map.get(part, :height),
         width: Map.get(part, "width") || Map.get(part, :width)

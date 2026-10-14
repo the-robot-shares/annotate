@@ -300,7 +300,8 @@ defmodule Annotate.FleetPushTest do
       assert worker_cfg != [], "expected config :annotate, #{inspect(worker)} in config.exs"
 
       provider = worker_cfg[:metrics_provider]
-      assert {:module, provider} = Code.ensure_compiled(provider)
+      assert {:module, compiled} = Code.ensure_compiled(provider)
+      assert compiled == provider
 
       # runtime.exs must overlay the key for the same module — a typo'd module
       # atom there would silently disable the push in prod while tests stay green.

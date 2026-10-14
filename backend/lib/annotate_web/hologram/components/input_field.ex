@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.InputField do
+defmodule AnnotateWeb.Hologram.Components.InputField do
   @moduledoc "StyleGuideInputField / sg-field."
   use Hologram.Component
 

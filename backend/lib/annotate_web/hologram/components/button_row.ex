@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.ButtonRow do
+defmodule AnnotateWeb.Hologram.Components.ButtonRow do
   use Hologram.Component
   prop :class, :string, default: ""
 

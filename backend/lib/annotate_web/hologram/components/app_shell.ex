@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.AppShell do
+defmodule AnnotateWeb.Hologram.Components.AppShell do
   @moduledoc """
   Authenticated app chrome — sidebar + main region.
 
@@ -8,13 +8,13 @@ defmodule StarterWeb.Hologram.Components.AppShell do
   use Hologram.Component
 
   alias Hologram.UI.Link
-  alias StarterWeb.Hologram.Pages.AdminInvitesPage
-  alias StarterWeb.Hologram.Pages.AdminOrgsPage
-  alias StarterWeb.Hologram.Pages.AdminUsersPage
-  alias StarterWeb.Hologram.Pages.AppHomePage
-  alias StarterWeb.Hologram.Pages.OrgDashboardPage
-  alias StarterWeb.Hologram.Pages.OrgMembersPage
-  alias StarterWeb.Hologram.Pages.ProfilePage
+  alias AnnotateWeb.Hologram.Pages.AdminInvitesPage
+  alias AnnotateWeb.Hologram.Pages.AdminOrgsPage
+  alias AnnotateWeb.Hologram.Pages.AdminUsersPage
+  alias AnnotateWeb.Hologram.Pages.AppHomePage
+  alias AnnotateWeb.Hologram.Pages.OrgDashboardPage
+  alias AnnotateWeb.Hologram.Pages.OrgMembersPage
+  alias AnnotateWeb.Hologram.Pages.ProfilePage
 
   prop :user, :map, default: nil
   prop :organizations, :list, default: []

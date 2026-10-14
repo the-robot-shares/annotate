@@ -83,6 +83,8 @@ config :annotate, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 */6 * * *", Annotate.Workers.CleanupWorker},
+       # Annotate: drop pending uploads that never completed (24h TTL).
+       {"30 * * * *", Annotate.Workers.AttachmentSweeper},
        # Fleet dashboard (fleet.noizu.com) daily metrics push. No-ops at
        # runtime when FLEET_INGEST_KEY is unset.
        {"5 9 * * *", Annotate.FleetPush}
@@ -108,6 +110,18 @@ config :annotate, :feature_flags, %{
   # :pending/:waitlist/:unverified accounts at /auth/invite-required.
   general_release: false
 }
+
+# ── Annotate embeddable-comments API ────────────────────────────
+# Dev fallbacks; runtime.exs overlays ANNOTATE_JWT_SECRET /
+# ANNOTATE_KEY_ENC_SECRET, prod requires them explicitly.
+config :annotate, Annotate.Auth.ApiToken,
+  secret: "dev-annotate-jwt-secret-change-in-production-0123456789abcdef"
+
+config :annotate, Annotate.Auth.ServiceKey,
+  enc_secret: "dev-annotate-key-enc-secret-change-in-production-0123456789"
+
+config :annotate, :embed, redirect_uri: nil
+config :annotate, :oidc_impl, OpenIDConnect
 
 # i18n
 config :annotate, AnnotateWeb.Gettext, default_locale: "en"

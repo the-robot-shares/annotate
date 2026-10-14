@@ -1,10 +1,16 @@
-defmodule StarterWeb.Plugs.CORS do
+defmodule AnnotateWeb.Plugs.CORS do
   import Plug.Conn
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(opts), do: opts
 
   # <REMOVED UUID HERE> call :: auto-generated pointer for public function call
+  def call(%{private: %{:annotate_cors_claimed => true}} = conn, _opts) do
+    # AnnotateWeb.Plugs.AnnotateCORS owns this request's CORS (per-site
+    # allowlist) — do not stamp a wildcard on top of it.
+    conn
+  end
+
   def call(conn, _opts) do
     conn
     |> put_resp_header("access-control-allow-origin", get_origin(conn))

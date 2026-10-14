@@ -303,7 +303,9 @@ defmodule Annotate.StyleGuide.Catalog do
     # Prefer theme CSS that exists; fall back to style-guide.css
     css =
       cond do
-        File.exists?(css_file) -> css_path
+        File.exists?(css_file) ->
+          css_path
+
         File.exists?(Path.join(@static_themes_root, "style-guide.css")) ->
           "/themes/style-guide.css"
 
@@ -388,5 +390,3 @@ defmodule Annotate.StyleGuide.Catalog do
     end
   end
 end
-
-

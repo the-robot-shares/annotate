@@ -26,4 +26,4 @@ Or copy a fresh build from the styleguide app / start-app frontend after `npm ru
 
 UI primitives that consume these CSS classes live in:
 
-`backend/lib/starter_web/hologram/components/`
+`backend/lib/annotate_web/hologram/components/`

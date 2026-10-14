@@ -1,5 +1,5 @@
-defmodule StarterWeb.HealthControllerTest do
-  use StarterWeb.ConnCase
+defmodule AnnotateWeb.HealthControllerTest do
+  use AnnotateWeb.ConnCase
 
   test "GET /health returns ok", %{conn: conn} do
     conn = get(conn, "/health")
