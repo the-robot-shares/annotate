@@ -7,7 +7,7 @@ appDomain: annotate-srv.therobotlives.com
 cookieDomain: ".therobotlives.com"
 
 backend:
-  image: ops.noizu.com/annotate/backend:latest
+  image: ops.noizu.com/annotate/backend:sha-2a92c56
   port: 4000
   resources:
     requests:
