@@ -14,3 +14,6 @@ All notable changes to `annotate.therobotlives.com`.
 - 2026-10-14: ci: build-push was scaffold-excluded for this repo (never released) — removed self-exclusion; fixed stale START_APP comment (#6)
 - 2026-10-14: chart: backend image repo fixed to `ops.noizu.com/annotate.therobotlives.com/backend` (bump-chart tags a path CI never pushed) (#10)
 - 2026-10-14: chart: emit prod fail-closed env (SESSION_SIGNING_SALT, ANNOTATE_JWT_SECRET, ANNOTATE_KEY_ENC_SECRET) — runtime.exs raises at boot without them; chart predated Phase 1a's embed broker (#14)
+- 2026-10-14: runtime: OTEL resource map built with nonexistent `Map.new/3` (release boot crashed `undef` when OTEL_ENDPOINT set; only in prod) (#17)
+- 2026-10-14: style-guide: theme css root resolved via `Application.app_dir` at runtime — compile-time `Path.expand(__DIR__)` baked build-machine paths, themes() empty in release → every page 500 (#20)
+- 2026-10-14: navbar: `<FloatingAuth cid=...>` — Hologram SSR renders cid-less component nodes template-only (init skipped) → `KeyError key :open` on every page; dev never catches it (client-side init) (#23)
