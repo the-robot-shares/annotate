@@ -1,12 +1,12 @@
-defmodule StarterWeb.Hologram.Pages.PendingApprovalPage do
+defmodule AnnotateWeb.Hologram.Pages.PendingApprovalPage do
   @moduledoc """
   Legacy `/pending-approval` route: the invite interstitial replaced it, so
   old links and bookmarks land on `/auth/invite-required`.
   """
   use Hologram.Page
 
-  alias StarterWeb.Hologram.Layouts.MainLayout
-  alias StarterWeb.Hologram.Pages.InviteRequiredPage
+  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Pages.InviteRequiredPage
 
   route "/pending-approval"
   layout MainLayout, page_title: "Invite required"

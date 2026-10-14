@@ -188,7 +188,8 @@ defmodule AnnotateWeb.Hologram.Pages.OrgDashboardPage do
 
       other when is_map(other) ->
         %{
-          email: Map.get(other, :email) || Map.get(other, "email") || Map.get(other, :member_id) || "—",
+          email:
+            Map.get(other, :email) || Map.get(other, "email") || Map.get(other, :member_id) || "—",
           role: Map.get(other, :role) || Map.get(other, "role") || "member"
         }
 

@@ -25,7 +25,7 @@ defmodule AnnotateWeb.Plugs.Session do
 
     Plug.Session.init(
       store: :cookie,
-      key: "_starter_key",
+      key: "_annotate_key",
       signing_salt: signing_salt,
       same_site: "Lax"
     )

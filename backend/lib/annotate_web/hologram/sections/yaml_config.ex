@@ -236,6 +236,7 @@ defmodule AnnotateWeb.Hologram.Sections.YamlConfig do
 
   defp editor_rows(content) do
     n = line_count(content)
+
     cond do
       n < 16 -> 16
       n > 36 -> 36

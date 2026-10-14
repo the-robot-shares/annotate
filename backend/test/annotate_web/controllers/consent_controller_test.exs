@@ -1,5 +1,5 @@
-defmodule StarterWeb.ConsentControllerTest do
-  use StarterWeb.ConnCase
+defmodule AnnotateWeb.ConsentControllerTest do
+  use AnnotateWeb.ConnCase
 
   describe "cookie consent persistence" do
     test "persists anonymous browser-session preferences", %{conn: conn} do

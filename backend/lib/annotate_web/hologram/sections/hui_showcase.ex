@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Sections.HuiShowcase do
+defmodule AnnotateWeb.Hologram.Sections.HuiShowcase do
   @moduledoc """
   Interactive HUI (Headless-UI-styled) control gallery.
 

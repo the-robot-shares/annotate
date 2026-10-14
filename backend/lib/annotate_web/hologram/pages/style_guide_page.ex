@@ -626,7 +626,13 @@ defmodule AnnotateWeb.Hologram.Pages.StyleGuidePage do
 
   defp glyphs_ui do
     [
-      %{glyph: "≡", name: "Hamburger", code: "U+2261", use: "Mobile nav toggle", example: "≡ Menu"},
+      %{
+        glyph: "≡",
+        name: "Hamburger",
+        code: "U+2261",
+        use: "Mobile nav toggle",
+        example: "≡ Menu"
+      },
       %{glyph: "⋮", name: "Kebab", code: "U+22EE", use: "More options", example: "⋮"},
       %{glyph: "⋯", name: "Overflow", code: "U+22EF", use: "Truncation", example: "Files ⋯"},
       %{glyph: "✕", name: "Close", code: "U+2715", use: "Dismiss / clear", example: "✕ Close"},
@@ -635,7 +641,13 @@ defmodule AnnotateWeb.Hologram.Pages.StyleGuidePage do
       %{glyph: "↑", name: "Up", code: "U+2191", use: "Scroll top", example: "↑ Top"},
       %{glyph: "↓", name: "Down", code: "U+2193", use: "Expand", example: "Show more ↓"},
       %{glyph: "↗", name: "External", code: "U+2197", use: "External link", example: "Docs ↗"},
-      %{glyph: "›", name: "Chevron", code: "U+203A", use: "Breadcrumb", example: "Home › Settings"},
+      %{
+        glyph: "›",
+        name: "Chevron",
+        code: "U+203A",
+        use: "Breadcrumb",
+        example: "Home › Settings"
+      },
       %{glyph: "✓", name: "Check", code: "U+2713", use: "Success / selected", example: "✓ Done"},
       %{glyph: "●", name: "Bullet", code: "U+25CF", use: "Status dot", example: "● Live"}
     ]

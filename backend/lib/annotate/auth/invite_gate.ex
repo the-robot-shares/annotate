@@ -78,11 +78,20 @@ defmodule Annotate.Auth.InviteGate do
   """
   def signup_status(email, provider \\ nil, invite \\ nil) do
     cond do
-      not is_nil(invite) -> :active
-      not enabled?() -> :active
-      provider -> if Annotate.Auth.SSODomains.auto_approve?(email, provider), do: :active, else: :pending
-      Annotate.Auth.SSODomains.auto_approve_domain?(email) -> :unverified
-      true -> :pending
+      not is_nil(invite) ->
+        :active
+
+      not enabled?() ->
+        :active
+
+      provider ->
+        if Annotate.Auth.SSODomains.auto_approve?(email, provider), do: :active, else: :pending
+
+      Annotate.Auth.SSODomains.auto_approve_domain?(email) ->
+        :unverified
+
+      true ->
+        :pending
     end
   end
 
@@ -93,8 +102,12 @@ defmodule Annotate.Auth.InviteGate do
   def after_signup(%{status: status, email: email}) when status in [:unverified, "unverified"] do
     frontend_url = Application.get_env(:annotate, :frontend_url, "http://localhost:8080")
 
-    with {:ok, %{encoded_key: key}} <- Annotate.Auth.SmartTokenAuth.request_email_verification(email) do
-      Annotate.Auth.SmartTokenEmail.send_verification_email(email, "#{frontend_url}/auth/verify-email?token=#{key}")
+    with {:ok, %{encoded_key: key}} <-
+           Annotate.Auth.SmartTokenAuth.request_email_verification(email) do
+      Annotate.Auth.SmartTokenEmail.send_verification_email(
+        email,
+        "#{frontend_url}/auth/verify-email?token=#{key}"
+      )
     end
 
     :ok
@@ -244,5 +257,4 @@ defmodule Annotate.Auth.InviteGate do
 
     user |> Ecto.Changeset.change(changes) |> Repo.update()
   end
-
 end

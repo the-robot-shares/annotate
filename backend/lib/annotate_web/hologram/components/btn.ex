@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.Btn do
+defmodule AnnotateWeb.Hologram.Components.Btn do
   @moduledoc "StyleGuideBtn — `btn` / `btn-{variant}` / `btn-{size}`."
   use Hologram.Component
 

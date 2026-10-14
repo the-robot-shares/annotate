@@ -1,4 +1,4 @@
-defmodule StarterWeb.Hologram.Components.TokenCard do
+defmodule AnnotateWeb.Hologram.Components.TokenCard do
   @moduledoc "StyleGuideTokenCard — `tokens` is list of `%{name, value}`."
   use Hologram.Component
 

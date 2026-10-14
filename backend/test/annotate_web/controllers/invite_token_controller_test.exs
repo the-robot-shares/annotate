@@ -116,7 +116,12 @@ defmodule AnnotateWeb.InviteTokenControllerTest do
     } do
       auth = Plug.Conn.put_req_header(conn, "authorization", "Bearer #{token}")
 
-      conn1 = post(auth, "/api/v1/organizations/#{org.id}/invites", %{"role" => "member", "max_uses" => 3})
+      conn1 =
+        post(auth, "/api/v1/organizations/#{org.id}/invites", %{
+          "role" => "member",
+          "max_uses" => 3
+        })
+
       body = json_response(conn1, 201)
 
       raw = body["token"]

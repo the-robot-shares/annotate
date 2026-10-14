@@ -20,7 +20,7 @@ defmodule AnnotateWeb.Router do
     # credential-lifetime decision.
     plug Plug.Session,
       store: :cookie,
-      key: "_starter_sso",
+      key: "_annotate_sso",
       signing_salt: "sso_session_salt",
       same_site: "Lax",
       max_age: 900
@@ -34,6 +34,11 @@ defmodule AnnotateWeb.Router do
 
   pipeline :rate_limited_sensitive do
     plug AnnotateWeb.Plugs.RateLimit, action: :auth_sensitive
+  end
+
+  # Annotate embed API write budget: per (ip, site), write methods only.
+  pipeline :annotate_rate_limited do
+    plug AnnotateWeb.Plugs.RateLimit, action: :annotate_write
   end
 
   pipeline :org_viewer do
@@ -54,6 +59,20 @@ defmodule AnnotateWeb.Router do
 
   pipeline :admin do
     plug AnnotateWeb.Plugs.RequireAdmin
+  end
+
+  # ── Annotate embeddable-comments API ─────────────────────────
+  # :optional = anonymous reads allowed when settings.public_read; anonymous
+  # POST (guest threads) only when comment_policy.allow_anonymous — otherwise
+  # writes require a token like every other write. :required = valid
+  # Annotate.Auth.ApiToken mandatory. Binding checks (origin/site claims) live
+  # in AnnotateWeb.Plugs.AnnotateAuth.
+  pipeline :annotate_auth_optional do
+    plug AnnotateWeb.Plugs.AnnotateAuth, mode: :optional
+  end
+
+  pipeline :annotate_auth_required do
+    plug AnnotateWeb.Plugs.AnnotateAuth, mode: :required
   end
 
   scope "/", AnnotateWeb do
@@ -203,6 +222,47 @@ defmodule AnnotateWeb.Router do
     resources "/policies", PolicyController, only: [:index, :create, :show, :update, :delete]
     post "/users/:user_id/policies", PolicyController, :attach_to_user
     delete "/users/:user_id/policies/:policy_id", PolicyController, :detach_from_user
+  end
+
+  # ── Annotate embeddable comments (/api/v1 + /embed) ──────────────
+  # Per-site CORS is handled endpoint-level by AnnotateWeb.Plugs.AnnotateCORS.
+  # Token-bound routes carry the site as `?site=<slug>` so preflights (no
+  # body) can be authorized — see docs/API.md.
+
+  scope "/api/v1/sites/:site", AnnotateWeb.AnnotateAPI do
+    pipe_through [:api, :annotate_rate_limited, :annotate_auth_optional]
+
+    get "/threads", SiteThreadsController, :index
+    post "/threads", SiteThreadsController, :create
+  end
+
+  scope "/api/v1", AnnotateWeb.AnnotateAPI do
+    pipe_through [:api, :annotate_rate_limited, :annotate_auth_required]
+
+    post "/threads/:id/comments", ThreadCommentsController, :create
+    post "/threads/:id/resolve", ThreadCommentsController, :resolve
+    post "/threads/:id/reopen", ThreadCommentsController, :reopen
+    patch "/threads/:id/anchor", ThreadCommentsController, :patch_anchor
+    patch "/comments/:id", CommentController, :update
+    delete "/comments/:id", CommentController, :delete
+    post "/attachments/presign", AttachmentController, :presign
+    post "/attachments/:id/complete", AttachmentController, :complete
+  end
+
+  scope "/api/v1", AnnotateWeb.AnnotateAPI do
+    pipe_through [:api, :annotate_rate_limited]
+
+    post "/token/refresh", TokenController, :refresh
+    post "/sites/:site/token/assert", TokenController, :host_assert
+  end
+
+  # Popup auth broker (signed session carries state/nonce — same pipeline as
+  # the scaffold OIDC flow).
+  scope "/embed", AnnotateWeb.AnnotateAPI do
+    pipe_through [:sso_session]
+
+    get "/login", EmbedController, :login
+    get "/callback", EmbedController, :callback
   end
 
   if Application.compile_env(:annotate, :dev_routes) do

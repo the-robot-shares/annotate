@@ -107,7 +107,9 @@ defmodule AnnotateWeb.AuthControllerTest do
       assert json_response(conn, 201)
 
       user = Annotate.Repo.get_by!(User, email: email)
-      assert {:ok, %{role: "member"}} = Annotate.Authz.authorize(user.id, "organization", org.id, "member")
+
+      assert {:ok, %{role: "member"}} =
+               Annotate.Authz.authorize(user.id, "organization", org.id, "member")
     end
 
     test "single-use invite cannot be redeemed twice", %{conn: conn} do

@@ -232,6 +232,28 @@ if config_env() == :prod do
     config :annotate, :oidc_enabled, true
   end
 
+  # ── Annotate embeddable-comments API ────────────────────────────
+  config :annotate, Annotate.Auth.ApiToken,
+    secret:
+      System.get_env("ANNOTATE_JWT_SECRET") ||
+        "dev-annotate-jwt-secret-change-in-production-0123456789abcdef"
+
+  config :annotate, Annotate.Auth.ServiceKey,
+    enc_secret:
+      System.get_env("ANNOTATE_KEY_ENC_SECRET") ||
+        "dev-annotate-key-enc-secret-change-in-production-0123456789"
+
+  # Popup broker redirect: the Authentik client's registered callback.
+  config :annotate, :embed,
+    redirect_uri: System.get_env("EMBED_OIDC_REDIRECT_URI") || "https://#{host}/embed/callback"
+
+  if config_env() == :prod do
+    # Fail closed: tokens/keys minted with a known dev fallback would be a
+    # trivial forgery vector. Phase 1b wires these via Infisical.
+    System.fetch_env!("ANNOTATE_JWT_SECRET")
+    System.fetch_env!("ANNOTATE_KEY_ENC_SECRET")
+  end
+
   # ── SSO: SAML ──────────────────────────────────────────────────
   saml_metadata =
     cond do

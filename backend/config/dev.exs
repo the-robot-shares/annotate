@@ -2,9 +2,9 @@ import Config
 
 config :annotate, Annotate.Repo,
   username: System.get_env("DB_USER", "annotate"),
-  password: System.get_env("DB_PASS", "starter_dev"),
+  password: System.get_env("DB_PASS", "annotate_dev"),
   hostname: System.get_env("DB_HOST", "localhost"),
-  database: System.get_env("DB_NAME", "starter_dev"),
+  database: System.get_env("DB_NAME", "annotate_dev"),
   port: String.to_integer(System.get_env("DB_PORT") || "5432"),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,

@@ -1,4 +1,4 @@
-defmodule StarterWeb.Telemetry do
+defmodule AnnotateWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 

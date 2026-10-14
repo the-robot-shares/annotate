@@ -55,6 +55,6 @@ the equivalent by hand or extend the wrapper:
 ## Frontend
 
 There is none — Hologram renders the UI from the Phoenix backend
-(`lib/starter_web/hologram/` pages/components). The Cypress suite from the
+(`lib/annotate_web/hologram/` pages/components). The Cypress suite from the
 Next.js sibling does not apply; E2E coverage is backend tests plus the
 Hologram pages themselves.

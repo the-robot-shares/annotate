@@ -1,4 +1,4 @@
-defmodule StarterWeb.SSOStateNonceTest do
+defmodule AnnotateWeb.SSOStateNonceTest do
   @moduledoc """
   The OIDC `state`/`nonce` guard - asserting the ATTACK is rejected, not
   merely that a `state` param exists somewhere in the flow.
@@ -39,9 +39,9 @@ defmodule StarterWeb.SSOStateNonceTest do
   green when the guard is disabled would be worse than no test at all - it
   would say "protected" about code that isn't.
   """
-  use StarterWeb.ConnCase, async: true
+  use AnnotateWeb.ConnCase, async: true
 
-  alias StarterWeb.SSOController
+  alias AnnotateWeb.SSOController
 
   describe "GET /auth/oidc/callback - state, at the real endpoint" do
     test "a callback with no state in session is refused", %{conn: conn} do

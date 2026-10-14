@@ -406,7 +406,8 @@ defmodule AnnotateWeb.AuthController do
   defp resolve_invite(nil, _email), do: {:ok, nil}
   defp resolve_invite("", _email), do: {:ok, nil}
 
-  defp resolve_invite(raw_token, email),    do: Organizations.find_active_invite_by_raw_token(raw_token, email)
+  defp resolve_invite(raw_token, email),
+    do: Organizations.find_active_invite_by_raw_token(raw_token, email)
 
   defp profile_completed_at(params) do
     required = [
