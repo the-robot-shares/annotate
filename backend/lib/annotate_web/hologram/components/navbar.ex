@@ -8,7 +8,7 @@ defmodule AnnotateWeb.Hologram.Components.Navbar do
   alias Hologram.UI.Link
   alias AnnotateWeb.Hologram.Components.FloatingAuth
   alias AnnotateWeb.Hologram.Pages.AppHomePage
-  alias AnnotateWeb.Hologram.Pages.HomePage
+  alias AnnotateWeb.Hologram.Pages.LandingPage
   alias AnnotateWeb.Hologram.Pages.StyleGuidePage
 
   prop :user, :map, default: nil
@@ -20,7 +20,7 @@ defmodule AnnotateWeb.Hologram.Components.Navbar do
     ~HOLO"""
     <nav class="sg-navbar" aria-label="Primary">
       <div class="sg-navbar__inner">
-        <Link to={HomePage} class="sg-navbar__brand">{@brand}</Link>
+        <Link to={LandingPage} class="sg-navbar__brand">{@brand}</Link>
         <div class="sg-navbar__links">
           <Link to={StyleGuidePage} class="btn btn-outline btn-sm">Style Guide</Link>
           {%if @loading}

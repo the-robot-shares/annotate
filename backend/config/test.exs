@@ -1,5 +1,13 @@
 import Config
 
+# Enable the Hologram runtime in :test. Config runs before the application
+# supervision tree boots, so `Hologram.enabled?/0` (HOLOGRAM_START=1) makes the
+# Hologram children (page-module resolver, asset registries) start and
+# `Hologram.Router` resolve page paths — without it every Hologram page request
+# (e.g. the marketing landing at "/") passes through to the Phoenix router and
+# 404s. test_helper.exs is too late: `mix test` starts the app before helpers.
+System.put_env("HOLOGRAM_START", "1")
+
 config :annotate, Annotate.Repo,
   username: System.get_env("DB_USER", "annotate"),
   password: System.get_env("DB_PASS", "annotate_dev"),

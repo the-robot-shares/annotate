@@ -1,0 +1,93 @@
+# ============================================================================
+# annotate landing — Proof Sheet direction — HERO (16:9)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published
+# (caption, alt text, or credits line).
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/proof-sheet/hero.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-proofsheet-hero
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Wide 16:9 illustration styled like a prepress proofing sheet on light proof
+    paper (#F4F4F1). Center-left: a webpage proof laid flat, corner crop marks
+    in gray (#B9BBB6) at its four corners and a tiny registration target
+    (circle with crosshair) beside it. Page content is abstract: ink (#14161A)
+    text bars and placeholder blocks, no readable words. One paragraph bar is
+    marked with a precise proof-red (#E5484D) circle — drawn like a grease
+    pencil on a proof, even and deliberate. Docked to the right edge of the
+    proof: a clean white comment rail with three rounded cards (avatar dots,
+    gray text bars) like attached correction flags; the middle card connects
+    to the circled paragraph with a thin straight proof-red line. One small
+    registration-blue (#2F6FED) margin note bar near the circled element, like
+    a revision tag. Even flat studio lighting, near-zero shadows, everything
+    aligned to a visible technical grid. Feels like page proof round two of a
+    print job — precise, technical, calm.
+  negative: readable text, letters, words, brand logos, watermarks, signatures,
+    garbled glyphs, photorealistic humans, faces, CMYK color bars as decoration,
+    halftone dots, dark background, neon colors, hand-drawn scribbles
+  style: precise print-production illustration, technical grid, duotone
+    blue/red accents on neutral paper, flat and even
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1280
+    height: 720
+    aspect_ratio: '16:9'
+
+requirements:
+  subject: webpage proof with crop marks, proof-red circle, and comment rail
+  composition: proof center-left with crop marks, rail docked right, connector line, one blue tag
+  palette: proof paper #F4F4F1 / ink #14161A / red #E5484D / blue #2F6FED / gray #B9BBB6
+  do:
+    - crop marks and one registration target
+    - single red circle focal point
+    - flat even lighting, technical alignment
+  dont:
+    - legible text or brand logo
+    - decorative CMYK strip clutter
+    - loose hand-drawn strokes
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Proof with crop marks, red circle focal, rail docked right, connector line
+      fail_signals:
+        - crop marks missing
+        - rail floating detached
+        - off-grid placement
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - pseudo-text characters
+    palette_fidelity:
+      weight: 2
+      description: Neutral paper + ink with disciplined blue/red duotone roles
+      fail_signals:
+        - rainbow or CMYK clutter
+        - dark background
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - decorative clutter outweighing the page proof
+
+tags:
+  - marketing
+  - landing-hero
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

@@ -9,7 +9,7 @@ defmodule AnnotateWeb.Hologram.Pages.SitemapPage do
     AdminUsersPage,
     AppHomePage,
     ForgotPasswordPage,
-    HomePage,
+    LandingPage,
     LoginPage,
     ProfilePage,
     SignupPage,
@@ -29,7 +29,7 @@ defmodule AnnotateWeb.Hologram.Pages.SitemapPage do
     <div class="content">
       <h1 class="sg-page-title">Site Map</h1>
       <ul>
-        <li><Link to={HomePage}>Home</Link></li>
+        <li><Link to={LandingPage}>Home</Link></li>
         <li><Link to={LoginPage}>Log In</Link></li>
         <li><Link to={SignupPage}>Sign Up</Link></li>
         <li><Link to={ForgotPasswordPage}>Forgot Password</Link></li>

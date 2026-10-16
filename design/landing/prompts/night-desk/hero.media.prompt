@@ -1,0 +1,93 @@
+# ============================================================================
+# annotate landing — Night Desk (Nocturne) direction — HERO (16:9)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published
+# (caption, alt text, or credits line).
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/night-desk/hero.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-nightdesk-hero
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Wide 16:9 dark-native illustration of a webpage under review at night. Deep
+    near-black canvas #111118 fills the frame with a faint warm radial glow
+    behind the subject. Center-left: a dimmed webpage mockup whose content is
+    rendered only as muted gray text bars and dark image placeholder blocks —
+    no readable words. One paragraph bar is encircled by a glowing ember-orange
+    ring (#F97316 core, #FB923C halo, soft outer bloom) — the brightest element
+    in the scene. Docked to the webpage's right edge: a dark raised comment rail
+    (#23232E, thin #2A2A3A border) with three rounded comment cards, each with a
+    small avatar dot and two dim gray text bars; the middle card carries a small
+    glowing ember pin and connects to the ringed paragraph with a thin luminous
+    orange line. Light falloff, no cast shadows — depth comes from brightness
+    stepping. Palette strictly: #0B0B10, #111118, #1A1A23, #23232E, borders
+    #2A2A3A, text grays #6B6B80/#9A9AB0/#D6D6E4, single glow #F97316/#FB923C.
+    Calm, precise, professional instrument feel — not neon, not gamer.
+  negative: readable text, letters, words, brand logos, watermarks, signatures,
+    garbled glyphs, photorealistic humans, faces, neon signage, rainbow glows,
+    multiple glow colors, gamer aesthetic, lens flares, smoke, cluttered layout
+  style: dark-native flat illustration, luminosity hierarchy, single warm glow,
+    soft bloom, precise and calm
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1280
+    height: 720
+    aspect_ratio: '16:9'
+
+requirements:
+  subject: dark webpage with right-docked glowing comment rail and glowing ring
+  composition: webpage center-left, rail docked right, glow ring focal, connector line to pinned comment
+  palette: void/canvas darks with single ember glow #F97316
+  do:
+    - glow ring is the brightest element
+    - rail one brightness step above canvas
+    - soft bloom, no cast shadows
+  dont:
+    - legible text or brand logo
+    - second glow color
+    - pure white fills
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Dark webpage, rail docked right, single glowing ring, connector to pinned comment
+      fail_signals:
+        - rail floating detached
+        - ring absent or dimmer than other elements
+        - bright background areas
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - scribbled pseudo-characters
+    glow_discipline:
+      weight: 2
+      description: One warm glow color only; everything else muted luminosity steps
+      fail_signals:
+        - second hue glowing (blue, green, pink)
+        - neon oversaturation
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - more than one glow color
+
+tags:
+  - marketing
+  - landing-hero
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

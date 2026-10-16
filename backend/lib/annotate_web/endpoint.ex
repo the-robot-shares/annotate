@@ -14,12 +14,13 @@ defmodule AnnotateWeb.Endpoint do
     ],
     longpoll: false
 
-  # Style-guide CSS + Hologram client bundles
+  # Style-guide CSS + Hologram client bundles; fonts + landing images serve the
+  # marketing page (see LandingLayout / priv/static).
   plug Plug.Static,
     at: "/",
     from: :annotate,
     gzip: false,
-    only: ~w(themes css hologram favicon.ico robots.txt)
+    only: ~w(themes css hologram favicon.ico robots.txt fonts images)
 
   if code_reloading? do
     plug Phoenix.CodeReloader
@@ -47,6 +48,11 @@ defmodule AnnotateWeb.Endpoint do
   # is read at runtime by AnnotateWeb.Plugs.Session instead of being committed
   # here as a literal.
   plug AnnotateWeb.Plugs.Session
+
+  # Marketing host split (annotate.therobotlives.com vs annotate-srv…): "/" on
+  # the API host redirects to the marketing host; landing path gets a CSP. Must
+  # run before the Hologram router so the redirect/CSP apply to "/".
+  plug AnnotateWeb.Plugs.MarketingHostGate
 
   # Hologram pages/commands BEFORE the Phoenix JSON API router
   plug Hologram.Router

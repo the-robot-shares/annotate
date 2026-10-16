@@ -172,6 +172,6 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
   def command(:logout, _params, server) do
     server
     |> Auth.logout()
-    |> Hologram.Server.put_redirect(AnnotateWeb.Hologram.Pages.HomePage)
+    |> Hologram.Server.put_redirect(AnnotateWeb.Hologram.Pages.LandingPage)
   end
 end

@@ -165,7 +165,17 @@ defmodule Annotate.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "liquibase.update --quiet", "ecto.migrate --quiet", "test"]
+      # holo.sync_assets compiles (generating priv/static/hologram) and copies
+      # the client bundles into the build priv copy — the :app priv copy runs
+      # before the :hologram compiler, so without this the first test boot
+      # finds no client assets and Hologram page renders 500 (AssetNotFound).
+      test: [
+        "holo.sync_assets",
+        "ecto.create --quiet",
+        "liquibase.update --quiet",
+        "ecto.migrate --quiet",
+        "test"
+      ]
     ]
   end
 end

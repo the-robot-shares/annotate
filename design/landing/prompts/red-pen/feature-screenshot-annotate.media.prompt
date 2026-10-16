@@ -1,0 +1,89 @@
+# ============================================================================
+# annotate landing — Red Pen direction — FEATURE: crop + annotate editor (4:3)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published.
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/red-pen/feature-screenshot-annotate.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-redpen-annotate-editor
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    4:3 illustration on bright warm paper (#FFFDF6): a screenshot annotation
+    editor where the tooling feels like red pens on a printed page. Center: an
+    artboard holding a captured webpage thumbnail made of abstract ink-gray
+    text bars and placeholder blocks — no readable words. A crisp rectangular
+    crop marquee with thin corner handles frames one region. On the capture,
+    hand-drawn red pen (#E5342B) marks: a rough rectangle drawn twice around a
+    text bar (like a human tracing a box), a hand-drawn arrow, a freehand pen
+    underline squiggle, and one small neat pixelated blur square. A clean white
+    pill toolbar floats above the artboard with six abstract tool glyphs (crop
+    frame, square, arrow, pen nib, text bar, blur dots) in ink gray; the pen
+    glyph is highlighted red. One tiny blue-pen (#2F5FE0) asterisk note mark in
+    the margin. Strict clean layout; only the red marks are loose.
+  negative: readable text, letters, words, brand logos, watermarks, garbled
+    glyphs, toolbar text labels, photorealistic humans, faces, crumpled paper,
+    dark background, neon colors, scribbles covering the layout
+  style: editorial illustration, expressive red ink marks over a strict clean
+    grid, subtle paper warmth
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1024
+    height: 768
+    aspect_ratio: '4:3'
+
+requirements:
+  subject: annotation editor with hand-drawn box, arrow, pen, blur on a capture
+  composition: artboard centered, crisp crop marquee, floating toolbar above, four distinct red marks
+  palette: bright paper #FFFDF6 / ink #1A1A1F / red pen #E5342B, tiny blue accent
+  do:
+    - crop marquee precise while ink marks are loose (deliberate contrast)
+    - four annotation types clearly distinct
+    - glyph-only toolbar
+  dont:
+    - legible text or brand logo
+    - marks escaping the artboard
+    - second dominant color
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Artboard + marquee + toolbar + four distinct annotation marks
+      fail_signals:
+        - missing marquee or toolbar
+        - marks overlapping into mush
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - toolbar with text labels
+    style_fidelity:
+      weight: 2
+      description: Bright paper, ink grays, loose red marks, tidy everything else
+      fail_signals:
+        - dark background
+        - everything hand-drawn including the UI
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - annotation marks obscuring the page structure
+
+tags:
+  - marketing
+  - feature-screenshot
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]
