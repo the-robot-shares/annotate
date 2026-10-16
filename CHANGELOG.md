@@ -4,6 +4,7 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- chart: pin `ANNOTATE_PUBLIC_API_BASE` in the backend env (`https://appDomain`) — the landing embed's api-base previously relied on the runtime.exs default; explicit so prod embed target survives default drift. PR #29.
 - CI test fix: enable the Hologram runtime in :test (`HOLOGRAM_START=1` in config/test.exs, set before app boot) and add `mix holo.sync_assets` in front of the `test` alias — the :app priv copy runs before the :hologram compiler, so on a fresh build the client bundles were missing from the priv the test app reads and every Hologram page request (landing at `/`) 404'd through the Phoenix router (Hologram disabled) / 500'd (AssetNotFound). The sync skips when Mix's build priv is a symlink into the source tree (fresh builds), so `rm_rf` never deletes the source bundles through it. `mix format` clean. PR #27.
 
 ## 2026-10-16

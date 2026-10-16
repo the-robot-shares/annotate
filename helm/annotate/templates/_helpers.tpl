@@ -102,6 +102,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
   value: {{ .Values.domain | quote }}
 - name: FRONTEND_URL
   value: "https://{{ .Values.appDomain | default .Values.domain }}"
+# Public API base the marketing landing embed renders into the page-comments
+# snippet (runtime.exs :marketing api_base). Pinned explicitly so the prod
+# embed target survives any future default drift.
+- name: ANNOTATE_PUBLIC_API_BASE
+  value: "https://{{ .Values.appDomain | default .Values.domain }}"
 - name: PHX_SERVER
   value: "true"
 - name: PORT
