@@ -1,0 +1,95 @@
+# ============================================================================
+# annotate landing — Red Pen direction — HERO (16:9)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published
+# (caption, alt text, or credits line).
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/red-pen/hero.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-redpen-hero
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Wide 16:9 illustration on bright warm paper (#FFFDF6): a clean webpage
+    mockup that looks like it just came back from a demanding editor. The page
+    content is abstract only — ink-gray text bars and soft placeholder blocks,
+    no readable words. Over the page, oversized confident hand-drawn marks in
+    red pen (#E5342B): one big expressive circle around a paragraph bar with
+    visible marker texture and slight overshot ends, a long freehand underline,
+    two small check-style ticks, and a hand-drawn arrow curling in from the
+    margin. A subtle highlighter-yellow wash (#FFE066 at low opacity) sits
+    behind one text bar. Docked to the page's right edge: a crisp clean white
+    comment rail with three rounded cards (avatar dots, gray text bars) —
+    deliberately more polished than the hand marks, as if the messy feedback
+    became organized threads; the middle card connects to the circled paragraph
+    with a thin straight red line. Layout grid strict and calm; all energy in
+    the red marks. Secondary accents: blue pen #2F5FE0 on one tiny note mark,
+    pencil gray #8A8A93.
+  negative: readable text, letters, words, brand logos, watermarks, signatures,
+    garbled glyphs, photorealistic humans, faces, crumpled paper, coffee stains,
+    dark background, neon colors, scribble chaos covering the whole page
+  style: editorial illustration with expressive hand-drawn red ink marks over a
+    strict clean grid, paper texture very subtle, confident strokes
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1280
+    height: 720
+    aspect_ratio: '16:9'
+
+requirements:
+  subject: marked-up webpage with oversized red-pen circle and clean comment rail
+  composition: page center-left, one dominant red circle focal, rail docked right, connector line
+  palette: bright paper #FFFDF6 / ink #1A1A1F / red pen #E5342B, small blue + highlighter accents
+  do:
+    - one dominant hand-drawn circle as focal point
+    - hand marks energetic, rail perfectly tidy (the contrast IS the idea)
+    - highlighter wash at low opacity behind at most one bar
+  dont:
+    - legible text or brand logo
+    - hand marks colliding with the rail cards
+    - more than one dominant circle
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Dominant red circle on page content, tidy rail docked right, thin connector line
+      fail_signals:
+        - no clear focal circle
+        - marks covering the rail
+        - cluttered or chaotic layout
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - scribbled pseudo-characters on the page
+    style_fidelity:
+      weight: 2
+      description: Bright paper, ink grays, expressive red marks, strict grid elsewhere
+      fail_signals:
+        - dark or muddy background
+        - marks look vector-perfect (loses hand feel)
+        - neon or rainbow accents
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - hand-drawn chaos obscuring the page structure
+
+tags:
+  - marketing
+  - landing-hero
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

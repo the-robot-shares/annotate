@@ -16,7 +16,7 @@ defmodule AnnotateWeb.Hologram.Pages.TailwindPlusPage do
 
   alias Hologram.UI.Link
   alias AnnotateWeb.Hologram.Layouts.MainLayout
-  alias AnnotateWeb.Hologram.Pages.HomePage
+  alias AnnotateWeb.Hologram.Pages.LandingPage
   alias AnnotateWeb.Hologram.Pages.StyleGuidePage
 
   route "/styleguide/tailwind-plus"
@@ -75,7 +75,7 @@ defmodule AnnotateWeb.Hologram.Pages.TailwindPlusPage do
       <div class="sg-hero">
         <p class="twp-back">
           <Link to={StyleGuidePage} class="btn btn-outline btn-sm">← Style Guide</Link>
-          <Link to={HomePage} class="btn btn-outline btn-sm">Home</Link>
+          <Link to={LandingPage} class="btn btn-outline btn-sm">Home</Link>
         </p>
         <h1>Tailwind Plus</h1>
         <p>

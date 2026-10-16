@@ -1,0 +1,92 @@
+# ============================================================================
+# annotate landing — Night Desk (Nocturne) — FEATURE: crop + annotate editor
+# (4:3). Model: nano banana (gemini / gemini-2.5-flash-image) — pinned.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published.
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/night-desk/feature-screenshot-annotate.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-nightdesk-annotate-editor
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    4:3 dark-native illustration of a screenshot annotation editor on a deep
+    near-black canvas. Center: a dimmed artboard showing a captured webpage
+    thumbnail built from muted gray text bars and dark placeholder blocks — no
+    readable words. A glowing ember-orange crop marquee (#F97316) with thin
+    corner handles surrounds one region. On the capture: an orange rectangle
+    box annotation, an orange arrow pointing to a button block, a freehand
+    glowing pen underline, and a pixelated blur square over one small region.
+    A floating dark pill toolbar (raised surface #23232E, mist border) holds
+    six abstract tool glyphs rendered as small orange-tinted line icons (crop
+    frame, square, arrow, pen nib, text bar, blur dots) with the active pen
+    glyph glowing brightest. Depth from brightness stepping and soft bloom
+    only — no cast shadows. Palette strictly: #0B0B10/#111118 canvas,
+    #1A1A23/#23232E surfaces, #2A2A3A borders, gray text bars, single glow
+    #F97316/#FB923C.
+  negative: readable text, letters, words, brand logos, watermarks, garbled
+    glyphs, toolbar text labels, photorealistic humans, faces, second glow
+    color, neon rainbow, gamer aesthetic, lens flares, cluttered panels
+  style: dark-native flat illustration, luminosity hierarchy, single warm glow,
+    soft bloom
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1024
+    height: 768
+    aspect_ratio: '4:3'
+
+requirements:
+  subject: dark screenshot annotation editor with box, arrow, pen, blur marks
+  composition: artboard centered, glowing crop marquee, floating toolbar above, four distinct glowing marks
+  palette: void/canvas darks with single ember glow #F97316
+  do:
+    - four annotation types clearly distinct
+    - toolbar glyph-only, one glyph glowing
+    - bloom instead of shadows
+  dont:
+    - legible text or brand logo
+    - second glow hue
+    - cast shadows
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Artboard + glowing crop marquee + toolbar + four distinct annotation marks
+      fail_signals:
+        - missing marquee or toolbar
+        - marks overlapping into mush
+        - bright full-frame background
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - toolbar with text labels
+    glow_discipline:
+      weight: 2
+      description: Single ember glow; surfaces differentiated by brightness steps
+      fail_signals:
+        - second hue glowing
+        - neon oversaturation
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - more than one glow color
+
+tags:
+  - marketing
+  - feature-screenshot
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

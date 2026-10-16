@@ -6,14 +6,14 @@ metadata:
     {{- include "annotate.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
+  # ONE port: the frontend is the same Phoenix+Hologram process. A second
+  # port with the same number made the Service invalid (duplicate port 4000)
+  # and ArgoCD could not apply it — annotate fell back to a hand-applied
+  # Service.
   ports:
-  - name: backend
+  - name: http
     port: {{ .Values.backend.port }}
     targetPort: {{ .Values.backend.port }}
-    protocol: TCP
-  - name: frontend
-    port: {{ .Values.frontend.port }}
-    targetPort: {{ .Values.frontend.port }}
     protocol: TCP
   selector:
     {{- include "annotate.selectorLabels" . | nindent 4 }}

@@ -32,6 +32,19 @@ config :annotate, :redis,
   uri: System.get_env("REDIS_URL") || "redis://localhost:6379/0",
   key_prefix: System.get_env("REDIS_KEY_PREFIX", "annotate:")
 
+# Marketing landing host split — env overrides for per-env domains (staging,
+# previews). Defaults live in config.exs.
+config :annotate, :marketing,
+  host: System.get_env("MARKETING_HOST", "annotate.therobotlives.com"),
+  api_host: System.get_env("MARKETING_API_HOST", "annotate-srv.therobotlives.com"),
+  api_base: System.get_env("ANNOTATE_PUBLIC_API_BASE", "https://annotate-srv.therobotlives.com"),
+  widget_src:
+    System.get_env(
+      "ANNOTATE_PUBLIC_WIDGET_SRC",
+      "https://cdn.derobot.is/tobor-kit/sha-eb1ebf97b6f0a058f15aea55b50e29cfd4c34e09/components/page-comments/page-comments.js"
+    ),
+  dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
+
 parse_sso_domains = fn
   nil ->
     %{}
