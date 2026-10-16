@@ -1,0 +1,90 @@
+# ============================================================================
+# annotate landing — Proof Sheet direction — FEATURE: crop + annotate editor
+# (4:3). Model: nano banana (gemini / gemini-2.5-flash-image) — pinned.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published.
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/proof-sheet/feature-screenshot-annotate.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-proofsheet-annotate-editor
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    4:3 illustration styled like a prepress annotation pass on light proof
+    paper (#F4F4F1). Center: an artboard holding a captured webpage thumbnail
+    made of abstract ink (#14161A) text bars and placeholder blocks — no
+    readable words. A proof-red (#E5484D) rectangular crop marquee with crisp
+    corner handles frames one region. On the capture: a proof-red rectangle
+    around a text bar, a straight red arrow with a clean triangular head, a
+    steady red pen underline, and a small pixelated blur square. Above the
+    artboard: a clean white pill toolbar with six abstract tool glyphs in ink
+    gray (crop frame, square, arrow, pen nib, text bar, blur dots), the crop
+    glyph highlighted in registration blue (#2F6FED). One small blue revision
+    tag bar in the margin of the artboard. Flat even lighting, technical grid
+    alignment, near-zero shadows, everything precise — a correction pass, not
+    a sketch.
+  negative: readable text, letters, words, brand logos, watermarks, garbled
+    glyphs, toolbar text labels, photorealistic humans, faces, halftone dots,
+    dark background, neon colors, hand-drawn scribbles
+  style: precise print-production illustration, technical grid, disciplined
+    blue/red duotone
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1024
+    height: 768
+    aspect_ratio: '4:3'
+
+requirements:
+  subject: annotation editor with crop marquee, box, arrow, pen, blur marks
+  composition: artboard centered, red marquee, toolbar above with blue-highlighted glyph, four distinct marks
+  palette: proof paper #F4F4F1 / ink #14161A / red #E5484D / blue #2F6FED
+  do:
+    - crop marquee crisp and symmetric
+    - four annotation types clearly distinct
+    - blue only on system elements, red only on annotations
+  dont:
+    - legible text or brand logo
+    - loose strokes or scribbles
+    - decorative clutter
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Artboard + red marquee + toolbar + four distinct annotation marks
+      fail_signals:
+        - missing marquee or toolbar
+        - marks overlapping into mush
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs
+      fail_signals:
+        - readable word or letterform
+        - toolbar with text labels
+    palette_fidelity:
+      weight: 2
+      description: Neutral paper + ink; red = annotations, blue = system accents
+      fail_signals:
+        - roles swapped or mixed
+        - rainbow or CMYK clutter
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - hand-drawn scribble style anywhere
+
+tags:
+  - marketing
+  - feature-screenshot
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

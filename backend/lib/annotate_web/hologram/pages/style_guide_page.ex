@@ -22,7 +22,7 @@ defmodule AnnotateWeb.Hologram.Pages.StyleGuidePage do
   }
 
   alias AnnotateWeb.Hologram.Layouts.MainLayout
-  alias AnnotateWeb.Hologram.Pages.HomePage
+  alias AnnotateWeb.Hologram.Pages.LandingPage
   alias AnnotateWeb.Hologram.Pages.TailwindPlusPage
 
   alias AnnotateWeb.Hologram.Sections.{
@@ -74,7 +74,7 @@ defmodule AnnotateWeb.Hologram.Pages.StyleGuidePage do
     <div class="content">
       <div class="sg-hero">
         <p class="twp-back">
-          <Link to={HomePage} class="btn btn-outline btn-sm">← Home</Link>
+          <Link to={LandingPage} class="btn btn-outline btn-sm">← Home</Link>
         </p>
         <h1>{@brand.title}</h1>
         <p>{@brand.description}</p>

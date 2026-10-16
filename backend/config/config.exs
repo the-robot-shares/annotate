@@ -123,6 +123,20 @@ config :annotate, Annotate.Auth.ServiceKey,
 config :annotate, :embed, redirect_uri: nil
 config :annotate, :oidc_impl, OpenIDConnect
 
+# ── Marketing landing host split ────────────────────────────────
+# annotate.therobotlives.com serves the Night Desk landing (LandingPage /
+# LandingLayout); annotate-srv.therobotlives.com is the API host and must not
+# serve "/" (MarketingHostGate 302s it). runtime.exs overlays MARKETING_HOST /
+# MARKETING_API_HOST / ANNOTATE_PUBLIC_API_BASE / ANNOTATE_PUBLIC_WIDGET_SRC /
+# ANNOTATE_DOGFOOD_SITE. Widget src: tobor-kit page-comments on cdn.derobot.is.
+config :annotate, :marketing,
+  host: "annotate.therobotlives.com",
+  api_host: "annotate-srv.therobotlives.com",
+  api_base: "https://annotate-srv.therobotlives.com",
+  widget_src:
+    "https://cdn.derobot.is/tobor-kit/sha-eb1ebf97b6f0a058f15aea55b50e29cfd4c34e09/components/page-comments/page-comments.js",
+  dogfood_site: "annotate-landing"
+
 # i18n
 config :annotate, AnnotateWeb.Gettext, default_locale: "en"
 

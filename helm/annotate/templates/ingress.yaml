@@ -30,21 +30,21 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /auth/verify-email
         pathType: Exact
         backend:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /auth/sso-callback
         pathType: Exact
         backend:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       # Hologram page under /auth/*: must not fall to the /auth prefix rule
       # (Phoenix /auth/:provider) when frontend and backend ports differ.
       - path: /auth/invite-required
@@ -53,7 +53,7 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /api
         pathType: Prefix
         backend:
@@ -88,7 +88,7 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
   {{- if .Values.appDomain }}
   - host: {{ .Values.appDomain }}
     http:
@@ -113,21 +113,21 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /auth/verify-email
         pathType: Exact
         backend:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /auth/sso-callback
         pathType: Exact
         backend:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       # Hologram page under /auth/*: must not fall to the /auth prefix rule
       # (Phoenix /auth/:provider) when frontend and backend ports differ.
       - path: /auth/invite-required
@@ -136,7 +136,7 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
       - path: /auth
         pathType: Prefix
         backend:
@@ -157,6 +157,6 @@ spec:
           service:
             name: {{ $svcName }}
             port:
-              number: {{ .Values.frontend.port }}
+              number: {{ .Values.backend.port }}
   {{- end }}
 {{- end }}

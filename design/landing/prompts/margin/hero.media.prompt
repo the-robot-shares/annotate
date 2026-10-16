@@ -1,0 +1,94 @@
+# ============================================================================
+# annotate landing — Margin direction — HERO (16:9)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published
+# (caption, alt text, or credits line).
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/margin/hero.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-margin-hero
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Wide 16:9 flat editorial illustration of a clean webpage mockup floating on
+    a warm paper-white studio background. The webpage shows a simple article
+    layout rendered entirely as abstract elements: gray text bars of varying
+    width, two soft image placeholder blocks, one button-shaped block — no
+    readable words anywhere. A thin markup-red circular ring annotation encircles
+    one paragraph bar, hand-drawn feeling but precise. A slim white comment rail
+    card is docked to the right edge of the webpage, floating slightly above it
+    with a soft shadow: three rounded comment cards stacked vertically, each with
+    a small circular avatar dot, two gray text bars, and a tiny red reply pin.
+    A thin red connector line runs from the ringed paragraph to the middle
+    comment card. Generous whitespace, calm minimal-tech editorial style, soft
+    even lighting, subtle long shadows, palette strictly: warm paper #FAFAF8,
+    ink #17171C, markup red #D92D20, neutral grays #5B5B66 and #E4E4DF.
+    Composition centered with breathing room on all sides.
+  negative: readable text, letters, words, numbers, brand logos, real company
+    logos, watermarks, signatures, garbled glyphs, mock UI chrome labels,
+    photorealistic humans, detailed faces, cluttered layout, dark background,
+    neon colors, gradients on UI blocks
+  style: flat editorial vector illustration, minimal shapes, soft shadows,
+    restrained palette, generous negative space
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1280
+    height: 720
+    aspect_ratio: '16:9'
+
+requirements:
+  subject: webpage with right-docked floating comment rail and ringed element
+  composition: webpage card center-left, rail docked right, connector line linking ring to a comment
+  palette: paper #FAFAF8 / ink #17171C / markup red #D92D20
+  do:
+    - all text as abstract gray bars
+    - single red ring as focal point
+    - soft consistent shadow direction
+  dont:
+    - any legible text or brand logo
+    - more than one accent color
+    - photorealistic rendering
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Webpage with rail docked right, red ring on an element, connector to a comment card
+      fail_signals:
+        - rail floating detached in empty space
+        - ring missing or on the rail itself
+        - subject cropped at edges
+    text_abstraction:
+      weight: 3
+      description: All copy rendered as abstract bars; zero legible words or garbled glyphs
+      fail_signals:
+        - any readable word or letterform
+        - pseudo-text that looks like scribbled characters
+    palette_fidelity:
+      weight: 2
+      description: Paper white field, ink grays, single red accent
+      fail_signals:
+        - multiple saturated accent colors
+        - dark or colored background
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - photorealistic people or faces
+
+tags:
+  - marketing
+  - landing-hero
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

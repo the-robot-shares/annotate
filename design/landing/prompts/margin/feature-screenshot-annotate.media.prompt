@@ -1,0 +1,91 @@
+# ============================================================================
+# annotate landing — Margin direction — FEATURE: screenshot crop + annotate
+# editor (4:3). Model: nano banana (gemini / gemini-2.5-flash-image) — pinned.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published.
+# Run AFTER user approval: generate-media-prompt design/landing/prompts/margin/feature-screenshot-annotate.media.prompt
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-margin-annotate-editor
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    4:3 flat editorial illustration of a screenshot annotation editor, minimal
+    minimal-tech style. Center: an artboard showing a captured webpage thumbnail
+    built entirely from abstract elements — gray text bars, placeholder image
+    blocks, no readable words. A crop marquee with thin corner handles surrounds
+    one region of the thumbnail. On top of the capture: a red rectangle box
+    annotation around a text bar, a red arrow pointing from a blank area to a
+    button block, a short freehand red pen squiggle underlining one line, and a
+    pixelated blur square covering one small region. A compact floating toolbar
+    with six abstract tool glyphs (crop frame, square, arrow, pen nib, text bar,
+    blur dots) sits above the artboard in a rounded white pill with a soft
+    shadow. One tool (the pen) is highlighted with the red accent. Studio
+    paper-white background, generous whitespace, soft even lighting, palette
+    strictly: paper #FAFAF8, ink #17171C, markup red #D92D20, neutral grays.
+  negative: readable text, letters, words, brand logos, watermarks, signatures,
+    garbled glyphs, toolbar text labels, photorealistic humans, faces, cluttered
+    panels, dark background, neon colors, skeuomorphic textures
+  style: flat editorial vector illustration, minimal shapes, soft shadows,
+    restrained palette
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1024
+    height: 768
+    aspect_ratio: '4:3'
+
+requirements:
+  subject: screenshot crop + annotate editor with box, arrow, pen, blur marks
+  composition: artboard centered, crop marquee visible, floating toolbar above, four distinct annotation marks
+  palette: paper #FAFAF8 / ink #17171C / markup red #D92D20
+  do:
+    - four annotation types clearly distinct (box, arrow, pen, blur)
+    - crop handles crisp and symmetric
+    - all interface copy as abstract bars
+  dont:
+    - legible text, brand logos, or watermark
+    - more than four annotation marks
+    - photorealistic rendering
+
+eval:
+  pass_threshold: 0.7
+  required_pass:
+    - composition
+    - text_abstraction
+  criteria:
+    composition:
+      weight: 3
+      description: Artboard + crop marquee + toolbar + all four annotation types visible and distinct
+      fail_signals:
+        - missing crop marquee or toolbar
+        - annotation marks overlapping into mush
+        - subject cropped at edges
+    text_abstraction:
+      weight: 3
+      description: Zero legible words, letters, or garbled glyphs anywhere
+      fail_signals:
+        - readable word or letterform
+        - toolbar with text labels instead of glyphs
+    palette_fidelity:
+      weight: 2
+      description: Paper white, ink grays, single red accent
+      fail_signals:
+        - multiple saturated accent colors
+        - dark or colored background
+  reject_if:
+    - embedded readable text, brand logo, or watermark
+    - fewer than three distinct annotation types
+
+tags:
+  - marketing
+  - feature-screenshot
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]
