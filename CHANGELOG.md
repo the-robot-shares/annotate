@@ -2,6 +2,10 @@
 
 All notable changes to `annotate.therobotlives.com`.
 
+## 2026-10-16
+
+- chart: Service rendered two named ports on the same 4000 (backend + frontend, one Phoenix+Hologram process) — duplicate port made the Service invalid and ArgoCD could not apply it, so `apps/annotate` was hand-applied in-cluster; single `http` port on `backend.port` (scaffold fix mirror), ingress routes all paths to `backend.port`, `frontend` stanza dropped from values. PR #28.
+
 ## 2026-10-14
 
 - Realtime fan-out (Phase 5): websocket-only Phoenix socket at `/socket/annotate` (custom `check_origin` MFA — registry-wide transport gate + per-site binding at connect), read-only `page:<site_slug>:<sha256(page_key)>` channel with join auth mirroring the REST thread listing (anonymous only when `public_read`; token must match site + origin claims), and broadcasts after every Comments commit (`thread_created`, `comment_created`, `comment_updated`, `comment_deleted`, `thread_resolved`, `thread_reopened`, `thread_anchor_updated`) rendered by the same REST JSON renderer; client pushes rejected `read_only`. Docs: `docs/API.md` § Realtime.

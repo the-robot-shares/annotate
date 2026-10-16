@@ -17,14 +17,11 @@ backend:
       cpu: 500m
       memory: 512Mi
 
-# Frontend is served by the Phoenix+Hologram backend (no separate Next.js
-# container/image). The `frontend` stanza below exists only because
-# service.yaml/ingress.yaml unconditionally reference `.Values.frontend.port`
-# for a second named Service port -- it points at the same single backend
-# process/port, not a second container. No `image` key: nothing in this
-# chart's templates consumes `.Values.frontend.image`.
-frontend:
-  port: 4000
+# The frontend IS the Phoenix+Hologram backend (no separate container/image),
+# so there is no `frontend` stanza and no second Service port: a duplicated
+# port number makes the Service invalid and ArgoCD cannot apply it (annotate
+# fell back to a hand-applied Service). Ingress routes every path to
+# backend.port.
 
 migrate:
   enabled: true
