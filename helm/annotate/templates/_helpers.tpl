@@ -98,6 +98,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.redisUrl }}
+# MCP OAuth access-token signing key (/mcp). Required: runtime.exs fails the
+# boot without it in prod (Infisical /apps/annotate ANNOTATE_MCP_SIGNING_SECRET).
+- name: ANNOTATE_MCP_SIGNING_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.mcpSigningSecret }}
 - name: PHX_HOST
   value: {{ .Values.domain | quote }}
 - name: FRONTEND_URL

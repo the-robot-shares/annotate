@@ -6,6 +6,39 @@ Two ways a host site proves a visitor's identity to annotate:
 2. **Host-assert** — server-to-server JWT for sites that already know who the
    user is (signed with the site service key).
 
+## 0. Embed snippet (widget source)
+
+The widget is tobor-kit's `<noizu-page-comments>`, served from
+`cdn.derobot.is`. Each tobor-kit release ships an `annotate.js` loader that
+registers the widget from that same release. Two forms:
+
+```html
+<!-- Latest (dashboard default): picks up widget fixes automatically -->
+<script type="module" src="https://cdn.derobot.is/tobor-kit/latest/annotate.js"></script>
+<noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
+
+<!-- Pinned: never changes until you edit the version -->
+<script type="module" src="https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js"></script>
+<noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
+```
+
+| Path | Changes | Cache |
+|---|---|---|
+| `tobor-kit/v<X.Y.Z>/annotate.js` | never | 1 year, immutable |
+| `tobor-kit/v<X>/annotate.js` | newest `X.*` release | ~5 min at the edge |
+| `tobor-kit/latest/annotate.js` | newest release | ~5 min at the edge (browsers may hold it up to 4 h) |
+
+The widget loads **collapsed**: a small pill with the page's open-comment
+count. Visitors expand it with the pill or Alt+C, and the choice is
+remembered per site. `#annotate=<id>` deep links always expand it. Add
+`default-open` to start expanded on a first visit, or `enabled` to force it
+open. annotate's own pages pin the exact version
+(`AnnotateWeb.WidgetCdn.pinned_src/0`, overridable with
+`ANNOTATE_PUBLIC_WIDGET_SRC`); bump `@version` there, and the `config.exs` /
+`runtime.exs` defaults, to move to a new tobor-kit release. Never point a page
+at a `v<X.Y.Z>/` URL before that release is published: the CDN caches 404s
+on those paths for a day.
+
 ## 1. Popup broker (`/embed/login` → `/embed/callback`)
 
 Widget-side flow:
@@ -27,11 +60,31 @@ Widget-side flow:
 4. The popup renders a tiny page that `postMessage`s to the **exact** opener
    origin:
 
+### Popup postMessage contract
+
+Built by `AnnotateWeb.AnnotateAPI.PopupPayload` for `/embed/callback` and the
+dev-only `/embed/dev-login`; pinned by `embed_auth_test.exs` (server) and
+tobor-kit `auth.test.ts` (widget).
+
 ```js
-{type: "annotate-auth", access, refresh, commenter, display_name}
-// failures: {type: "annotate-auth-error", reason: "state_mismatch" | "nonce_mismatch"
-//  | "group_not_allowed" | "email_domain_not_allowed" | "unknown_session" | "auth_failed"}
+// success
+{type: "annotate-auth",
+ access_token, refresh_token,   // what tobor-kit AnnotateAuth reads
+ expires_at,                    // access-token expiry, ms since epoch
+ access, refresh,               // legacy Phase-1a aliases (same values)
+ commenter, display_name}
+// failure — widget reads `error`; `reason` is the legacy alias
+{type: "annotate-auth-error", error, reason}
+// error/reason: "state_mismatch" | "nonce_mismatch" | "group_not_allowed"
+//  | "email_domain_not_allowed" | "unknown_session" | "auth_failed" | "access_denied"
 ```
+
+Until 2026-10-17 the server sent only `access` / `refresh` / `reason` while
+the widget read `access_token` / `refresh_token` / `error`, so a popup
+sign-in through the widget never completed (no error surfaced). The server
+now sends both spellings and the widget accepts both. The payload JSON is
+encoded `html_safe` (`/` escaped) so no field can close the inline script
+(T-07).
 
 Widget listens for the message and keeps the tokens in memory (access 15 min;
 refresh 30 days, single-use rotation via `POST /api/v1/token/refresh`).

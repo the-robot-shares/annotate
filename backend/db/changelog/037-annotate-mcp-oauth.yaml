@@ -1,0 +1,255 @@
+databaseChangeLog:
+  # ── Annotate: MCP server (/mcp) — OAuth 2.1 authorization server + audit ──
+  # Additive only (new tables, no change to existing ones).
+  #
+  # 0049–0054 are the noizu_mcp 0.6.1 Store.Ecto tables, copied from the
+  # library template priv/liquibase/noizu_mcp_oauth.yaml (ids renumbered,
+  # author set). `subject` stays text (the users.id uuid as a string); the
+  # template's optional subject→users FK is NOT applied — user deletion is a
+  # soft delete here, and Annotate.MCP.Authz re-checks the user on every call.
+  # 0055 is annotate's own MCP audit log (every write and every denial).
+
+  - changeSet:
+      id: annotate-0049-create-table-mcp-oauth-clients
+      author: annotate
+      comment: >-
+        Registered, dynamically-registered (RFC 7591) and CIMD clients.
+        `client_id` is text rather than uuid because a CIMD client_id is an https
+        URL that the client itself chose.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_clients (
+                client_id text PRIMARY KEY,
+                client_id_kind varchar(20) NOT NULL DEFAULT 'registered'
+                  CHECK (client_id_kind IN ('registered','cimd','preconfigured')),
+                client_name text,
+                -- PBKDF2 string, or NULL for a public client (auth method 'none').
+                secret_hash text,
+                token_endpoint_auth_method varchar(32) NOT NULL DEFAULT 'none'
+                  CHECK (token_endpoint_auth_method IN
+                    ('none','client_secret_post','client_secret_basic')),
+                redirect_uris jsonb NOT NULL DEFAULT '[]'::jsonb,
+                grant_types jsonb NOT NULL DEFAULT '["authorization_code","refresh_token"]'::jsonb,
+                response_types jsonb NOT NULL DEFAULT '["code"]'::jsonb,
+                scope text,
+                -- Optional pointer at whatever the host already knows about this
+                -- caller (an API-key row, an internal app record). Never an
+                -- upstream IdP token: the AS mints its own, it never passes one on.
+                upstream_client_ref text,
+                logo_uri text,
+                client_uri text,
+                policy_uri text,
+                tos_uri text,
+                software_id text,
+                software_version text,
+                -- CIMD bookkeeping: when the document was fetched, its ETag, and
+                -- when the cached copy goes stale.
+                cimd_fetched_at timestamptz,
+                cimd_etag text,
+                cimd_expires_at timestamptz,
+                metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+                disabled_at timestamptz,
+                inserted_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_oauth_clients_kind
+                ON mcp_oauth_clients (client_id_kind) WHERE disabled_at IS NULL;
+              CREATE INDEX idx_mcp_oauth_clients_cimd_expiry
+                ON mcp_oauth_clients (cimd_expires_at)
+                WHERE client_id_kind = 'cimd';
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_clients
+
+  - changeSet:
+      id: annotate-0050-create-table-mcp-oauth-login-states
+      author: annotate
+      comment: >-
+        State carried across the upstream IdP round trip: the pending
+        authorization request, the CSRF token for the consent form, and the
+        consent decision. Keyed by SHA-256 of the state value, so a leaked row
+        does not yield a usable state parameter. Short-lived by construction.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_login_states (
+                state_hash char(64) PRIMARY KEY,
+                payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+                expires_at timestamptz NOT NULL,
+                inserted_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_oauth_login_states_expiry
+                ON mcp_oauth_login_states (expires_at);
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_login_states
+
+  - changeSet:
+      id: annotate-0051-create-table-mcp-oauth-authorization-codes
+      author: annotate
+      comment: >-
+        Single-use authorization codes. `used_at` is what makes redemption
+        atomic: redemption is `UPDATE ... WHERE used_at IS NULL RETURNING *`, and
+        a second redemption finds the row already marked, which is a replay and
+        revokes `refresh_family_id` in full. The row is therefore kept after use
+        (until purged) rather than deleted. PKCE is S256-only, enforced by the
+        CHECK as well as in code.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_authorization_codes (
+                code_hash char(64) PRIMARY KEY,
+                client_id text NOT NULL REFERENCES mcp_oauth_clients(client_id) ON DELETE CASCADE,
+                subject text NOT NULL,
+                redirect_uri text NOT NULL,
+                scope text NOT NULL DEFAULT '',
+                resource text,
+                code_challenge text NOT NULL,
+                code_challenge_method varchar(10) NOT NULL DEFAULT 'S256'
+                  CHECK (code_challenge_method = 'S256'),
+                nonce text,
+                refresh_family_id uuid,
+                upstream_ref jsonb,
+                expires_at timestamptz NOT NULL,
+                used_at timestamptz,
+                inserted_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_oauth_codes_expiry
+                ON mcp_oauth_authorization_codes (expires_at);
+              CREATE INDEX idx_mcp_oauth_codes_family
+                ON mcp_oauth_authorization_codes (refresh_family_id)
+                WHERE refresh_family_id IS NOT NULL;
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_authorization_codes
+
+  - changeSet:
+      id: annotate-0052-create-table-mcp-oauth-refresh-tokens
+      author: annotate
+      comment: >-
+        Rotating refresh tokens with family reuse-detection. `rotated_to` is a
+        self-FK forming the rotation chain; `family_id` groups the chain so a
+        replay can revoke all of it. `family_expires_at` is an absolute ceiling
+        rotation cannot extend.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_refresh_tokens (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                token_hash char(64) NOT NULL UNIQUE,
+                client_id text NOT NULL REFERENCES mcp_oauth_clients(client_id) ON DELETE CASCADE,
+                subject text NOT NULL,
+                scope text NOT NULL DEFAULT '',
+                resource text,
+                family_id uuid NOT NULL,
+                rotated_to uuid REFERENCES mcp_oauth_refresh_tokens(id) ON DELETE SET NULL,
+                rotated_at timestamptz,
+                revoked_at timestamptz,
+                expires_at timestamptz NOT NULL,
+                family_expires_at timestamptz,
+                inserted_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_oauth_refresh_family
+                ON mcp_oauth_refresh_tokens (family_id);
+              CREATE INDEX idx_mcp_oauth_refresh_subject
+                ON mcp_oauth_refresh_tokens (subject, client_id)
+                WHERE revoked_at IS NULL;
+              CREATE INDEX idx_mcp_oauth_refresh_expiry
+                ON mcp_oauth_refresh_tokens (expires_at);
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_refresh_tokens
+
+  - changeSet:
+      id: annotate-0053-create-table-mcp-oauth-consents
+      author: annotate
+      comment: >-
+        One row per subject/client pair recording the scope granted so far. A
+        request for a scope outside it re-prompts — the OAuth confused-deputy
+        requirement for dynamically-registered clients.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_consents (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                subject text NOT NULL,
+                client_id text NOT NULL REFERENCES mcp_oauth_clients(client_id) ON DELETE CASCADE,
+                scope text NOT NULL DEFAULT '',
+                resource text,
+                granted_at timestamptz NOT NULL DEFAULT now(),
+                expires_at timestamptz,
+                CONSTRAINT uq_mcp_oauth_consents_subject_client UNIQUE (subject, client_id)
+              );
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_consents
+
+  - changeSet:
+      id: annotate-0054-create-table-mcp-oauth-access-tokens
+      author: annotate
+      comment: >-
+        Per-access-token rows (`track_access_tokens: true`): /dashboard/agents
+        revocation marks them revoked and Annotate.MCP.Verifier rejects them on
+        the next /mcp request instead of waiting out the 15-minute TTL.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_oauth_access_tokens (
+                jti_hash char(64) PRIMARY KEY,
+                client_id text NOT NULL REFERENCES mcp_oauth_clients(client_id) ON DELETE CASCADE,
+                subject text NOT NULL,
+                scope text NOT NULL DEFAULT '',
+                resource text,
+                family_id uuid,
+                expires_at timestamptz NOT NULL,
+                revoked_at timestamptz,
+                inserted_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_oauth_access_tokens_expiry
+                ON mcp_oauth_access_tokens (expires_at);
+              CREATE INDEX idx_mcp_oauth_access_tokens_family
+                ON mcp_oauth_access_tokens (family_id) WHERE family_id IS NOT NULL;
+      rollback:
+        - dropTable:
+            tableName: mcp_oauth_access_tokens
+
+  - changeSet:
+      id: annotate-0055-create-table-mcp-audit-events
+      author: annotate
+      comment: >-
+        Audit trail for the MCP server: one row per write tool call and per
+        denied call (authz, scope, rate limit). `args_hash` is SHA-256 hex of
+        the canonical JSON arguments — comment bodies are never stored here.
+        user/site FKs are ON DELETE SET NULL so the trail outlives the rows.
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE TABLE mcp_audit_events (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+                client_id text,
+                site_id uuid REFERENCES sites(id) ON DELETE SET NULL,
+                site_slug text,
+                tool text NOT NULL,
+                args_hash char(64),
+                outcome varchar(32) NOT NULL,
+                reason text,
+                ip text,
+                inserted_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE INDEX idx_mcp_audit_events_user_time
+                ON mcp_audit_events (user_id, inserted_at DESC);
+              CREATE INDEX idx_mcp_audit_events_site_time
+                ON mcp_audit_events (site_id, inserted_at DESC);
+      rollback:
+        - dropTable:
+            tableName: mcp_audit_events

@@ -1,0 +1,36 @@
+{{- if and .Values.ingress.enabled .Values.ingress.mcp .Values.ingress.mcp.enabled }}
+{{- $svcName := ternary (printf "%s-sandbox" (include "annotate.fullname" .)) (include "annotate.fullname" .) (.Values.sandbox.enabled | default false) }}
+# /mcp only (MCP Streamable HTTP). Split from the main Ingress so its
+# streaming annotations (no buffering, long timeouts) never apply to the rest
+# of the site. nginx merges both Ingress objects for the same host; the Exact
+# path wins over the main object's "/" Prefix.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "annotate.fullname" . }}-mcp
+  labels:
+    {{- include "annotate.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    {{- toYaml .Values.ingress.mcp.annotations | nindent 4 }}
+    {{- if .Values.ingress.cloudflareOnly }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: {{ include "annotate.cloudflareWhitelist" . | quote }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+  - hosts:
+    - {{ .Values.domain }}
+    secretName: {{ .Values.tls.secretName }}
+  rules:
+  - host: {{ .Values.domain }}
+    http:
+      paths:
+      - path: /mcp
+        pathType: Exact
+        backend:
+          service:
+            name: {{ $svcName }}
+            port:
+              number: {{ .Values.backend.port }}
+{{- end }}

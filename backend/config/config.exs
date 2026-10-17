@@ -155,8 +155,8 @@ config :annotate, :marketing,
   host: "annotate.therobotlives.com",
   api_host: "annotate-srv.therobotlives.com",
   api_base: "https://annotate-srv.therobotlives.com",
-  widget_src:
-    "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js",
+  # Exact tobor-kit release (AnnotateWeb.WidgetCdn.pinned_src/0).
+  widget_src: "https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js",
   dogfood_site: "annotate-landing"
 
 # i18n

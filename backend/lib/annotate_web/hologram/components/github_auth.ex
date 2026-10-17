@@ -54,20 +54,16 @@ defmodule AnnotateWeb.Hologram.Components.GithubAuth do
     """
   end
 
-  @doc "The kit's `noizu-auth` bundle, pinned to the same CDN sha as the comment widget."
+  @doc "The kit's `noizu-auth` bundle, from the same tobor-kit release as the comment widget."
   def kit_src do
     widget =
       Keyword.get(
         Application.get_env(:annotate, :marketing) || [],
         :widget_src,
-        "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
+        AnnotateWeb.WidgetCdn.pinned_src()
       )
 
-    String.replace(
-      widget,
-      "components/page-comments/page-comments.js",
-      "components/auth/noizu-auth.js"
-    )
+    AnnotateWeb.WidgetCdn.auth_src(widget)
   end
 
   defp trigger_class("nd", "primary"), do: "nd-btn nd-btn--primary nd-btn--sm"

@@ -155,6 +155,10 @@ defmodule AnnotateWeb.SSOController do
     # Read the invite carried through the OAuth round trip BEFORE the flow
     # cookie is cleared (`/auth/<provider>?invite=<token>` → prepare_oauth).
     invite_token = take_stashed_invite(conn)
+    # Same lifecycle for the post-sign-in destination (MCP OAuth hands
+    # `/sign-in?return_to=/oauth/authorize?login_state=…`); re-validated
+    # same-origin on the callback page, so this is a hint, never trusted.
+    return_note = return_to_note(get_session(conn, :sso_return_to))
     conn = clear_sso_session(conn)
 
     builder =
@@ -174,7 +178,9 @@ defmodule AnnotateWeb.SSOController do
         end
 
       redirect(conn,
-        to: "/auth/sso-callback?code=#{URI.encode_www_form(code)}&provider=#{name}" <> invite_note
+        to:
+          "/auth/sso-callback?code=#{URI.encode_www_form(code)}&provider=#{name}" <>
+            invite_note <> return_note
       )
     else
       {:error, :no_verified_email} ->
@@ -284,13 +290,33 @@ defmodule AnnotateWeb.SSOController do
     |> delete_session(:sso_state)
     |> delete_session(:sso_nonce)
     |> delete_session(:sso_invite_token)
+    |> delete_session(:sso_return_to)
   end
 
   # Stashes the invite BEFORE `plug Ueberauth` runs: the request phase
   # redirects+halts (see Ueberauth.Strategies.Helpers.redirect!/2), so an
   # invite placed anywhere after it — including an action body — is dropped
   # before it reaches the IdP round-trip.
-  defp prepare_oauth(conn, _opts), do: stash_invite_token(conn, conn.params)
+  defp prepare_oauth(conn, _opts),
+    do: conn |> stash_invite_token(conn.params) |> stash_return_to(conn.params)
+
+  # `?return_to=` on the provider entry URL (`/auth/github?return_to=…`, set by
+  # `/sign-in?return_to=…`). Only a same-origin path survives
+  # (`AnnotateWeb.ReturnTo.safe/1`); anything else is dropped, never stored —
+  # the login screen is where an open redirect would be tried.
+  defp stash_return_to(conn, params) do
+    case AnnotateWeb.ReturnTo.safe(params["return_to"]) do
+      path when is_binary(path) -> put_session(conn, :sso_return_to, path)
+      nil -> delete_session(conn, :sso_return_to)
+    end
+  end
+
+  defp return_to_note(value) do
+    case AnnotateWeb.ReturnTo.safe(value) do
+      path when is_binary(path) -> "&return_to=" <> URI.encode_www_form(path)
+      nil -> ""
+    end
+  end
 
   # An invite presented as `?invite=<raw token>` on the provider entry URL
   # (e.g. /auth/oidc?invite=... or /auth/github?invite=...) survives the

@@ -41,9 +41,46 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
+      # Exact tobor-kit release; keep in step with AnnotateWeb.WidgetCdn.
+      "https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
+
+# ── MCP server (/mcp) + its OAuth 2.1 authorization server ─────────
+# Annotate.MCP.Config reads these at RUNTIME (never in a router `forward`):
+# an issuer baked at compile time that disagrees with the protected-resource
+# metadata makes every MCP client refuse to authenticate. The issuer is an
+# origin with no path; the resource is issuer <> "/mcp".
+#
+# The signing secret is MCP-only (HS256 for MCP access tokens) — NOT the embed
+# ANNOTATE_JWT_SECRET, so neither key can mint the other's tokens (T-05). In
+# :prod it is required (fail closed, below); dev/test get a per-boot random.
+mcp_issuer =
+  System.get_env("ANNOTATE_MCP_ISSUER") ||
+    if config_env() == :prod,
+      do: "https://" <> (System.get_env("PHX_HOST") || "annotate.therobotlives.com"),
+      else: "http://localhost:#{System.get_env("PORT") || "4000"}"
+
+mcp_env = config_env()
+
+mcp_signing_secret =
+  case System.get_env("ANNOTATE_MCP_SIGNING_SECRET") do
+    secret when is_binary(secret) and byte_size(secret) >= 32 ->
+      secret
+
+    _ when mcp_env == :prod ->
+      raise """
+      environment variable ANNOTATE_MCP_SIGNING_SECRET is missing or shorter than
+      32 bytes (MCP OAuth access-token signing key, Infisical /apps/annotate).
+      """
+
+    _ ->
+      :crypto.strong_rand_bytes(32) |> Base.encode64()
+  end
+
+config :annotate, :mcp,
+  issuer: String.trim_trailing(mcp_issuer, "/"),
+  signing_secret: mcp_signing_secret
 
 # GA4 measurement id (public, G-…): marketing-host pages only, prod only, and
 # only when set (chart analytics.ga.measurementId -> GA_MEASUREMENT_ID).
