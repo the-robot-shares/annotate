@@ -19,7 +19,9 @@ IMAGE_NGINX    = $(REGISTRY)/$(PROJECT_DIR)/nginx:$(TAG)
 # Walks up from here to the monorepo's Portfolio/Libs/tobor-kit/hologram;
 # override for standalone checkouts (same env var mix.exs honours).
 TOBOR_KIT_HOLOGRAM_PATH ?= $(shell d="$(CURDIR)"; while [ "$$d" != / ]; do [ -f "$$d/Portfolio/Libs/tobor-kit/hologram/mix.exs" ] && { echo "$$d/Portfolio/Libs/tobor-kit/hologram"; break; }; d=$$(dirname "$$d"); done)
-KIT_CONTEXT     = --build-context tobor_kit_hologram=$(TOBOR_KIT_HOLOGRAM_PATH)
+# legal_forms path dep (Components/legal-forms) → second named build context.
+LEGAL_FORMS_PATH ?= $(shell d="$(CURDIR)"; while [ "$$d" != / ]; do [ -f "$$d/Components/legal-forms/mix.exs" ] && { echo "$$d/Components/legal-forms"; break; }; d=$$(dirname "$$d"); done)
+KIT_CONTEXT     = --build-context tobor_kit_hologram=$(TOBOR_KIT_HOLOGRAM_PATH) --build-context legal_forms=$(LEGAL_FORMS_PATH)
 
 # ── Host port assignment (nginx → host) ────────────────────────
 # Source of truth: docker/ports.yaml

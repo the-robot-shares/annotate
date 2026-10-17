@@ -33,12 +33,18 @@ jobs:
           app-id: ${{ secrets.TRR_GITHUB_APP_ID }}
           private-key: ${{ secrets.TRR_GITHUB_APP_PRIVATE_KEY }}
           owner: the-robot-lives
-          repositories: tobor-kit
+          repositories: tobor-kit,legal-forms
       - uses: actions/checkout@v4
         with:
           repository: the-robot-lives/tobor-kit
           token: ${{ steps.app-token.outputs.token }}
           path: _tobor-kit
+      - uses: actions/checkout@v4
+        with:
+          repository: the-robot-lives/legal-forms
+          ref: v0.1.1
+          token: ${{ steps.app-token.outputs.token }}
+          path: _legal-forms
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
@@ -48,5 +54,6 @@ jobs:
           tags: ${{ env.APP_IMAGE }}:nightly
           build-contexts: |
             tobor_kit_hologram=_tobor-kit/hologram
+            legal_forms=_legal-forms
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
