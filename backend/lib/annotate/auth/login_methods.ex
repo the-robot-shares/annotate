@@ -2,8 +2,9 @@ defmodule Annotate.Auth.LoginMethods do
   @moduledoc """
   Which dashboard sign-in methods this deployment accepts.
 
-  annotate is **GitHub-only** (`config :annotate, :login_methods, ["github"]`):
-  sign-up and sign-in both go through GitHub OAuth, and the scaffold's email
+  annotate signs owners in with **GitHub or Google** (`config :annotate,
+  :login_methods, ["github", "google"]`): sign-up and sign-in go through those
+  OAuth providers only, and the scaffold's email
   (password / magic link / OTP / reset), OIDC, SAML and other social routes
   are refused. Tests run the scaffold suite with `:all`.
 
@@ -25,6 +26,20 @@ defmodule Annotate.Auth.LoginMethods do
 
   @doc "GitHub OAuth credentials are present (else the UI shows \"not configured\")."
   def github_configured?, do: Application.get_env(:annotate, :github_enabled, false) == true
+
+  @doc "Google OAuth credentials are present (else the UI shows \"not configured\")."
+  def google_configured?, do: Application.get_env(:annotate, :google_enabled, false) == true
+
+  @doc "Dashboard providers shown in the sign-in modal, in display order."
+  def dashboard_providers, do: Enum.filter(~w(github google), &enabled?/1)
+
+  @doc "Shown-but-unconfigured providers (rendered disabled, \"not configured\")."
+  def unconfigured_providers do
+    Enum.reject(dashboard_providers(), fn
+      "github" -> github_configured?()
+      "google" -> google_configured?()
+    end)
+  end
 
   @doc "Email/password-family sign-in (password, magic link, OTP, reset, email verify)."
   def password_enabled?, do: enabled?("password")

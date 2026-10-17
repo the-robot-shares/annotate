@@ -149,13 +149,22 @@ defmodule AnnotateWeb.GithubLoginFlowTest do
     end
   end
 
-  test "full round trip: callback page hands off to /dashboard" do
+  test "full round trip, exempt @noizu.com: callback page hands off to /dashboard" do
     {conn, location} =
-      start_flow(%{stub_id: "90", stub_login: "rt", stub_email: "rt@example.com"})
+      start_flow(%{stub_id: "90", stub_login: "rt", stub_email: "rt@noizu.com"})
 
     conn = finish(conn, location)
     html = conn |> recycle() |> get(redirected_to(conn)) |> html_response(200)
     assert html =~ ~s(content="0;url=/dashboard")
+  end
+
+  test "full round trip, uninvited: lands on the invite interstitial" do
+    {conn, location} =
+      start_flow(%{stub_id: "93", stub_login: "rt2", stub_email: "rt2@example.com"})
+
+    conn = finish(conn, location)
+    html = conn |> recycle() |> get(redirected_to(conn)) |> html_response(200)
+    assert html =~ ~s(content="0;url=/auth/invite-required")
   end
 
   test "prod shape: providers observed as \"\" → not-configured redirect, not a 500" do

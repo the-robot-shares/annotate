@@ -55,8 +55,25 @@ config :ueberauth, Ueberauth, providers: []
 
 # annotate dashboard sign-in is GitHub-only (Annotate.Auth.LoginMethods):
 # the scaffold's password/magic-link/OTP, OIDC and SAML sign-in routes 404.
-config :annotate, :login_methods, ["github"]
+config :annotate, :login_methods, ["github", "google"]
 config :annotate, :post_auth_path, "/dashboard"
+
+# Dashboard is invite-only (Annotate.Dashboard.Access); verified emails on
+# these EXACT domains skip the invite (no subdomains).
+config :annotate, :invite_exempt_domains, ["noizu.com"]
+
+# Never log invite tokens, OAuth codes/state, or secrets in request params.
+config :phoenix, :filter_parameters, [
+  "password",
+  "secret",
+  "token",
+  "invite",
+  "invite_token",
+  "code",
+  "state",
+  "refresh_token",
+  "access_token"
+]
 
 config :annotate, :oidc_enabled, false
 config :annotate, :saml_enabled, false
@@ -139,7 +156,7 @@ config :annotate, :marketing,
   api_host: "annotate-srv.therobotlives.com",
   api_base: "https://annotate-srv.therobotlives.com",
   widget_src:
-    "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js",
+    "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js",
   dogfood_site: "annotate-landing"
 
 # i18n

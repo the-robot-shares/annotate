@@ -52,6 +52,32 @@ defmodule Annotate.Release do
     result
   end
 
+  @doc """
+  Ops: issues ONE dashboard invite and prints its sign-up link once (the raw
+  token is never stored). `opts`: `email:` (bind), `days:`, `max_uses:`.
+
+      bin/annotate eval 'Annotate.Release.issue_invite(email: "someone@example.com")'
+  """
+  def issue_invite(opts \\ []) do
+    load_app()
+
+    {:ok, result, _} =
+      Ecto.Migrator.with_repo(Annotate.Repo, fn _repo ->
+        Annotate.Dashboard.Invites.create(nil, opts)
+      end)
+
+    case result do
+      {:ok, invite, raw} ->
+        IO.puts("invite #{invite.key_prefix}… expires #{invite.expires_at}")
+        IO.puts(Annotate.Dashboard.Invites.link(raw))
+        :ok
+
+      {:error, reason} ->
+        IO.puts("issue_invite failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
   defp repos, do: Application.fetch_env!(@app, :ecto_repos)
 
   defp load_app do

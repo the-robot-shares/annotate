@@ -210,35 +210,41 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
         put_action(server, :create_failed, error: DashboardAuth.message(:unauthenticated))
 
       %{verified: true} = user ->
-        origins =
-          params.origins
-          |> to_string()
-          |> String.split(~r/[\r\n,]+/)
-          |> Enum.map(&String.trim/1)
-          |> Enum.reject(&(&1 == ""))
-
-        attrs = %{
-          "slug" => params.slug |> to_string() |> String.trim(),
-          "name" => params.name |> to_string() |> String.trim(),
-          "allowed_origins" => origins
-        }
-
-        case Sites.create_site_with_owner(attrs, user) do
-          {:ok, site, key} ->
-            put_action(server, :site_created,
-              sites: load_sites(user),
-              slug: site.slug,
-              key: key
-            )
-
-          {:error, reason} ->
-            put_action(server, :create_failed, error: create_error(reason))
-        end
+        if Annotate.Dashboard.Access.allowed?(user),
+          do: do_create_site(server, user, params),
+          else: put_action(server, :create_failed, error: DashboardAuth.message(:invite_required))
 
       _unverified ->
         put_action(server, :create_failed,
-          error: "Verify your account (sign in with GitHub) to add sites."
+          error: "Verify your account (sign in with GitHub or Google) to add sites."
         )
+    end
+  end
+
+  defp do_create_site(server, user, params) do
+    origins =
+      params.origins
+      |> to_string()
+      |> String.split(~r/[\r\n,]+/)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    attrs = %{
+      "slug" => params.slug |> to_string() |> String.trim(),
+      "name" => params.name |> to_string() |> String.trim(),
+      "allowed_origins" => origins
+    }
+
+    case Sites.create_site_with_owner(attrs, user) do
+      {:ok, site, key} ->
+        put_action(server, :site_created,
+          sites: load_sites(user),
+          slug: site.slug,
+          key: key
+        )
+
+      {:error, reason} ->
+        put_action(server, :create_failed, error: create_error(reason))
     end
   end
 
@@ -266,6 +272,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
   def create_error(:invalid_origin),
     do:
       "Origins must be exact https://host[:port] values (one per line; no paths, wildcards or trailing slashes)."
+
+  def create_error(:invite_required), do: DashboardAuth.message(:invite_required)
 
   def create_error(:site_limit),
     do: "You have reached the limit of #{Sites.max_owned_sites()} sites."

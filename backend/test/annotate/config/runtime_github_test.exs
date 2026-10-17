@@ -35,13 +35,51 @@ defmodule Annotate.Config.RuntimeGithubTest do
   end
 
   test "no GitHub creds → providers is an empty LIST, GitHub not enabled" do
-    c = read_prod(%{"GITHUB_CLIENT_ID" => "", "GITHUB_CLIENT_SECRET" => ""})
+    c =
+      read_prod(%{
+        "GITHUB_CLIENT_ID" => "",
+        "GITHUB_CLIENT_SECRET" => "",
+        "GOOGLE_CLIENT_ID" => "",
+        "GOOGLE_CLIENT_SECRET" => ""
+      })
+
     assert c[:ueberauth][Ueberauth][:providers] == []
     refute c[:annotate][:github_enabled]
   end
 
+  test "Google creds → google strategy registered + enabled (and blanks stay off)" do
+    c =
+      read_prod(%{
+        "GOOGLE_CLIENT_ID" => "test-gid",
+        "GOOGLE_CLIENT_SECRET" => "test-gsecret",
+        "GITHUB_CLIENT_ID" => "",
+        "GITHUB_CLIENT_SECRET" => ""
+      })
+
+    assert [google: {Ueberauth.Strategy.Google, _}] = c[:ueberauth][Ueberauth][:providers]
+    assert c[:annotate][:google_enabled] == true
+
+    c =
+      read_prod(%{
+        "GOOGLE_CLIENT_ID" => " ",
+        "GOOGLE_CLIENT_SECRET" => "",
+        "GITHUB_CLIENT_ID" => "",
+        "GITHUB_CLIENT_SECRET" => ""
+      })
+
+    assert c[:ueberauth][Ueberauth][:providers] == []
+    refute c[:annotate][:google_enabled]
+  end
+
   test "GitHub creds → github strategy registered + enabled" do
-    c = read_prod(%{"GITHUB_CLIENT_ID" => "test-id", "GITHUB_CLIENT_SECRET" => "test-secret"})
+    c =
+      read_prod(%{
+        "GITHUB_CLIENT_ID" => "test-id",
+        "GITHUB_CLIENT_SECRET" => "test-secret",
+        "GOOGLE_CLIENT_ID" => "",
+        "GOOGLE_CLIENT_SECRET" => ""
+      })
+
     assert [github: {Ueberauth.Strategy.Github, _}] = c[:ueberauth][Ueberauth][:providers]
     assert c[:annotate][:github_enabled] == true
   end

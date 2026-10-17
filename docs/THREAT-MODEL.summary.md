@@ -1,6 +1,6 @@
 # Threat Model Summary — annotate.therobotlives.com
 
-Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/embed/*`, host-assert, websocket `/socket/annotate`, MinIO presigned attachments, and the GitHub-only owner dashboard (sites, members, inbox). Code-read review of `develop` @ `2b5819d` (2026-10-17); no dynamic testing. Crown jewels: `ANNOTATE_JWT_SECRET`, `ANNOTATE_KEY_ENC_SECRET`, per-site service keys, refresh tokens.
+Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/embed/*`, host-assert, websocket `/socket/annotate`, MinIO presigned attachments, and the invite-only owner dashboard (GitHub or Google sign-in) (sites, members, inbox). Code-read review of `develop` @ `2b5819d` (2026-10-17); no dynamic testing. Crown jewels: `ANNOTATE_JWT_SECRET`, `ANNOTATE_KEY_ENC_SECRET`, per-site service keys, refresh tokens.
 
 | ID | Sev | Finding | Status |
 |----|-----|---------|--------|
@@ -30,5 +30,8 @@ Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/em
 | T-24 | Med | OAuth login CSRF / cookie scope | Mitigated |
 | T-25 | High | staff_only read visibility on every path incl. realtime | Mitigated (residual: host-asserted staff = host trust) |
 | T-26 | Low | `/me` permission endpoint (no PII, live) | Mitigated |
+| T-27 | Med | Self-serve dashboard sign-up | Fixed 2026-10-17 (invite-only; exact verified @noizu.com exempt) |
+| T-28 | Med | Invite token theft/guessing/replay | Mitigated (256-bit, bcrypt at rest, single-use, expiry, revoke, email bind, atomic) |
+| T-29 | Low | GitHub+Google account linking | Mitigated (verified-email exact match only) |
 
 Full doc: [THREAT-MODEL.md](THREAT-MODEL.md).

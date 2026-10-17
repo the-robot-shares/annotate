@@ -167,11 +167,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.googleClientId }}
+      optional: true
 - name: GOOGLE_CLIENT_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.googleClientSecret }}
+      optional: true
 {{- end }}
 {{- if .Values.secrets.keys.facebookClientId }}
 - name: FACEBOOK_CLIENT_ID

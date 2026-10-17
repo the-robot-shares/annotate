@@ -16,7 +16,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
     host: "annotate.therobotlives.com",
     api_base: "https://annotate-srv.therobotlives.com",
     widget_src:
-      "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js",
+      "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js",
     dogfood_site: "annotate-landing"
   }
 

@@ -21,7 +21,8 @@ defmodule AnnotateWeb.Legal do
     operator_legal_name: "Noizu Labs, Inc.",
     last_updated: @last_updated,
     widget_commenting: true,
-    github_oauth: true
+    github_oauth: true,
+    google_oauth: true
   }
 
   @privacy %{
@@ -57,6 +58,11 @@ defmodule AnnotateWeb.Legal do
         name: "GitHub",
         description:
           "authenticates site owners. We receive the profile fields listed above; GitHub's own privacy statement governs what it does."
+      },
+      %{
+        name: "Google (sign-in)",
+        description:
+          "authenticates site owners who choose Google sign-in. We receive the profile fields listed above; Google's own privacy policy governs what it does."
       },
       %{
         name: "Google (Google Analytics 4)",

@@ -76,4 +76,7 @@ config :annotate, :login_methods, :all
 # GitHub sign-in in tests runs the in-process stub strategy (no network).
 config :annotate, :github_stub_allowed, true
 config :annotate, :github_enabled, true
-config :ueberauth, Ueberauth, providers: [github: {Annotate.Auth.GithubStub, []}]
+config :annotate, :google_enabled, true
+
+config :ueberauth, Ueberauth,
+  providers: [github: {Annotate.Auth.GithubStub, []}, google: {Annotate.Auth.GoogleStub, []}]

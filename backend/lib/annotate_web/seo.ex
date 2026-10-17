@@ -57,7 +57,7 @@ defmodule AnnotateWeb.SEO do
   # plus X-Robots-Tag: noindex on every prefix here. `/sign-in`, `/login` and
   # `/signup` are deliberately NOT in robots.txt so crawlers can fetch them
   # and see the noindex.
-  @noindex_prefixes ~w(/dashboard /app /auth /api /embed /sign-in /login /signup /join
+  @noindex_prefixes ~w(/dashboard /app /auth /api /embed /sign-in /sign-up /login /signup /join
                        /forgot-password /complete-registration /pending-approval
                        /styleguide /tk-smoke /sitemap /dev /media /socket /health /sso)
 

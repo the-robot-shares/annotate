@@ -1,0 +1,45 @@
+databaseChangeLog:
+  # ── Annotate: provider-generic dashboard sign-in identities (GitHub + Google) ──
+  # Additive only. `oauth_identities` supersedes `github_identities` for new
+  # code; the legacy table is left in place (no drop) and its rows are copied
+  # here once. Keyed by (provider, provider_uid) — the provider's immutable
+  # account id, never login or email. One identity per provider per user.
+
+  - changeSet:
+      id: annotate-0047-create-table-oauth-identities
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE oauth_identities (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                provider text NOT NULL,
+                provider_uid text NOT NULL,
+                user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                login text,
+                email citext,
+                name text,
+                avatar_url text,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT oauth_identities_provider_uid_key UNIQUE (provider, provider_uid),
+                CONSTRAINT oauth_identities_user_provider_key UNIQUE (user_id, provider)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS oauth_identities;
+
+  - changeSet:
+      id: annotate-0048-backfill-oauth-identities-from-github
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO oauth_identities
+                (id, provider, provider_uid, user_id, login, email, name, avatar_url, inserted_at, updated_at)
+              SELECT gen_random_uuid(), 'github', github_id::text, user_id, login, email, name, avatar_url, inserted_at, updated_at
+              FROM github_identities
+              ON CONFLICT DO NOTHING;
+      rollback:
+        - sql:
+            sql: DELETE FROM oauth_identities WHERE provider = 'github';
