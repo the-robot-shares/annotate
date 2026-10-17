@@ -339,7 +339,8 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
       status: to_string(t.status),
       page_label: page_label(t, page_path),
       query_label: query_label(significant),
-      deep_link: Annotate.Anchors.deep_link(t.url, t.id),
+      # Origin-checked: the thread url is visitor-submitted (THREAT-MODEL T-31).
+      deep_link: Annotate.Anchors.safe_deep_link(site, t.url, t.id),
       orphaned: not is_nil(t.orphaned_at),
       comments:
         Enum.map(t.comments, fn c ->
