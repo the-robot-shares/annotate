@@ -27,6 +27,11 @@ defmodule Annotate.MCP.Config do
   # loopback (always allowed, port-agnostic — Claude Code, Codex, VS Code).
   @redirect_hosts ["claude.ai", "claude.com", "vscode.dev", "chatgpt.com"]
 
+  # Private-use redirect schemes native clients may register (exact scheme;
+  # noizu_mcp >= 0.6.2 refuses javascript/data/file/web schemes regardless).
+  # Cursor returns to cursor://anysphere.cursor-mcp/oauth/callback.
+  @redirect_schemes ["cursor"]
+
   def scopes, do: @scopes
   def path, do: @path
 
@@ -72,8 +77,16 @@ defmodule Annotate.MCP.Config do
       refresh_family_ttl: 90 * 24 * 3600,
       track_access_tokens: true,
       resources: [[resource: resource(), name: "annotate comments"]],
-      dcr: [enabled: true, allowed_redirect_hosts: @redirect_hosts],
-      cimd: [enabled: true, allowed_redirect_hosts: @redirect_hosts],
+      dcr: [
+        enabled: true,
+        allowed_redirect_hosts: @redirect_hosts,
+        allowed_redirect_schemes: @redirect_schemes
+      ],
+      cimd: [
+        enabled: true,
+        allowed_redirect_hosts: @redirect_hosts,
+        allowed_redirect_schemes: @redirect_schemes
+      ],
       upstream:
         {Noizu.MCP.Auth.Server.Upstream.HostSession,
          current_subject: {Annotate.MCP.Bridge, :current_subject},

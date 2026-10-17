@@ -249,7 +249,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardAgentsPage do
         label: "Cursor (~/.cursor/mcp.json)",
         code: Jason.encode!(%{mcpServers: %{annotate: %{url: url}}}, pretty: true),
         hint:
-          "Not yet supported: Cursor's OAuth sign-in returns to a cursor:// address our authorization server does not accept yet. Use Claude Code or VS Code for now."
+          "Cursor opens the sign-in from Settings → MCP; it returns to Cursor when you approve."
       }
     ]
   end
