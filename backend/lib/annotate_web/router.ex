@@ -180,6 +180,20 @@ defmodule AnnotateWeb.Router do
     get "/:short_id/*filename", MediaServeController, :show
   end
 
+  # Dashboard attachment downloads: the owner-dashboard inbox links here; the
+  # controller 302s to a freshly presigned url, so inbox links never expire.
+  # Same cookie session the Hologram dashboard uses; membership (member+) is
+  # checked in the controller against the DB on every request.
+  pipeline :dashboard_session do
+    plug :fetch_session
+    plug AnnotateWeb.Plugs.DashboardSession
+  end
+
+  scope "/dashboard", AnnotateWeb do
+    pipe_through [:dashboard_session]
+    get "/attachments/:id", DashboardAttachmentController, :show
+  end
+
   # SAML 2.0 (Samly handles assertion consumer service, metadata, etc.)
   scope "/sso/saml" do
     pipe_through [:saml_login, :sso_session]

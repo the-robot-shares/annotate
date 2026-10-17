@@ -90,7 +90,7 @@ defmodule Annotate.Comments do
           ^from(c in Comment,
             where: is_nil(c.deleted_at),
             order_by: [asc: c.inserted_at],
-            preload: [:author]
+            preload: [:author, :attachments]
           )
       ]
     )
