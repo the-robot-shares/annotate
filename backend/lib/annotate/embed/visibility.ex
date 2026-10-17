@@ -88,9 +88,6 @@ defmodule Annotate.Embed.Visibility do
 
     %{
       "authenticated" => authenticated,
-      # The viewer's own commenter id lets widgets show Edit/Delete only on
-      # comments they may change (additive; absent when anonymous).
-      "commenter_id" => commenter_id(commenter),
       "role" => v.role && Atom.to_string(v.role),
       "staff" => v.staff?,
       "can_read_all" => can_read_all?(v),
