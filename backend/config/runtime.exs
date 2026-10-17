@@ -45,6 +45,15 @@ config :annotate, :marketing,
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
+# GA4 measurement id (public, G-…): marketing-host pages only, prod only, and
+# only when set (chart analytics.ga.measurementId -> GA_MEASUREMENT_ID).
+# AnnotateWeb.Analytics re-validates the shape before it reaches a template.
+ga_measurement_id = String.trim(System.get_env("GA_MEASUREMENT_ID", ""))
+
+config :annotate,
+       :ga_measurement_id,
+       if(config_env() == :prod and ga_measurement_id != "", do: ga_measurement_id, else: nil)
+
 parse_sso_domains = fn
   nil ->
     %{}

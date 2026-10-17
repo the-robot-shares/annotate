@@ -64,14 +64,19 @@ defmodule AnnotateWeb.Plugs.MarketingHostGate do
     api_base = marketing |> Keyword.get(:api_base) |> api_base_with_ws()
     s3 = s3_origin()
 
-    img = ["'self'", "data:", "blob:", @cdn] ++ List.wrap(s3)
+    img =
+      ["'self'", "data:", "blob:", @cdn] ++
+        List.wrap(s3) ++ AnnotateWeb.Analytics.csp_img_hosts()
+
     # The comment widget PUTs attachments straight to the presigned storage
     # url (XHR), so the storage origin must be in connect-src as well.
-    connect = ["'self'"] ++ List.wrap(api_base) ++ List.wrap(s3)
+    connect =
+      ["'self'"] ++
+        List.wrap(api_base) ++ List.wrap(s3) ++ AnnotateWeb.Analytics.csp_connect_hosts()
 
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' #{@cdn}",
+      "script-src #{Enum.join(["'self'", "'unsafe-inline'", @cdn | AnnotateWeb.Analytics.csp_script_hosts()], " ")}",
       "style-src 'self' 'unsafe-inline'",
       "img-src #{Enum.join(img, " ")}",
       "font-src 'self'",
