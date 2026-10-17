@@ -1,7 +1,8 @@
 defmodule AnnotateWeb.Hologram.Components.SiteFooter do
   @moduledoc """
-  The one footer for annotate's Night Desk surfaces (landing, legal pages,
-  owner dashboard): Privacy / Terms links plus the tobor-kit
+  The one footer for annotate's marketing surfaces (landing, legal pages,
+  owner dashboard): MCP reference + llms.txt links, Privacy / Terms links,
+  plus the tobor-kit
   `<noizu-footer-brand>` attribution ("A The Robot Lives Joint"), loaded from
   the CDN at the same pinned sha as the rest of the kit and themed through its
   `--noizu-footer-brand-*` custom properties.
@@ -24,6 +25,9 @@ defmodule AnnotateWeb.Hologram.Components.SiteFooter do
       <link rel="stylesheet" href={css_href()} data-cy="footer-css" />
       <div class="nd-site-footer__inner">
         <nav class="nd-site-footer__links" aria-label="Footer">
+          <a href="/mcp-server" data-cy="footer-mcp">MCP server reference</a>
+          <a href="/llms.txt" data-cy="footer-llms">llms.txt</a>
+          <a href="/llms-full.txt" data-cy="footer-llms-full">llms-full.txt</a>
           <a href="/privacy" data-cy="footer-privacy">Privacy</a>
           <a href="/terms" data-cy="footer-terms">Terms</a>
         </nav>

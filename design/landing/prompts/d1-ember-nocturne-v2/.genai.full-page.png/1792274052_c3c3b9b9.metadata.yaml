@@ -1,0 +1,53 @@
+service: gemini
+model: gemini-2.5-flash-image
+timestamp: 1792274063
+eval_score: 0.512
+eval_notes: "Subhead misspells 'annotate' as 'anodate', violating the exact-string manifest; 'Resolved' badge is absent. Accent budget is exceeded: beyond the allowed ring, pin, and primary buttons, the dashed demo ring, the copy button, and the 'Soon' chip all carry saturated orange. Nav, hero split, and section order are otherwise present and legible."
+prompt: |
+  Full-page desktop website mockup, tall portrait composition, one continuous
+  dark landing page shown top to bottom. Near-black canvas #0B0B10 with
+  strict warm ember glow discipline: the ONLY saturated orange elements are
+  one ring highlight, one comment pin, and the primary buttons; everything
+  else steps by brightness alone. Top: slim dark navigation bar, wordmark
+  "annotate" spelled exactly left, four small gray nav-link bars, one
+  ember-filled pill button carrying no text on the right. Hero splits
+  left/right: left column has a small gray eyebrow bar,
+  the two-line large headline "Feedback that points at the thing.", a
+  two-line muted subhead reading "annotate pins threaded comments to the
+  exact element or text they're about." with both words "annotate" and
+  "threaded" spelled exactly, one ember primary button "Try it on
+  this page" beside one outlined button "Add to your site"; right side a
+  large flat dark browser window filling most of the frame width: title bar
+  with three small GRAY dots, dark app page of gray placeholder bars and
+  card shapes, one "Export" button ringed in crisp glowing ember orange with
+  a small pin marker, a thin luminous orange connector to a raised dark
+  comment thread card with two muted orange-tinted circle avatars and short
+  comment bars, a thin orange arrow to a compact monospaced agent card
+  reading "patch ready" (spelled exactly) with a small orange check, and a
+  tiny "Resolved" badge directly beneath that agent card. A floating dark
+  comment rail card with three short rows is flush-docked against the
+  browser's right edge with no gap, clearly attached; the rail and the
+  ringed element are the visual centerpiece of the hero. Below, sections in
+  this exact
+  order, separated by hairline #2A2A3A borders: a wide live-demo band
+  showing a dashed ring around one page element with a small pill; a single
+  row of exactly seven small dark screenshot thumbnails; a bento grid of
+  exactly six raised dark
+  tiles with gray placeholder bars and small glyphs; a wide dark code
+  snippet panel holding only short gray placeholder bars of varied widths
+  and indents — strictly no legible code characters — and one small
+  icon-only copy button with no text label; a
+  short two-column text row with monospaced bars; a low roadmap row of small
+  outline chips where exactly one tiny chip reads "Soon"; one small "FAQ"
+  label above four slim textless accordion rows of gray bars — the word FAQ
+  appears exactly once; a final full-width ember-tinted strip with one
+  textless ember button. The ONLY text in the whole image is exactly: annotate ·
+  Feedback that points at the thing. · annotate pins threaded comments to
+  the exact element or text they're about. · Try it on this page · Add to
+  your site · Export · patch ready · Resolved · Soon · FAQ. All other copy
+  is abstract gray placeholder bars. Large crisp Inter-style grotesque type
+  for headline and buttons, small muted type for the subhead, high
+  contrast, no duplicated or warped text. Calm, precise, generous even
+  margins.
+negative: |
+  garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices, dollar signs, currency, any real brand name or logo, URLs, hex codes, hash symbols, photographic people or faces, initials in avatars, blue or green glow, light theme, rainbow gradients, second saturated hue, ticket-creation card, Jira or tracker logo, lens flares, watermark, cluttered spacing, annoate or anobate misspellings of the wordmark, legible or semi-legible code characters, a button labeled Copy, a button labeled Try it free

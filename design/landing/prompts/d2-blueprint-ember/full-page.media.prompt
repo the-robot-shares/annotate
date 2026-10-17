@@ -1,0 +1,132 @@
+# ============================================================================
+# annotate landing revamp — D2 Blueprint Ember — FULL PAGE
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: disclose as AI-generated when published.
+# Gate A PASSED 2026-10-18 (user approved D1/D2/D3 generation).
+# Copy: design/landing/COPY-v2.md §2 (headline + subhead + CTA pair).
+# Run: generate-media-prompt design/landing/prompts/d2-blueprint-ember/full-page.media.prompt
+# Text budget: 10 strings — the subhead is rendered truncated at its first
+#   sentence for render legibility; the full approved subhead lives in
+#   COPY-v2 §2. Ticket push is PLANNED: no ticket-creation card anywhere —
+#   the roadmap row may carry only a tiny "Soon" chip.
+# IA section order (approved): hero → try-it demo band → 7-step walkthrough →
+#   features bento → embed snippet → for agents/MCP → roadmap → FAQ → final CTA.
+# COPY CORRECTION 2026-10-18 (user): hero secondary CTA is now "Start free"
+#   (was "Add to your site"); hero caption and embed heading added; the three
+#   embed steps render as bars for text budget (full strings: COPY-v2 §10).
+# Build-lane motion notes (not part of the render): grid lines fade in first
+#   (200ms), then content; section labels tick into place like registration
+#   targets; ember ring draw-on via stroke-dashoffset ~400ms.
+# ============================================================================
+schema: '0.4'
+id: annotate-landing-blueprint-ember-fullpage
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Full-page desktop website mockup, tall portrait, a dark landing page drawn
+    on an engineering drafting sheet: a faint blueprint grid of hairline lines
+    #1C1C28 covers the near-black #0B0B10 background at very low contrast
+    (barely visible, never fighting the content), evenly spaced, and each
+    section sits inside crop-corner ticks with a tiny monospaced label bar.
+    Top nav: wordmark reading exactly "annotate", in monospaced type, four
+    gray nav-link bars, one ember pill button carrying no text. Hero splits
+    left/right: left column has a monospaced
+    eyebrow bar, the two-line large headline "Feedback that points at the
+    thing.", a two-line muted subhead reading "annotate pins threaded comments
+    to the exact element or text they're about." with both words "annotate"
+    and "threaded" spelled exactly — the complete sentence, every word
+    present, all in plain muted gray — ember button "Try it on this
+    page" (spelled exactly) beside outlined button "Start free", plus a
+    one-line small muted caption below the buttons reading "No signup to look
+    around. To post or install: create an account, add your site, paste your
+    tag."; right, a flat dark
+    browser sheet floating on the grid with registration-style corner marks:
+    title bar with three small GRAY dots, dark app page of gray placeholder
+    bars, one "Export" button (spelled exactly) ringed in glowing ember with
+    a small pin, a thin
+    luminous orange connector to a monospaced comment thread card with two
+    muted orange circle avatars and short bars, a thin orange arrow to a
+    monospaced agent card reading "patch ready" (spelled exactly) with an
+    orange check, and a tiny "Resolved" badge directly beneath that card. A
+    dark instrument-panel comment rail with monospaced text bars and three
+    short rows is flush-docked to the browser sheet's right edge
+    with no gap. Below, sections in this exact order, each framed by
+    crop-corner ticks: a wide live-demo band showing a dashed ring around one
+    page element with a small pill; a single row of exactly seven small dark
+    screenshot thumbnails sitting on grid cells; a six-tile bento of raised
+    panels each
+    with a tiny mono label bar and placeholder bars; a small heading "Add
+    your site, get your tag" (spelled exactly) above a wide code panel holding
+    only abstract gray bars of varied widths and indents — zero characters,
+    no code — and one small icon-only copy button with no
+    text label; a two-column text row
+    with monospaced bars; a low roadmap row of small outline chips where
+    exactly one tiny chip reads "Soon"; four slim textless accordion rows of
+    gray bars with one small "FAQ" label beside them — the word FAQ appears
+    exactly once, never on the bottom strip;
+    a final textless ember-tinted strip with one ember button. The ONLY text in
+    the whole image is exactly: annotate · Feedback that points at the thing.
+    · annotate pins threaded comments to the exact element or text they're
+    about. · Try it on this page · Start free · No signup to look around. To
+    post or install: create an account, add your site, paste your tag. · Add
+    your site, get your tag · Export · patch ready ·
+    Resolved · Soon · FAQ. All other copy is abstract gray placeholder bars.
+    Crisp Inter-style grotesque for the headline and buttons, true monospaced
+    type for labels, high contrast, no warped text, calm and precise,
+    generous negative space.
+  negative: >-
+    garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices,
+    dollar signs, currency, any real brand name or logo, URLs, hex codes, hash
+    symbols, photographic people or faces, initials in avatars, blue or green
+    glow, light theme, heavy visible grid, blueprint blue tint, graph paper,
+    second saturated hue, ticket-creation card, Jira or tracker logo, lens
+    flares, watermark, cluttered spacing, annoate or anobate misspellings of
+    the wordmark, legible or semi-legible code characters, duplicated
+    thumbnail rows, the string Add to your site, annocate, annobate, extra
+    legible section labels such as LIVE DEMO or Roadmap
+  style: >-
+    dark-native flat UI illustration on a faint drafting grid, vector sharp,
+    monospaced micro-labels, single warm ember accent #F97316, hairline
+    borders, generous negative space
+
+output:
+  formats:
+    - format: png
+  dimensions: {width: 832, height: 1248, aspect_ratio: '2:3'}
+
+requirements:
+  subject: complete dark landing page on a drafting substrate, nav to final
+    CTA strip, hero with ringed element, comment thread, agent card, bento,
+    snippet, roadmap, FAQ
+  composition: faint grid visible across the page, crop-corner ticks frame
+    each section, sections in approved order (hero, demo band, seven
+    thumbnails, bento, snippet, agents row, roadmap, FAQ, strip); rail styled
+    as instrument panel, flush-docked right; ember reserved for ring, pin,
+    primary CTA
+  palette: >-
+    void #0B0B10, canvas #111118, surface #1A1A23, raised #23232E, mist
+    #2A2A3A, grid #1C1C28, ember #F97316
+  dont: [prices, brand logos, URLs, extra text, faces, second glow hue,
+    heavy grid, ticket-creation imagery as a shipped step]
+
+eval:
+  pass_threshold: 0.75
+  required_pass: [text_legibility, full_page_structure, accent_budget, grid_discipline]
+  criteria:
+    text_legibility: {weight: 3, description: exact string manifest, crisp, no garbled glyphs}
+    full_page_structure: {weight: 3, description: nav, hero with CTAs, demo band, seven
+      thumbnails, bento, snippet, agents row, roadmap with Soon chip, FAQ, final strip —
+      present, ordered, rail attached}
+    accent_budget: {weight: 2, description: only ring, pin and primary buttons are saturated orange}
+    grid_discipline: {weight: 2, description: grid faint, below 5 percent contrast, never
+      fights content — fails if grid dominates or disappears}
+  reject_if: [garbled or misspelled text, price or currency symbol, third-party logo,
+    light theme, detached floating rail, ticket-creation card shown as shipped,
+    grid dominating the page]
+
+tags: [marketing, landing-fullpage, annotate, blueprint-ember, ai-generated]
+product_targets: [annotate.therobotlives.com]
