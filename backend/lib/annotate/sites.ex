@@ -334,7 +334,7 @@ defmodule Annotate.Sites do
 
     case Repo.get_by(Commenter, authentik_sub: sub) do
       %Commenter{} = commenter ->
-        {:ok, update_commenter_profile(commenter, claims)}
+        {:ok, update_commenter_profile(commenter, claims, :sso)}
 
       nil ->
         %Commenter{}
@@ -342,6 +342,7 @@ defmodule Annotate.Sites do
           authentik_sub: sub,
           display_name: display_name(claims),
           email: claims["email"],
+          email_verified: idp_email_verified(claims),
           avatar_url: claims["picture"],
           site_id: site && site.id
         })
@@ -353,7 +354,7 @@ defmodule Annotate.Sites do
   def upsert_commenter_by_external(site, external_id, claims) do
     case Repo.get_by(Commenter, site_id: site.id, external_id: external_id) do
       %Commenter{} = commenter ->
-        {:ok, update_commenter_profile(commenter, claims)}
+        {:ok, update_commenter_profile(commenter, claims, :external)}
 
       nil ->
         %Commenter{}
@@ -395,17 +396,30 @@ defmodule Annotate.Sites do
     end
   end
 
-  defp update_commenter_profile(commenter, claims) do
+  # `email_verified` is written ONLY from the Authentik id_token (:sso). A
+  # host-asserted JWT's `email_verified` is a claim from the wire, never
+  # trusted (S1): external rows keep email_verified nil and never bridge into
+  # a team role (Annotate.SiteMembers.team_role_for_commenter/3).
+  defp update_commenter_profile(commenter, claims, source) do
     attrs =
       %{}
       |> maybe_put(:display_name, display_name(claims))
       |> maybe_put(:email, claims["email"] || claims["avatar_email"])
       |> maybe_put(:avatar_url, claims["picture"] || claims["avatar"])
 
+    # Refreshed on every SSO login, so a later IdP verification lights the
+    # bridge up (and a retraction turns it off) at the next issuance/refresh.
+    attrs =
+      if source == :sso,
+        do: Map.put(attrs, :email_verified, idp_email_verified(claims)),
+        else: attrs
+
     commenter
     |> Commenter.changeset(attrs)
     |> Repo.update!()
   end
+
+  defp idp_email_verified(claims), do: claims["email_verified"] == true
 
   defp maybe_put(map, _k, nil), do: map
   defp maybe_put(map, k, v), do: Map.put(map, k, v)

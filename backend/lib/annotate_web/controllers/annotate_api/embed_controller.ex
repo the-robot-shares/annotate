@@ -124,7 +124,13 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
          :ok <- Policy.check(claims, site.comment_policy || %{}),
          {:ok, commenter} <- Sites.upsert_commenter_by_sub(site, claims),
          {:ok, %{access_token: access, refresh_token: refresh}} =
-           ApiToken.issue_pair(commenter, site, st["origin"], Policy.identity_claims(claims)) do
+           ApiToken.issue_pair(
+             commenter,
+             site,
+             st["origin"],
+             Policy.identity_claims(claims),
+             :bridge
+           ) do
       render_postmessage(
         conn,
         %{

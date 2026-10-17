@@ -76,7 +76,7 @@ defmodule AnnotateWeb.AnnotateAPICase do
 
   @doc "Issues an access token bound to (commenter, site, origin)."
   def issue_access(commenter, site, origin \\ "https://good.example") do
-    Annotate.Auth.ApiToken.issue_access(commenter, site, origin)
+    Annotate.Auth.ApiToken.issue_access(commenter, site, origin, :none)
   end
 
   def auth_header(token), do: {"authorization", "Bearer #{token}"}

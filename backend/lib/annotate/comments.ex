@@ -230,6 +230,22 @@ defmodule Annotate.Comments do
 
   def comment_manageable_by?(_, _, _), do: false
 
+  @doc """
+  True when the commenter may DELETE (moderate) the comment: its author, the
+  legacy `sites.owner_commenter_id`, or a team **owner/admin**. The team role
+  is re-derived from current membership / site policy on this request
+  (`Annotate.Embed.Team.moderator?/3`), never trusted from the token alone.
+  Editing someone else's text stays author/owner-only
+  (`comment_manageable_by?/3`).
+  """
+  def comment_moderatable_by?(%Comment{} = comment, site, commenter, claims)
+      when commenter != nil do
+    comment_manageable_by?(comment, site, commenter) or
+      Annotate.Embed.Team.moderator?(site, commenter, claims)
+  end
+
+  def comment_moderatable_by?(_, _, _, _), do: false
+
   # ── Attachments ───────────────────────────────────────────────
 
   @doc """

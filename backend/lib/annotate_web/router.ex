@@ -252,6 +252,7 @@ defmodule AnnotateWeb.Router do
   scope "/api/v1/sites/:site", AnnotateWeb.AnnotateAPI do
     pipe_through [:api, :annotate_rate_limited, :annotate_auth_optional]
 
+    get "/config", SiteConfigController, :show
     get "/threads", SiteThreadsController, :index
     post "/threads", SiteThreadsController, :create
   end
