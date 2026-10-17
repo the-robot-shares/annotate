@@ -268,22 +268,48 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Bumps serialize across ALL runs and are never cancelled mid-push.
+    concurrency:
+      group: ${{ github.event.repository.name }}-bump-chart-main
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - name: Bump backend image tag
+        with:
+          fetch-depth: 0
+      # Race fix: the checkout sits at GITHUB_SHA, which predates the bump
+      # commits of runs that finished meanwhile, so rebasing a stale bump
+      # commit conflicted on the same values.yaml line. Instead: sync to the
+      # live branch tip each attempt and re-apply the one-line edit.
+      - name: Bump backend image tag (idempotent, monotonic, retried)
         run: |
+          set -euo pipefail
+          BRANCH="${{ github.ref_name }}"
           SHORT=${GITHUB_SHA::7}
           VALUES="${APP_DIR}/${CHART_VALUES}"
-          sed -i -E "s|(image: ${REGISTRY//./\\.}/[^/]+/backend:).*|\1sha-${SHORT}|" "$VALUES"
-      - name: Commit & push
-        run: |
           git config user.name "${{ github.event.repository.name }}-ci"
           git config user.email "ci@noizu.com"
-          git add "${APP_DIR}/${CHART_VALUES}"
-          git diff --cached --quiet && exit 0
-          git commit -m "ci: deploy backend sha-${GITHUB_SHA::7} [skip ci]"
           for i in 1 2 3 4 5; do
-            git pull --rebase origin ${{ github.ref_name }} && git push && exit 0
-            sleep $((i * 5))
+            git fetch --quiet origin "$BRANCH"
+            git reset --hard --quiet "origin/${BRANCH}"
+            # Monotonic: skip if the tip already deploys this commit or a
+            # descendant of it (a newer run's image is a superset).
+            CUR=$(sed -nE "s|^[[:space:]]*image: ${REGISTRY//./\\.}/[^/]+/backend:sha-([0-9a-f]+).*|\1|p" "$VALUES" | head -1)
+            if [ -n "$CUR" ] && git cat-file -e "${CUR}^{commit}" 2>/dev/null \
+               && git merge-base --is-ancestor "$GITHUB_SHA" "$CUR"; then
+              echo "::notice::tip already deploys sha-${CUR} (contains ${SHORT}); nothing to bump"
+              exit 0
+            fi
+            sed -i -E "s|(image: ${REGISTRY//./\\.}/[^/]+/backend:).*|\1sha-${SHORT}|" "$VALUES"
+            git add "$VALUES"
+            if git diff --cached --quiet; then
+              echo "::notice::values already pin sha-${SHORT}"; exit 0
+            fi
+            git commit --quiet -m "ci: deploy backend sha-${SHORT} [skip ci]
+
+Co-Authored-By: Loom <loom@therobotlives.com>"
+            if git push origin "HEAD:${BRANCH}"; then exit 0; fi
+            echo "::warning::push attempt ${i} lost a race; retrying from fresh tip"
+            sleep $(( i * 3 + RANDOM % 5 ))
           done
+          echo "::error::chart bump for sha-${SHORT} NOT pushed after 5 attempts; re-run this job"
           exit 1

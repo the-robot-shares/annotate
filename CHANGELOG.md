@@ -4,6 +4,7 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- fix(ci): bump-chart race - the bump committed on a checkout at GITHUB_SHA (stale once a prior run bumped) and `git pull --rebase`d it, conflicting on the single values.yaml image line (runs a28f700, 5cb61c6). Job now serializes (`annotate.therobotlives.com-bump-chart-main`, no cancel), and each of up to 5 jittered attempts hard-resets to the live branch tip, skips if the tip already deploys this sha or a descendant, else re-applies the one-line tag edit and pushes.
 - fix(landing): Hologram's client boot (`history.replaceState(id, null, location.pathname)`, hologram 0.10.1) dropped the query string and hash of every landing URL, losing `?tab=…` page identity and `#annotate=<id>` deep links. New `priv/static/js/keep-location.js` (loaded before the runtime, one-shot) re-appends them; widget pinned to tobor-kit `sha-6905686` which also restores the boot-time location itself (tobor-kit#101).
 - fix(security): T-03 follow-up - rate limits were effectively keyed by Cloudflare edge IP (fresh connections landed on different edges, so per-client limits did not hold). Opt-in `RATE_LIMIT_CLIENT_IP_HEADER` (`cf-connecting-ip`) now supplies the client IP when valid, falling back to the XFF logic; the chart enables it only when `ingress.cloudflareOnly` (Cloudflare-only whitelist-source-range). Tests in `rate_limit_test.exs`.
 - chore(landing): pin dogfood widget CDN to tobor-kit `sha-74079d0` (anchor v2 / query matching / deep links, tobor-kit#97).
