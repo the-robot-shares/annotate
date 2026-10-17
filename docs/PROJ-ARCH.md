@@ -61,6 +61,7 @@ Tenancy is enforced by scoping every lookup with the token's site: `Comments.get
 | `PATCH/DELETE /api/v1/comments/:id` | required (author or site owner) | `CommentController` |
 | `POST /api/v1/attachments/presign`, `/attachments/:id/complete` | required (uploader only for complete) | `AttachmentController` |
 | `POST /api/v1/token/refresh` | refresh token in body | `TokenController.refresh` |
+| `POST /api/v1/token/revoke` | refresh token in body (sign-out; revokes the family) | `TokenController.revoke` |
 | `POST /api/v1/sites/:site/token/assert` | service-key-signed JWT in body | `TokenController.host_assert` |
 | `GET /embed/login`, `/embed/callback` | signed session cookie | `EmbedController` |
 
