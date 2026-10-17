@@ -31,13 +31,17 @@ defmodule AnnotateWeb.AnalyticsTest do
     |> get(path)
   end
 
-  test "landing renders gtag with the id on the marketing host when configured", %{conn: conn} do
+  test "landing renders the opt-in banner + loader, but never gtag.js itself", %{conn: conn} do
     Application.put_env(:annotate, :ga_measurement_id, @id)
-    conn = fetch(conn, @marketing_host, "/")
-    body = html_response(conn, 200)
-    assert body =~ "https://www.googletagmanager.com/gtag/js?id=#{@id}"
+    body = html_response(fetch(conn, @marketing_host, "/"), 200)
     assert body =~ ~s(data-ga-id="#{@id}")
     assert body =~ "/js/ga-init.js"
+    assert body =~ ~s(id="ga-consent")
+    assert body =~ ~s(data-ga-consent="accept")
+    assert body =~ ~s(data-ga-consent="decline")
+    # Not loaded before accept: the server HTML never references gtag.js.
+    refute body =~ "gtag/js?id="
+    refute body =~ "googletagmanager.com/gtag"
   end
 
   test "landing has no gtag when unset", %{conn: conn} do
@@ -45,27 +49,30 @@ defmodule AnnotateWeb.AnalyticsTest do
     body = html_response(fetch(conn, @marketing_host, "/"), 200)
     refute body =~ "gtag/js?id="
     refute body =~ ~s(data-ga-id=")
+    refute body =~ ~s(id="ga-consent")
   end
 
   test "a malformed id is never rendered", %{conn: conn} do
     Application.put_env(:annotate, :ga_measurement_id, ~S[G-X"></script><script>alert(1)])
     body = html_response(fetch(conn, @marketing_host, "/"), 200)
-    refute body =~ "gtag/js?id="
+    refute body =~ ~s(data-ga-id=")
   end
 
   test "privacy and terms render gtag on the marketing host, not on the API host", %{conn: conn} do
     Application.put_env(:annotate, :ga_measurement_id, @id)
 
     for path <- ["/privacy", "/terms"] do
-      assert html_response(fetch(conn, @marketing_host, path), 200) =~ "gtag/js?id=#{@id}"
-      refute html_response(fetch(conn, @api_host, path), 200) =~ "gtag/js?id="
+      assert html_response(fetch(conn, @marketing_host, path), 200) =~ ~s(data-ga-id="#{@id}")
+      refute html_response(fetch(conn, @api_host, path), 200) =~ ~s(data-ga-id=")
     end
   end
 
   test "the sign-in page renders gtag on the marketing host only", %{conn: conn} do
     Application.put_env(:annotate, :ga_measurement_id, @id)
-    assert html_response(fetch(conn, @marketing_host, "/sign-in"), 200) =~ "gtag/js?id=#{@id}"
-    refute html_response(fetch(conn, @api_host, "/sign-in"), 200) =~ "gtag/js?id="
+    m = html_response(fetch(conn, @marketing_host, "/sign-in"), 200)
+    assert m =~ ~s(data-ga-id="#{@id}")
+    assert m =~ ~s(id="ga-consent")
+    refute html_response(fetch(conn, @api_host, "/sign-in"), 200) =~ ~s(data-ga-id=")
   end
 
   test "CSP allows the GA hosts on landing and legal pages", %{conn: conn} do
@@ -91,6 +98,29 @@ defmodule AnnotateWeb.AnalyticsTest do
   test "privacy policy discloses Google Analytics", %{conn: conn} do
     body = html_response(fetch(conn, @marketing_host, "/privacy"), 200)
     assert body =~ "Google Analytics"
+  end
+
+  test "ga-init.js: consent defaults denied, gtag.js only injected on accept, choice persisted" do
+    js = File.read!("priv/static/js/ga-init.js")
+    assert js =~ ~s(analytics_storage: "denied")
+    assert js =~ "localStorage.setItem"
+    assert js =~ ~s("consent", "update", { analytics_storage: "granted" })
+    # the only place gtag.js is requested is load(), which only apply("granted") calls
+    assert length(String.split(js, "googletagmanager.com/gtag/js")) == 2
+    assert js =~ ~r/function load\(\)[\s\S]*googletagmanager\.com\/gtag\/js/
+  end
+
+  test "ga-init.js behaviour (node --test, stub DOM): banner, accept loads, decline/persist" do
+    case System.find_executable("node") do
+      nil ->
+        :ok
+
+      node ->
+        {out, status} =
+          System.cmd(node, ["--test", "test/js/ga-init.test.mjs"], stderr_to_stdout: true)
+
+        assert status == 0, out
+    end
   end
 
   test "the embed/widget assets never carry GA" do

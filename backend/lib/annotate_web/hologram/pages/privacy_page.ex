@@ -9,6 +9,9 @@ defmodule AnnotateWeb.Hologram.Pages.PrivacyPage do
   use Hologram.Page
 
   require LegalForms.Hologram
+  # Compile-time dependency: editing AnnotateWeb.Legal must recompile this page
+  # (a cached _build served stale policy text in CI).
+  require AnnotateWeb.Legal
 
   alias AnnotateWeb.Hologram.Layouts.LegalLayout
 

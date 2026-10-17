@@ -9,9 +9,10 @@ defmodule AnnotateWeb.Analytics do
   `config/runtime.exs` for `:prod` only, and is validated against the GA4 id
   shape so nothing but `G-[A-Z0-9]+` can ever reach a `<script>` attribute.
 
-  Consent Mode v2 defaults are applied by `/js/ga-init.js` (external file, so no
-  inline script and no CSP nonce is needed): `analytics_storage` granted,
-  `ad_storage` / `ad_user_data` / `ad_personalization` denied.
+  OPT-IN: `/js/ga-init.js` (external file: no inline script) sets Consent Mode v2
+  defaults to all-denied, shows the `AnalyticsConsent` banner, and only loads
+  gtag.js after the visitor accepts, so there is no Google traffic before
+  consent. The choice persists in localStorage for ~12 months.
   """
 
   @id_re ~r/^G-[A-Z0-9]{4,20}$/
@@ -49,9 +50,6 @@ defmodule AnnotateWeb.Analytics do
   @doc "Convenience for layout `init/3`: id for the request's host (`server.host`)."
   def for_server(%{host: host}), do: measurement_id_for_host(host)
   def for_server(_), do: nil
-
-  @doc "`https://www.googletagmanager.com/gtag/js?id=G-…`"
-  def script_src(id), do: "https://www.googletagmanager.com/gtag/js?id=" <> id
 
   @script_hosts ["https://www.googletagmanager.com"]
   @connect_hosts [
