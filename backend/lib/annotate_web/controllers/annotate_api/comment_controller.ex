@@ -17,7 +17,8 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
     commenter = conn.assigns.annotate_commenter
 
     with {:ok, comment} <- comment_for(conn, params),
-         :ok <- authorize(comment, site, commenter) do
+         :ok <- authorize(comment, site, commenter),
+         :ok <- Annotate.Moderation.check_text(params["body_md"]) do
       opts = [
         attachment_ids: params["attachment_ids"],
         remove_attachment_ids: params["remove_attachment_ids"],
@@ -40,6 +41,9 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
           conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
       end
     else
+      {:error, :content_rejected} ->
+        conn |> put_status(:unprocessable_entity) |> json(Annotate.Moderation.rejection_payload())
+
       {:error, %Plug.Conn{} = conn} -> conn
       {:error, :forbidden} -> forbidden(conn)
     end

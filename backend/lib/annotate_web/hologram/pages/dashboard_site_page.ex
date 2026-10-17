@@ -188,6 +188,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
                     </select>
                     <p class="dsh-hint">Staff only: your team (owners, admins and members, plus host-asserted team roles when "Trust host-asserted team roles" is on) sees every thread. Everyone else sees only the threads they started and every reply in them, including yours. Anonymous visitors see none. Enforced by the server on every read and live update, not just in the widget.</p>
                   </div>
+                  <div class="dsh-field" data-cy="dsh-require-auth-read">
+                    <label for="s-reqauth">Secure fetch (require sign-in to read)</label>
+                    <select id="s-reqauth" data-cy="dsh-require-auth-read-select" $change={action: :set_form, params: %{field: "require_auth_to_read"}}>
+                      <option value="false" selected={@form.require_auth_to_read == "false"}>Off (anyone who can open the page can read)</option>
+                      <option value="true" selected={@form.require_auth_to_read == "true"}>On (visitors must sign in before comments load)</option>
+                    </select>
+                    <p class="dsh-hint">When on, listing comments and live updates require a signed-in visitor; the widget prompts sign-in first. Off by default — existing embeds keep working as today.</p>
+                  </div>
                   <div class="dsh-grid-2">
                     <div class="dsh-field">
                       <label for="s-anon">Anonymous threads</label>
@@ -367,7 +375,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
       allow_anonymous: f.allow_anonymous,
       trust_host_roles: f.trust_host_roles,
       required_groups: f.required_groups,
-      allowed_email_domains: f.allowed_email_domains
+      allowed_email_domains: f.allowed_email_domains,
+      require_auth_to_read: f.require_auth_to_read
     )
   end
 
@@ -490,7 +499,10 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
             "required_groups" => split_list(params.required_groups),
             "allowed_email_domains" => split_list(params.allowed_email_domains)
           }
-          |> put_read_visibility(Map.get(params, :read_visibility))
+          |> put_read_visibility(Map.get(params, :read_visibility)),
+        "settings" => %{
+          "require_auth_to_read" => Map.get(params, :require_auth_to_read) == "true"
+        }
       }
 
       case Sites.update_site_security(site, attrs) do
@@ -499,6 +511,9 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
 
         {:error, :invalid_origin} ->
           {:error, AnnotateWeb.Hologram.Pages.DashboardSitesPage.create_error(:invalid_origin)}
+
+        {:error, :invalid_settings} ->
+          {:error, "Could not save the secure-fetch option."}
 
         {:error, _} ->
           {:error, "Could not save the policy."}
@@ -654,6 +669,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
       read_visibility: Atom.to_string(Sites.read_visibility(site)),
       allow_anonymous: to_string(Sites.allow_anonymous?(site)),
       trust_host_roles: to_string(Sites.trust_host_roles?(site)),
+      require_auth_to_read: to_string(Sites.require_auth_to_read?(site)),
       required_groups: Enum.join(List.wrap(policy["required_groups"]), ", "),
       allowed_email_domains: Enum.join(List.wrap(policy["allowed_email_domains"]), ", ")
     }

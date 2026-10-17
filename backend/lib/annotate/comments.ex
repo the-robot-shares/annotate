@@ -760,6 +760,26 @@ defmodule Annotate.Comments do
     {:ok, count}
   end
 
+  @doc """
+  Rejects a pending attachment at `complete` time (oversize actual bytes or
+  failed moderation): deletes the storage object (best-effort) and the row.
+  Returns `:ok` | `{:error, :object_delete_failed}`.
+  """
+  def reject_pending_attachment(%Attachment{} = attachment) do
+    case Annotate.Storage.delete_object(attachment.storage_key) do
+      {:ok, _} ->
+        Repo.transaction(fn -> Repo.delete!(attachment) end)
+        :ok
+
+      {:error, _} ->
+        # Object delete failed — drop the row anyway (an orphaned object is
+        # preferable to a completable attachment whose bytes we rejected) and
+        # let the pending sweeper/rotation paths not depend on it.
+        Repo.delete!(attachment)
+        {:error, :object_delete_failed}
+    end
+  end
+
   @doc "Presigned GET urls for a set of attachments."
   def presign_downloads(attachments) do
     Map.new(attachments, fn a ->

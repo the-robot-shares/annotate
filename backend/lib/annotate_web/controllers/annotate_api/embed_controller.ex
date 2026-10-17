@@ -2,14 +2,34 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
   @moduledoc """
   Popup auth broker for the embeddable widget.
 
-  - `GET /embed/login?site=<slug>&origin=<origin>` — validates the origin
-    against `sites.allowed_origins`, stashes (site, origin, nonce, state) in
-    the signed session, and redirects to Authentik OIDC.
+  - `GET /embed/login?site=<slug>&origin=<origin>[&provider=sso|github|google]`
+    — validates the origin against `sites.allowed_origins`, then:
+
+      * `sso` (default): stashes (site, origin, nonce, state) in the signed
+        session and redirects to Authentik OIDC;
+      * `github` / `google`: stashes (site, origin, provider, state) and
+        redirects to the SAME ueberauth request phase the dashboard uses
+        (`/auth/<provider>?via=embed`) — the dashboard's OAuth clients, its
+        profile builders and its session machinery are reused; only the
+        landing differs (below).
+
   - `GET /embed/callback` — exchanges the code server-side, enforces
     `comment_policy`, upserts the commenter by `authentik_sub`, then renders a
     tiny HTML page that postMessages the token pair to the registered origin
     (exactly) and closes. Policy failures postMessage
     `{type: "annotate-auth-error", reason}`.
+  - `social_callback/3` — the github/google leg's landing: reached from
+    `SSOController.oauth_callback/2` when the session carries the embed
+    social context. Builds the SAME profile the dashboard would
+    (`GithubLogin`/`GoogleLogin.profile_from_auth/1` — verified email only),
+    enforces `comment_policy`, upserts a site-scoped commenter keyed
+    `"provider:uid"` (`Sites.upsert_commenter_by_social/4`) and mints the
+    embed COMMENTER token pair — never a dashboard session. Rendering reuses
+    the popup postMessage contract (`PopupPayload`).
+
+  Only an IdP the site's policy accepts can mint tokens: github/google have
+  no group claims, so a policy with `required_groups` can only be satisfied
+  via `sso`.
   """
   use AnnotateWeb, :controller
 
@@ -19,14 +39,22 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
   alias Annotate.Embed.OIDC
   alias Annotate.Embed.Policy
   alias Annotate.Sites
+  alias AnnotateWeb.AnnotateAPI.PopupPayload
 
   @state_session_key "embed_state"
+  # github/google popup leg: stashed at /embed/login, consumed at the
+  # ueberauth callback (SSOController) — armed/cleared via the `embed_via`
+  # session key set by the same controller's `prepare_oauth` plug.
+  @social_session_key "embed_social"
+
+  @providers ~w(sso github google)
 
   # IdP error redirects (user denied consent at Authentik etc.) postMessage one
   # of these stable reasons; anything unmapped collapses to "auth_failed".
   @idp_error_reasons ["access_denied"]
 
-  def login(conn, %{"site" => slug, "origin" => origin}) do
+  def login(conn, %{"site" => slug, "origin" => origin} = params) do
+    provider = normalize_provider(params["provider"])
     site = Sites.get_site_by_slug(slug)
 
     cond do
@@ -36,33 +64,128 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
       not Sites.allowed_origin?(site, origin) ->
         conn |> put_status(:forbidden) |> json(%{"error" => "origin_not_allowed"})
 
-      not OIDC.configured?() ->
+      provider == :invalid ->
+        conn |> put_status(:bad_request) |> json(%{"error" => "invalid_provider"})
+
+      provider == :sso and not OIDC.configured?() ->
         conn |> put_status(:service_unavailable) |> json(%{"error" => "oidc_not_configured"})
 
+      provider != :sso and not social_enabled?(provider) ->
+        conn |> put_status(:service_unavailable) |> json(%{"error" => "provider_not_configured"})
+
       true ->
-        state = random_token()
-        nonce = random_token()
-
-        case OIDC.authorization_uri(%{state: state, nonce: nonce}) do
-          {:ok, uri} ->
-            conn
-            |> put_session(@state_session_key, %{
-              "site_id" => site.id,
-              "origin" => origin,
-              "state" => state,
-              "nonce" => nonce
-            })
-            |> redirect(external: uri)
-
-          {:error, _} ->
-            conn |> put_status(:bad_gateway) |> json(%{"error" => "oidc_unavailable"})
-        end
+        start_login(conn, provider, site, origin)
     end
   end
 
   def login(conn, _params) do
     conn |> put_status(:bad_request) |> json(%{"error" => "site_and_origin_required"})
   end
+
+  defp start_login(conn, :sso, site, origin) do
+    state = random_token()
+    nonce = random_token()
+
+    case OIDC.authorization_uri(%{state: state, nonce: nonce}) do
+      {:ok, uri} ->
+        conn
+        |> put_session(@state_session_key, %{
+          "site_id" => site.id,
+          "origin" => origin,
+          "state" => state,
+          "nonce" => nonce
+        })
+        |> redirect(external: uri)
+
+      {:error, _} ->
+        conn |> put_status(:bad_gateway) |> json(%{"error" => "oidc_unavailable"})
+    end
+  end
+
+  # github/google: hand the round trip to the dashboard's ueberauth machinery
+  # (its strategies validate the provider-side state); the signed-session
+  # stash below binds the callback back to THIS popup (site + origin), and
+  # SSOController arms/clears `embed_via` so a dashboard sign-in can never be
+  # mistaken for the popup leg.
+  defp start_login(conn, provider, site, origin) do
+    conn
+    |> put_session(@social_session_key, %{
+      "provider" => Atom.to_string(provider),
+      "site_id" => site.id,
+      "origin" => origin,
+      "state" => random_token()
+    })
+    |> redirect(external: "/auth/#{provider}?via=embed")
+  end
+
+  # ── github/google landing (from SSOController.oauth_callback/2) ──
+
+  @doc false
+  def social_callback(conn, st, auth) do
+    provider = st["provider"]
+    site = st["site_id"] && Sites.get_site(st["site_id"])
+
+    # Same defense-in-depth as the OIDC exchange: a raise anywhere below must
+    # reach the widget as the error postMessage, never an opaque 500.
+    try do
+      with %{} = site <- site,
+           :ok <- verify_provider(provider, auth),
+           {:ok, profile} <- social_builder(provider).profile_from_auth(auth),
+           claims = Policy.identity_claims(%{"email" => profile.email}),
+           :ok <- Policy.check(claims, site.comment_policy || %{}),
+           {:ok, commenter} <- Sites.upsert_commenter_by_social(site, provider, profile.uid, profile),
+           {:ok, %{access_token: access, refresh_token: refresh}} <-
+             ApiToken.issue_pair(commenter, site, st["origin"], claims, :bridge) do
+        render_postmessage(conn, PopupPayload.success(access, refresh, commenter), st["origin"])
+      else
+        {:error, :no_verified_email} ->
+          render_error(conn, "email_unverified", st["origin"])
+
+        {:error, :group_not_allowed} ->
+          render_error(conn, "group_not_allowed", st["origin"])
+
+        {:error, :email_domain_not_allowed} ->
+          render_error(conn, "email_domain_not_allowed", st["origin"])
+
+        {:error, _} ->
+          render_error(conn, "auth_failed", st["origin"])
+
+        nil ->
+          render_error(conn, "unknown_session", st["origin"])
+
+        _ ->
+          render_error(conn, "auth_failed", st["origin"])
+      end
+    rescue
+      e ->
+        Logger.warning(
+          "[embed] social callback failed, rendering auth_failed: " <>
+            redact(Exception.format(:error, e, __STACKTRACE__))
+        )
+
+        render_error(conn, "auth_failed", st["origin"])
+    end
+  end
+
+  # A callback from a DIFFERENT provider than the popup started (stale
+  # context) must never mint tokens for the wrong identity/site.
+  defp verify_provider(provider, %{provider: p}) when is_atom(p),
+    do: if(Atom.to_string(p) == provider, do: :ok, else: {:error, :provider_mismatch})
+
+  defp verify_provider(_, _), do: {:error, :provider_mismatch}
+
+  defp social_builder("github"), do: Annotate.Dashboard.GithubLogin
+  defp social_builder("google"), do: Annotate.Dashboard.GoogleLogin
+
+  defp normalize_provider(nil), do: :sso
+  defp normalize_provider(p) when p in @providers, do: String.to_existing_atom(p)
+  defp normalize_provider(_), do: :invalid
+
+  defp social_enabled?(:github),
+    do: Application.get_env(:annotate, :github_enabled, false) == true
+
+  defp social_enabled?(:google),
+    do: Application.get_env(:annotate, :google_enabled, false) == true
 
   # IdP error redirect (no code): verify state first so an attacker cannot use
   # this leg to probe, then surface the (allowlisted) reason to the widget.
@@ -184,7 +307,10 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
     send_html(conn, postmessage_body(Jason.encode!(payload, escape: :html_safe), origin))
   end
 
-  defp render_error(conn, reason, origin) do
+  # Public for the social leg: SSOController's ueberauth-failure branch
+  # renders the SAME popup error postMessage (shared PopupPayload contract).
+  @doc false
+  def render_error(conn, reason, origin) do
     send_html(
       conn,
       postmessage_body(
