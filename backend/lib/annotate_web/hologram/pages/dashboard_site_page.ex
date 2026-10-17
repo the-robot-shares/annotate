@@ -55,7 +55,6 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
               status: "ok",
               # Owners land on the inbox when there is something to answer.
               tab: if(counts.open > 0, do: "inbox", else: "overview"),
-              open_count: counts.open,
               slug: site.slug,
               role: Atom.to_string(role),
               site: serialize_site(site),
@@ -78,7 +77,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
   def template do
     ~HOLO"""
     {%if @status == "ok"}
-      <DashboardShell cid="dsh_shell" user={@user} sites={@nav} site_slug={@slug} title={@site.name}
+      <DashboardShell user={@user} sites={@nav} site_slug={@slug} title={@site.name}
         subtitle={"Site code " <> @slug <> " · your role: " <> @role}>
         {%if @flash}
           <p class="dsh-flash" role="status" data-cy="dsh-flash">{@flash}</p>
@@ -88,7 +87,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         {/if}
 
         <div class="dsh-tabs" role="tablist" aria-label="Site sections">
-          <button type="button" role="tab" class={tab_class(@tab, "inbox")} aria-selected={@tab == "inbox"} $click={action: :tab, params: %{tab: "inbox"}} data-cy="dsh-tab-inbox">Inbox<span class="dsh-tab__count">{@open_count}</span></button>
+          <button type="button" role="tab" class={tab_class(@tab, "inbox")} aria-selected={@tab == "inbox"} $click={action: :tab, params: %{tab: "inbox"}} data-cy="dsh-tab-inbox">Inbox</button>
           <button type="button" role="tab" class={tab_class(@tab, "overview")} aria-selected={@tab == "overview"} $click={action: :tab, params: %{tab: "overview"}} data-cy="dsh-tab-overview">Overview</button>
           <button type="button" role="tab" class={tab_class(@tab, "settings")} aria-selected={@tab == "settings"} $click={action: :tab, params: %{tab: "settings"}} data-cy="dsh-tab-settings">Settings</button>
           <button type="button" role="tab" class={tab_class(@tab, "members")} aria-selected={@tab == "members"} $click={action: :tab, params: %{tab: "members"}} data-cy="dsh-tab-members">Members<span class="dsh-tab__count">{length(@members)}</span></button>
@@ -299,7 +298,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         {/if}
       </DashboardShell>
     {%else}
-      <DashboardShell cid="dsh_shell" user={@user} sites={@nav} title="Site not available">
+      <DashboardShell user={@user} sites={@nav} title="Site not available">
         <section class="dsh-panel" data-cy="dsh-site-error">
           <div class="dsh-panel__body">
             <p>{@message}</p>

@@ -121,7 +121,7 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
               <form class="dsh-form" $submit.prevent_default={action: :reply, params: %{id: t.id}}>
                 <div class="dsh-field">
                   <label for={"reply-" <> t.id}>Reply as the site team</label>
-                  <textarea id={"reply-" <> t.id} rows="2" maxlength="10000" $change={action: :draft, params: %{id: t.id}} data-cy="dsh-reply-input">{Map.get(@drafts, t.id, "")}</textarea>
+                  <textarea id={"reply-" <> t.id} rows="2" maxlength="10000" value={Map.get(@drafts, t.id, "")} $change={action: :draft, params: %{id: t.id}} data-cy="dsh-reply-input"></textarea>
                 </div>
                 <div class="dsh-actions">
                   <button type="submit" class="dsh-btn dsh-btn--primary dsh-btn--sm" disabled={@busy == t.id} data-cy="dsh-reply-send">Send reply</button>

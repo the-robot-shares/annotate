@@ -9,21 +9,20 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
   - `site_slug`: the site this screen is scoped to (nil on the sites list).
   - `title` / `subtitle`: screen heading.
 
-  Stateful (needs a `cid`) only for the sign-out command.
+  **Stateless on purpose**: events in the slotted page content must target
+  the page (a stateful shell would capture them). Sign-out lives in the
+  stateful `SignOutButton`.
   """
 
   use Hologram.Component
-  use Hologram.JS
 
-  alias Annotate.Hologram.Auth
+  alias AnnotateWeb.Hologram.Components.SignOutButton
 
   prop :user, :map, default: nil
   prop :sites, :list, default: []
   prop :site_slug, :string, default: nil
   prop :title, :string, default: nil
   prop :subtitle, :string, default: nil
-
-  def init(_props, component, _server), do: component
 
   def template do
     ~HOLO"""
@@ -53,7 +52,7 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
               {@user.email}
             </span>
           {/if}
-          <button type="button" class="dsh-btn dsh-btn--ghost dsh-btn--sm" $click={:logout} data-cy="dsh-sign-out">Sign out</button>
+          <SignOutButton cid="dsh_sign_out" />
         </div>
       </aside>
       <div class="dsh-main">
@@ -75,18 +74,4 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
 
   def site_class(current, slug) when current == slug, do: "dsh-nav__link dsh-nav__link--active"
   def site_class(_, _), do: "dsh-nav__link"
-
-  def action(:logout, _params, component), do: put_command(component, :logout)
-
-  def action(:logged_out, _params, component) do
-    location = JS.get(:window, :location)
-    JS.call(location, :assign, ["/"])
-    component
-  end
-
-  def command(:logout, _params, server) do
-    server
-    |> Auth.logout()
-    |> put_action(:logged_out)
-  end
 end

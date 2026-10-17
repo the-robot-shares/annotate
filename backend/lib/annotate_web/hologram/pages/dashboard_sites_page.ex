@@ -41,7 +41,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
 
   def template do
     ~HOLO"""
-    <DashboardShell cid="dsh_shell" user={@user} sites={nav_sites(@sites)} title="Your sites"
+    <DashboardShell user={@user} sites={nav_sites(@sites)} title="Your sites"
       subtitle="Each site is one embeddable comment rail with its own origins, policy and inbox.">
       {%if @form_error}
         <p class="dsh-error" role="alert" data-cy="dsh-form-error">{@form_error}</p>
