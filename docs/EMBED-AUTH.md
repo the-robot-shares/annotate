@@ -18,7 +18,7 @@ registers the widget from that same release. Two forms:
 <noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
 
 <!-- Pinned: never changes until you edit the version -->
-<script type="module" src="https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js"></script>
+<script type="module" src="https://cdn.derobot.is/tobor-kit/v1.0.2/annotate.js"></script>
 <noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
 ```
 
