@@ -4,6 +4,7 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- legal: Privacy Policy and Terms of Service text moved to the shared `legal_forms` component (`Components/legal-forms`, private repo the-robot-lives/legal-forms, pinned v0.1.1 in CI/Docker via `legal_forms` build context); `AnnotateWeb.Legal` holds annotate's config; rendered text is word-for-word identical to the previous hard-coded pages. (PR pending)
 - legal: drop the placeholder "Governing law" section from `/terms` (no jurisdiction specified); test asserts no TODO text on the legal pages. (PR pending)
 
 - feat(seo): `/llm.txt` served as a byte-identical alias of `/llms.txt` (fleet checklist C8).
