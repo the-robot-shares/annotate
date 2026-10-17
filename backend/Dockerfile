@@ -40,6 +40,12 @@ COPY --from=tobor_kit_hologram priv /Portfolio/Libs/tobor-kit/hologram/priv
 RUN test -f /Portfolio/Libs/tobor-kit/hologram/mix.exs || { \
       echo "tobor_kit_hologram build context missing: pass --build-context tobor_kit_hologram=<tobor-kit>/hologram" >&2; exit 1; } && \
     ln -s /app/deps /Portfolio/Libs/tobor-kit/hologram/deps
+# legal_forms (Components/legal-forms) is likewise a NAMED build context;
+# mix.exs walks up from /app and finds it at /Components/legal-forms:
+#   docker build --build-context legal_forms=<legal-forms checkout> .
+COPY --from=legal_forms mix.exs /Components/legal-forms/
+COPY --from=legal_forms lib /Components/legal-forms/lib
+COPY --from=legal_forms templates /Components/legal-forms/templates
 COPY mix.exs mix.lock ./
 RUN --mount=type=cache,target=/root/.hex \
     --mount=type=cache,target=/root/.cache/rebar3 \

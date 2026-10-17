@@ -51,6 +51,29 @@ defmodule Annotate.MixProject do
       )
   end
 
+  # Shared Privacy/Terms templates + renderer (Components/legal-forms). Same
+  # resolution as the kit: LEGAL_FORMS_PATH wins (CI checks the repo out at
+  # _legal-forms), else walk up to the monorepo's Components/legal-forms (also
+  # where the Docker build puts it via the `legal_forms` build context).
+  defp legal_forms_path do
+    System.get_env("LEGAL_FORMS_PATH") ||
+      (
+        dir = __DIR__
+
+        0..10
+        |> Enum.find_value(fn depth ->
+          candidate = Enum.reduce(1..depth//1, dir, fn _, acc -> Path.join(acc, "..") end)
+          lib = Path.expand("Components/legal-forms", candidate)
+
+          if File.exists?(Path.join(lib, "mix.exs")), do: lib
+        end) ||
+          raise """
+          legal_forms not found: walked up from #{dir} without finding
+          Components/legal-forms. Set LEGAL_FORMS_PATH to its checkout.
+          """
+      )
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -71,6 +94,9 @@ defmodule Annotate.MixProject do
       # for non-monorepo checkouts. Productize as a git dep once the mirror
       # ships from its own repo.
       {:tobor_kit_hologram, path: kit_hologram_path()},
+      # Privacy Policy / Terms of Service templates (private repo
+      # the-robot-lives/legal-forms, a Components/ submodule in the monorepo).
+      {:legal_forms, path: legal_forms_path()},
       # hologram requires gproc ~> 1.0; grpcbox 0.18.0 pins gproc ~> 1.2.0
       {:gproc, "~> 1.0", override: true},
       # hologram depends on hex package `uuid` (OTP app :uuid) while our noizu
