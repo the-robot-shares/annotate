@@ -361,6 +361,24 @@ defmodule Annotate.Hologram.Auth do
     }
   end
 
+  @doc """
+  Deserialize the dashboard user from a raw access token — the HTTP twin of
+  `current_user/1` (which reads the token out of the Hologram server struct).
+  Plain Phoenix routes serving the dashboard (e.g. attachment downloads) share
+  the same cookie session, so they verify the same Guardian token.
+  """
+  # <REMOVED UUID HERE> user_from_access_token :: Dashboard user from a raw access token, or :error.
+  def user_from_access_token(token) when is_binary(token) and token != "" do
+    with {:ok, claims} <- Guardian.decode_and_verify(token, %{"typ" => "access"}),
+         {:ok, session} <- Guardian.resource_from_claims(claims) do
+      {:ok, resolve_user_from_session(session)}
+    else
+      _ -> :error
+    end
+  end
+
+  def user_from_access_token(_), do: :error
+
   # ── private ──────────────────────────────────────────────────
 
   defp load_session_user(server) do

@@ -124,6 +124,29 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
                     {/if}
                   </div>
                   <p class="dsh-comment__text">{c.body}</p>
+                  {%if c.attachments != []}
+                    <div class="dsh-attachments" data-cy="dsh-attachments">
+                      {%for a <- c.attachments}
+                        {%if a.image}
+                          <a class="dsh-attachment dsh-attachment--thumb" href={a.url} target="_blank" rel="noopener noreferrer" data-lightbox={true} aria-label={a.alt} title={a.alt} data-cy="dsh-attachment-image">
+                            {%if a.dims}
+                              <img src={a.url} alt={a.alt} width={a.width} height={a.height} loading="lazy" decoding="async" />
+                            {%else}
+                              <img src={a.url} alt={a.alt} loading="lazy" decoding="async" />
+                            {/if}
+                          </a>
+                        {%else}
+                          <a class="dsh-attachment dsh-attachment--chip" href={a.url} target="_blank" rel="noopener noreferrer" data-cy="dsh-attachment-file" title={"Download " <> a.filename}>
+                            <span class="dsh-attachment__badge" aria-hidden="true">{a.ext_label}</span>
+                            <span class="dsh-attachment__name">{a.filename}</span>
+                            {%if a.size_label != ""}
+                              <span class="dsh-attachment__size">{a.size_label}</span>
+                            {/if}
+                          </a>
+                        {/if}
+                      {/for}
+                    </div>
+                  {/if}
                 </div>
               {/for}
               <form class="dsh-form" $submit.prevent_default={action: :reply, params: %{id: t.id}}>
@@ -330,17 +353,76 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
       orphaned: not is_nil(t.orphaned_at),
       comments:
         Enum.map(t.comments, fn c ->
+          author = (c.author && c.author.display_name) || "Guest"
+
           %{
             id: c.id,
-            author: (c.author && c.author.display_name) || "Guest",
+            author: author,
             team: not is_nil(c.author && c.author.user_id),
             body: c.body_md || "",
             at: format_time(c.inserted_at),
-            can_delete: admin? or (team != nil and c.author_id == team.id)
+            can_delete: admin? or (team != nil and c.author_id == team.id),
+            attachments: serialize_attachments(c.attachments, author)
           }
         end)
     }
   end
+
+  # Attachments arrive with the inbox preload (status :ready only). Links point
+  # at the stable authenticated route (`/dashboard/attachments/:id`), which
+  # re-signs on every hit — they never go stale like raw presigned urls.
+  defp serialize_attachments(attachments, author) when is_list(attachments) do
+    attachments
+    |> Enum.filter(fn a -> a.status == :ready and is_binary(a.storage_key) end)
+    |> Enum.map(fn a ->
+      image? = image?(a)
+
+      %{
+        id: a.id,
+        image: image?,
+        # Filename part of the storage key is sanitized server-side at presign
+        # time to [A-Za-z0-9._-], so it is safe hydration state as-is.
+        filename: filename_of(a),
+        size_label: size_label(a.bytes),
+        width: a.width,
+        height: a.height,
+        dims: is_integer(a.width) and is_integer(a.height) and a.width > 0 and a.height > 0,
+        alt: "#{kind_word(a)} attached by #{author}",
+        ext_label: ext_label(a),
+        url: "/dashboard/attachments/" <> to_string(a.id)
+      }
+    end)
+  end
+
+  defp serialize_attachments(_, _), do: []
+
+  defp filename_of(a), do: a.storage_key |> String.split("/") |> List.last()
+
+  defp image?(%{kind: kind}) when kind in [:image, :screenshot], do: true
+  defp image?(%{content_type: ct}) when is_binary(ct), do: String.starts_with?(ct, "image/")
+  defp image?(_), do: false
+
+  defp kind_word(%{kind: :screenshot}), do: "Screenshot"
+  defp kind_word(%{kind: :image}), do: "Image"
+  defp kind_word(_), do: "File"
+
+  # Tiny badge on file chips ("PNG", "PDF", "FILE") — no icon font in the
+  # dashboard, so the type IS the icon.
+  defp ext_label(a) do
+    case String.split(filename_of(a), ".") do
+      [_] -> ""
+      parts -> parts |> List.last() |> String.upcase() |> String.slice(0, 4)
+    end
+  end
+
+  defp size_label(b) when is_integer(b) and b > 0, do: human_bytes(b)
+  defp size_label(_), do: ""
+
+  defp human_bytes(b) when b >= 1_048_576,
+    do: :erlang.float_to_binary(b / 1_048_576, decimals: 1) <> " MB"
+
+  defp human_bytes(b) when b >= 1024, do: to_string(div(b, 1024)) <> " KB"
+  defp human_bytes(b), do: to_string(b) <> " B"
 
   defp page_label(%{page_title: title}, path) when is_binary(title) and title != "",
     do: title <> " · " <> path
