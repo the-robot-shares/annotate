@@ -30,8 +30,8 @@ defmodule AnnotateWeb.LandingWaitlistTest do
             "Your agents read the feedback too.",
             "claude mcp add",
             "Where the work goes next.",
-            "Get one email when these ship.",
-            "Planned",
+            "Signup for updates, promotions and events.",
+            "Soon",
             "Available today",
             "Jira",
             "Notion",
@@ -64,7 +64,7 @@ defmodule AnnotateWeb.LandingWaitlistTest do
     test "waitlist form is wired with a honeypot and a no-JS action", %{html: html} do
       assert html =~ ~s(action="/waitlist")
       assert html =~ ~s(name="website")
-      assert html =~ ~s(name="interests")
+      assert html =~ ~s(name="about")
     end
 
     test "meta carries the new title and OG image", %{html: html} do

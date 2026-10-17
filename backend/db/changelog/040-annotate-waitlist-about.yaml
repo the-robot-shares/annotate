@@ -1,0 +1,23 @@
+databaseChangeLog:
+  # ── Annotate: waitlist "about you" fields (feedback a90465e3, 2026-10-18) ──
+  # Additive only. The landing waitlist form dropped its interest checkboxes
+  # for email + "about you / your site" + optional use case (interest 'waitlist'
+  # row). Dashboard plan/agent waitlists still use (email, interest) rows and
+  # leave these NULL.
+  # id 0063.
+
+  - changeSet:
+      id: annotate-0063-waitlist-about-use-case
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE waitlist_signups
+                ADD COLUMN about text,
+                ADD COLUMN use_case text;
+      rollback:
+        - sql:
+            sql: |
+              ALTER TABLE waitlist_signups
+                DROP COLUMN IF EXISTS use_case,
+                DROP COLUMN IF EXISTS about;

@@ -13,10 +13,10 @@ defmodule AnnotateWeb.Hologram.Pages.SignUpPage do
 
   alias Annotate.Hologram.Auth
   alias AnnotateWeb.Hologram.Components.ProviderButtons
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
 
   route "/sign-up"
-  layout MainLayout, page_title: "Sign up — annotate"
+  layout AuthLayout, page_title: "Sign up — annotate"
 
   def init(_params, component, server) do
     invite =
@@ -37,13 +37,13 @@ defmodule AnnotateWeb.Hologram.Pages.SignUpPage do
 
   def template do
     ~HOLO"""
-    <div class="content sg-signin" data-cy="sign-up-page">
+    <div class="nd-auth" data-cy="sign-up-page">
       {%if @invite != ""}
-        <h1 class="sg-page-title">You're invited to annotate</h1>
-        <p class="app-muted">Sign up with GitHub or Google. Your first sign-in creates the account and uses this invite.</p>
+        <h1 class="nd-auth__title">You're invited to annotate</h1>
+        <p class="nd-auth__muted">Sign up with GitHub or Google. Your first sign-in creates the account and uses this invite.</p>
       {%else}
-        <h1 class="sg-page-title">annotate is invite-only</h1>
-        <p class="app-muted">
+        <h1 class="nd-auth__title">annotate is invite-only</h1>
+        <p class="nd-auth__muted">
           The owner dashboard is open to invited users for now. Have an invite link? Open it to sign up.
           No invite yet? <a href="/#waitlist">Join the waitlist</a>.
         </p>
@@ -51,15 +51,15 @@ defmodule AnnotateWeb.Hologram.Pages.SignUpPage do
 
       {%if @signed_in}
         {%if @needs_invite}
-          <p><a class="btn btn-black" href="/auth/invite-required" data-cy="sign-up-redeem">Redeem your invite</a></p>
+          <p><a class="nd-btn nd-btn--primary" href="/auth/invite-required" data-cy="sign-up-redeem">Redeem your invite</a></p>
         {%else}
-          <p><a class="btn btn-black" href="/dashboard" data-cy="sign-up-dashboard">Go to your dashboard</a></p>
+          <p><a class="nd-btn nd-btn--primary" href="/dashboard" data-cy="sign-up-dashboard">Go to your dashboard</a></p>
         {/if}
       {%else}
         <ProviderButtons providers={@providers} invite={@invite} />
-        <p class="sg-auth__note">Already have access? <a href="/sign-in">Sign in</a>.</p>
+        <p class="nd-auth__note">Already have access? <a href="/sign-in">Sign in</a>.</p>
       {/if}
-      <p class="sg-auth__note" data-cy="sign-up-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+      <p class="nd-auth__note" data-cy="sign-up-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
     </div>
     """
   end

@@ -326,8 +326,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             </li>
             <li class="nd-step">
               <h3>Ticket in your tracker</h3>
-              <p>Push a thread to Jira, Notion, ClickUp, Asana, or The Robot Plans — anchor and page context attached.</p>
-              <span class="nd-chip nd-chip--planned">Planned</span>
+              <p>Push a thread to Agent-kit (Agentonomi.com) or The Robot Plans today — anchor and page context attached. Jira, Notion, ClickUp and Asana are coming soon.</p>
+              <span class="nd-chip nd-chip--live">Shipped</span>
             </li>
             <li class="nd-step">
               <h3>Agents investigate and patch</h3>
@@ -341,8 +341,9 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             </li>
           </ol>
           <p class="nd-footnote">
-            Steps 1, 2, 4 and 5 work today (step 4 over MCP). Step 3 is planned — the
-            REST API already carries everything it needs.
+            Every step works today. Step 3 pushes over MCP to Agent-kit
+            (Agentonomi.com) and The Robot Plans; Jira, Notion, ClickUp and Asana are
+            coming soon — the REST API already carries everything they'll need.
           </p>
         </div>
       </section>
@@ -538,57 +539,55 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
               <span class="nd-chip nd-chip--live">Available today</span>
             </li>
             <li>
+              <h3>Agent-kit (Agentonomi.com)</h3>
+              <p>Push a thread to an Agentonomi agent — anchor and page context attached.</p>
+              <span class="nd-chip nd-chip--live">Available today</span>
+              <a href="https://agentonomi.com" rel="noopener">Agentonomi.com</a>
+            </li>
+            <li>
               <h3>The Robot Plans</h3>
-              <p>Our sibling planning tool.</p>
-              <span class="nd-chip nd-chip--planned">Soon</span>
-              <a href="#waitlist" data-waitlist-interest="robot-plans">Tell me when it ships</a>
+              <p>Push a thread straight into a plan — anchor and page context attached.</p>
+              <span class="nd-chip nd-chip--live">Available today</span>
+              <a href="https://the-robot-plans.com" rel="noopener">the-robot-plans.com</a>
             </li>
             <li>
               <h3>Jira</h3>
               <p>Ticket from a thread, anchor attached.</p>
               <span class="nd-chip nd-chip--planned">Soon</span>
-              <a href="#waitlist" data-waitlist-interest="jira">Tell me when it ships</a>
+              <a href="#waitlist">Tell me when it ships</a>
             </li>
             <li>
               <h3>Notion</h3>
               <p>Ticket from a thread, anchor attached.</p>
               <span class="nd-chip nd-chip--planned">Soon</span>
-              <a href="#waitlist" data-waitlist-interest="notion">Tell me when it ships</a>
+              <a href="#waitlist">Tell me when it ships</a>
             </li>
             <li>
               <h3>ClickUp</h3>
               <p>Ticket from a thread, anchor attached.</p>
               <span class="nd-chip nd-chip--planned">Soon</span>
-              <a href="#waitlist" data-waitlist-interest="clickup">Tell me when it ships</a>
+              <a href="#waitlist">Tell me when it ships</a>
             </li>
             <li>
               <h3>Asana</h3>
               <p>Ticket from a thread, anchor attached.</p>
               <span class="nd-chip nd-chip--planned">Soon</span>
-              <a href="#waitlist" data-waitlist-interest="asana">Tell me when it ships</a>
+              <a href="#waitlist">Tell me when it ships</a>
             </li>
           </ul>
           <p class="nd-footnote">
-            Ticket creation lands tracker by tracker. None are live yet; the REST API is the
-            honest today-answer. Product names are text only: Jira, Notion, ClickUp, and Asana
-            belong to their owners, and annotate isn't affiliated with them.
+            Agent-kit (Agentonomi.com) and The Robot Plans are supported today; Jira,
+            Notion, ClickUp, and Asana are coming soon — leave your email and we'll
+            tell you when each lands. Product names are text only: Jira, Notion,
+            ClickUp, and Asana belong to their owners, and annotate isn't affiliated
+            with them.
           </p>
-          <h3 class="nd-mcp__title">Get one email when these ship.</h3>
+          <h3 class="nd-mcp__title">Signup for updates, promotions and events.</h3>
           <p class="nd-section__intro">
-            Pick what you want to hear about. One email per feature when it's live, nothing else.
+            Tell us who you are — one email when something ships, nothing else.
           </p>
           <div class="nd-waitlist" data-waitlist-box>
             <form action="/waitlist" method="post" data-waitlist novalidate>
-              <fieldset>
-                <legend class="nd-waitlist__legend">Tell me about</legend>
-                <div class="nd-waitlist__opts">
-                  <label><input type="checkbox" name="interests" value="robot-plans" /> The Robot Plans</label>
-                  <label><input type="checkbox" name="interests" value="jira" /> Jira</label>
-                  <label><input type="checkbox" name="interests" value="notion" /> Notion</label>
-                  <label><input type="checkbox" name="interests" value="clickup" /> ClickUp</label>
-                  <label><input type="checkbox" name="interests" value="asana" /> Asana</label>
-                </div>
-              </fieldset>
               <div class="nd-hp" aria-hidden="true">
                 <label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
               </div>
@@ -597,8 +596,16 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
                 <input id="waitlist-email" type="email" name="email" placeholder="you@company.com" autocomplete="email" required />
                 <button type="submit" class="nd-btn nd-btn--primary">Notify me</button>
               </div>
+              <div class="nd-waitlist__field">
+                <label for="waitlist-about">About you or your site <span>(required)</span></label>
+                <input id="waitlist-about" type="text" name="about" placeholder="e.g. a SaaS dashboard used by ~40 teams" maxlength="500" required />
+              </div>
+              <div class="nd-waitlist__field">
+                <label for="waitlist-use-case">What would you use annotate for? <span>(optional)</span></label>
+                <input id="waitlist-use-case" type="text" name="use_case" placeholder="optional — collecting client feedback during reviews" maxlength="500" />
+              </div>
               <p class="nd-waitlist__msg" data-waitlist-msg role="alert"></p>
-              <p class="nd-waitlist__note">We store your email and the boxes you ticked. See the <a href="/privacy">privacy policy</a>.</p>
+              <p class="nd-waitlist__note">We store your email and what you tell us about your site. See the <a href="/privacy">privacy policy</a>.</p>
             </form>
             <div class="nd-waitlist__done" data-waitlist-done hidden tabindex="-1" role="status">
               <h3>You're on the list.</h3>
@@ -668,10 +675,10 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             <details>
               <summary>Which trackers does it sync with — Jira, Notion, ClickUp?</summary>
               <p>
-                None yet. Those integrations are planned; today the REST API covers
-                programmatic export, and an agent over MCP can file the ticket on your
-                side. Tick the boxes in the waitlist and you'll get one email per
-                integration when it ships.
+                Agent-kit (Agentonomi.com) and The Robot Plans work today over MCP;
+                Jira, Notion, ClickUp and Asana are coming soon. The REST API covers
+                programmatic export today — leave your email in the waitlist and
+                you'll hear when each integration lands.
               </p>
             </details>
           </div>

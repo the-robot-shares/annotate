@@ -3,13 +3,13 @@ defmodule AnnotateWeb.Hologram.Pages.AuthVerifyPage do
   use Hologram.Page
 
   alias Annotate.Hologram.Auth
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Pages.AppHomePage
   alias AnnotateWeb.Hologram.Pages.CompleteRegistrationPage
   alias AnnotateWeb.Hologram.Pages.InviteRequiredPage
 
   route "/auth/verify"
-  layout MainLayout, page_title: "Verify"
+  layout AuthLayout, page_title: "Verify"
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_params, component, server) do
@@ -41,10 +41,10 @@ defmodule AnnotateWeb.Hologram.Pages.AuthVerifyPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Verify</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Verify</h1>
       {%if @status == "error"}
-        <p class="sg-error" role="alert">{@message}</p>
+        <p class="nd-auth__error" role="alert">{@message}</p>
       {%else}
         <p>Signing you in…</p>
       {/if}

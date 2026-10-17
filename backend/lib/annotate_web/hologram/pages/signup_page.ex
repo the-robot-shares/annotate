@@ -4,11 +4,11 @@ defmodule AnnotateWeb.Hologram.Pages.SignupPage do
 
   alias Hologram.UI.Link
   alias Annotate.Hologram.Auth
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Pages.LoginPage
 
   route "/signup"
-  layout MainLayout, page_title: "Sign Up"
+  layout AuthLayout, page_title: "Sign Up"
   middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
@@ -36,74 +36,74 @@ defmodule AnnotateWeb.Hologram.Pages.SignupPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Sign Up</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Sign Up</h1>
 
       {%if @step == "email"}
-        <form class="sg-form" $submit.prevent_default={:submit_email}>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_email}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-email">Email</label>
             <input id="signup-email" name="email" type="email" value={@email} required autocomplete="email" $change={:set_email} />
           </div>
-          <button type="submit" class="btn btn-black">Continue</button>
-          <div class="sg-form-footer">
+          <button type="submit" class="nd-btn nd-btn--primary">Continue</button>
+          <div class="nd-auth__footer">
             <p>Already have an account? <Link to={LoginPage}>Log in</Link></p>
           </div>
         </form>
       {/if}
 
       {%if @step == "sso"}
-        <div class="sg-stack">
+        <div class="nd-auth__stack">
           <p>{@email}</p>
           {%for provider <- @domain_providers}
-            <a href={Auth.sso_invite_path(provider, @invite_token)} class="btn btn-black">{Auth.sso_label(provider)}</a>
+            <a href={Auth.sso_invite_path(provider, @invite_token)} class="nd-btn nd-btn--primary">{Auth.sso_label(provider)}</a>
           {/for}
-          <button type="button" class="btn btn-outline" $click={:use_password}>Use password instead</button>
-          <button type="button" class="btn btn-outline" $click={:back_to_email}>Change email</button>
+          <button type="button" class="nd-btn nd-btn--ghost" $click={:use_password}>Use password instead</button>
+          <button type="button" class="nd-btn nd-btn--ghost" $click={:back_to_email}>Change email</button>
         </div>
       {/if}
 
       {%if @step == "password"}
-        <form class="sg-form" $submit.prevent_default={:submit_register}>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_register}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-email-2">Email</label>
             <input id="signup-email-2" type="email" value={@email} required autocomplete="email" $change={:set_email} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-password">Password</label>
             <input id="signup-password" type="password" value={@password} required autocomplete="new-password" $change={:set_password} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-username">Username</label>
             <input id="signup-username" type="text" value={@user_name} required autocomplete="username" $change={:set_user_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-first">First name</label>
             <input id="signup-first" type="text" value={@first_name} required autocomplete="given-name" $change={:set_first_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-last">Last name</label>
             <input id="signup-last" type="text" value={@last_name} required autocomplete="family-name" $change={:set_last_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-phone">Mobile phone</label>
             <input id="signup-phone" type="tel" value={@mobile_phone} required autocomplete="tel" $change={:set_mobile_phone} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="signup-invite">Invite code (optional)</label>
             <input id="signup-invite" type="text" value={@invite_token} autocomplete="off" data-cy="invite-token-input" $change={:set_invite_token} />
-            <p class="sg-field__hint" data-cy="invite-token-hint">have an invite? enter it now — otherwise you can add it after signing up.</p>
+            <p class="nd-auth__hint" data-cy="invite-token-hint">No invite? Sign up and join the queue; add an invite token at any time.</p>
           </div>
-          <button type="submit" class="btn btn-black" disabled={@loading}>
+          <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
             {%if @loading}Creating account...{%else}Create account{/if}
           </button>
-          <div class="sg-form-footer">
+          <div class="nd-auth__footer">
             <p><a href="#" $click.prevent_default={:back_to_email}>Change email</a></p>
             <p>Already have an account? <Link to={LoginPage}>Log in</Link></p>
           </div>

@@ -1401,3 +1401,50 @@ noizu-auth.annotate-auth--nd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Clickable plan tiles ────────────────────────────────────── */
+a.nd-tile--plan {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.nd-tile--plan:hover {
+  border-color: var(--nd-ember-bright);
+}
+.nd-tile__cta {
+  display: inline-block;
+  margin-top: var(--nd-space-1);
+  color: var(--nd-ember-bright);
+  font-weight: 500;
+  font-size: 15px;
+}
+.nd-tile--plan h3 {
+  color: var(--nd-text-bright);
+}
+
+/* ── Waitlist text fields (email + about + use case) ─────────── */
+.nd-waitlist__field {
+  margin-top: var(--nd-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nd-waitlist__field label {
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+}
+.nd-waitlist__field label span {
+  color: var(--nd-text-dim);
+}
+.nd-waitlist__field input[type="text"] {
+  background: var(--nd-void);
+  color: var(--nd-text-bright);
+  border: 1px solid var(--nd-fog);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px;
+}
+.nd-waitlist__field input[type="text"]:focus-visible {
+  outline: 2px solid var(--nd-ember-bright);
+  outline-offset: 2px;
+}

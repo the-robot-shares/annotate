@@ -8,10 +8,10 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
   use Hologram.Page
 
   alias Annotate.Hologram.Auth
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
 
   route "/auth/sso-callback"
-  layout MainLayout, page_title: "Signing in…"
+  layout AuthLayout, page_title: "Signing in…"
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_params, component, server) do
@@ -39,15 +39,15 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
   # the "Continue" link is the no-refresh fallback.
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Signing in…</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Signing in…</h1>
       {%if @status == "error"}
-        <p class="sg-error" role="alert">{@message}</p>
-        <p><a href="/sign-in" class="btn btn-outline">Back to sign in</a></p>
+        <p class="nd-auth__error" role="alert">{@message}</p>
+        <p><a href="/sign-in" class="nd-btn nd-btn--ghost">Back to sign in</a></p>
       {%else}
         <meta http-equiv="refresh" content={"0;url=" <> (@redirect_path || "/dashboard")} />
-        <p class="app-muted">Completing sign-in and opening your dashboard…</p>
-        <p><a href={@redirect_path || "/dashboard"} class="btn btn-black btn-sm">Continue to dashboard</a></p>
+        <p class="nd-auth__muted">Completing sign-in and opening your dashboard…</p>
+        <p><a href={@redirect_path || "/dashboard"} class="nd-btn nd-btn--primary nd-btn--sm">Continue to dashboard</a></p>
       {/if}
     </div>
     """

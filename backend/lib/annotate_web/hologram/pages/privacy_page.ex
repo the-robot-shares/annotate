@@ -3,7 +3,7 @@ defmodule AnnotateWeb.Hologram.Pages.PrivacyPage do
   `/privacy` — Privacy Policy. Text lives in the `legal_forms` component
   (Components/legal-forms); this page supplies `AnnotateWeb.Legal` config. Grounded in what annotate actually stores
   (docs/PROJ-ARCH.md, docs/ANCHORS.md, docs/THREAT-MODEL.md). Operator and
-  contact follow house prior art (Noizu Labs, Inc.; keith.brings@noizu.com).
+  contact follow house prior art (Noizu Labs, Inc.; support@noizu.com).
   """
 
   use Hologram.Page

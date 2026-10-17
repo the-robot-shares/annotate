@@ -39,7 +39,14 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
             else
               nil
             end,
-          featured: key == "standard"
+          featured: key == "standard",
+          # Same flow as the landing cards: signed-out goes through sign-in,
+          # which bounces back to billing with the plan highlighted; a signed-in
+          # visitor lands on billing directly.
+          href:
+            "/sign-in?return_to=" <>
+              URI.encode_www_form("/dashboard/billing?plan=" <> key),
+          cta: "Pick " <> plan.name
         }
       end)
 
@@ -86,13 +93,14 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
         <h2>Pick a size, change any time</h2>
         <div class="nd-bento">
           {%for p <- @plans}
-            <div class="nd-tile nd-tile--third" data-cy="pricing-plan">
+            <a class="nd-tile nd-tile--third nd-tile--plan" href={p.href} data-cy="pricing-plan">
               <h3>{p.name} — {p.price}{p.per}</h3>
               <p>
                 {p.apps} · {p.users} · {p.storage} · unlimited comments.
                 {%if p.note}{p.note}.{/if}
               </p>
-            </div>
+              <span class="nd-tile__cta">{p.cta} →</span>
+            </a>
           {/for}
         </div>
         <p class="nd-footnote">

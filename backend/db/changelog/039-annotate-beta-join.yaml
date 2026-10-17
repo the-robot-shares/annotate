@@ -1,0 +1,18 @@
+databaseChangeLog:
+  # ── Annotate: beta-join tag (feedback 6d627dfe, 2026-10-18) ──────
+  # Additive only. Users who pay the one-time $19.95 beta-join checkout get
+  # `beta_joined_at` stamped; the payment webhook clears the invite gate
+  # (status → active, approved_at set — see Annotate.Billing.BetaJoin) and
+  # grants a 90-day Team trial on billing_subscriptions (no schema change —
+  # the existing row already carries plan/status/trial_ends_at).
+  # id 0062 (0061 was the last in 038).
+
+  - changeSet:
+      id: annotate-0062-users-beta-joined-at
+      author: annotate
+      changes:
+        - sql:
+            sql: ALTER TABLE users ADD COLUMN beta_joined_at timestamptz;
+      rollback:
+        - sql:
+            sql: ALTER TABLE users DROP COLUMN IF EXISTS beta_joined_at;

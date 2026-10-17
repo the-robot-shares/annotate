@@ -1,10 +1,10 @@
 defmodule AnnotateWeb.Hologram.Pages.AuthVerifyEmailPage do
   use Hologram.Page
 
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
 
   route "/auth/verify-email"
-  layout MainLayout, page_title: "Verify email"
+  layout AuthLayout, page_title: "Verify email"
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_params, component, server) do
@@ -32,13 +32,13 @@ defmodule AnnotateWeb.Hologram.Pages.AuthVerifyEmailPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Verify email</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Verify email</h1>
       {%if @status == "ok"}
         <p role="status">Email verified successfully.</p>
-        <p><a href="/login" class="btn btn-black">Log in</a></p>
+        <p><a href="/login" class="nd-btn nd-btn--primary">Log in</a></p>
       {%else}
-        <p class="sg-error" role="alert">Invalid or expired verification link.</p>
+        <p class="nd-auth__error" role="alert">Invalid or expired verification link.</p>
       {/if}
     </div>
     """

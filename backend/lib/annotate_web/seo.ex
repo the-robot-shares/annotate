@@ -11,9 +11,10 @@ defmodule AnnotateWeb.SEO do
   `AnnotateWeb.Plugs.SEO`.
 
   Honesty rules (mirror the product): only describe what ships. The MCP server
-  ships (see the `llms_*` functions and `/mcp-server`); ticket push to Jira /
-  Notion / ClickUp / Asana / The Robot Plans is planned. There is no pricing,
-  so no `offers`.
+  and the JSON REST API ship (see the `llms_*` functions and
+  `/mcp-server#rest-api`); ticket push to Agent-kit (Agentonomi.com) and The
+  Robot Plans works today over MCP — Jira / Notion / ClickUp / Asana are
+  coming soon. Plans are published on `/pricing`.
   """
 
   @default_host "annotate.therobotlives.com"
@@ -160,11 +161,11 @@ defmodule AnnotateWeb.SEO do
     """
     # annotate
 
-    > annotate adds a comment layer to any webpage. A site owner pastes one script tag; visitors then select an element or some text on the page and leave a comment thread attached to that spot. The aim is a loop from a comment on the page to a fix in the repo: comments land in a dashboard inbox, a REST API and an MCP server for AI agents today; ticket integrations are planned. It is early software built by The Robot Lives.
+    > annotate adds a comment layer to any webpage. A site owner pastes one script tag; visitors then select an element or some text on the page and leave a comment thread attached to that spot. The aim is a loop from a comment on the page to a fix in the repo: comments land in a dashboard inbox, a REST API and an MCP server for AI agents today, and ticket push to Agent-kit (Agentonomi.com) and The Robot Plans works over MCP today; Jira, Notion, ClickUp and Asana are coming soon. It is early software built by The Robot Lives.
 
     What works today: element- and text-anchored comment threads, replies, resolve and reopen, file and image attachments, screenshots with box/arrow/pen/text/blur markup, live updates, per-site origin allow-lists, and sign-in through GitHub (dashboard) or through your own identity provider or your own site (embedded widget). Comments are publicly readable by default; this can be changed per site.
 
-    Not shipped yet: ticket push to Jira, Notion, ClickUp, Asana or The Robot Plans (planned). A waitlist on the home page takes an email for each.
+    Not shipped yet: ticket push to Jira, Notion, ClickUp or Asana (coming soon — the home-page waitlist takes an email). Ticket push to Agent-kit (Agentonomi.com) and The Robot Plans works today over MCP.
 
     ## Key pages
 
@@ -178,7 +179,7 @@ defmodule AnnotateWeb.SEO do
     - [Full plain-text description](#{origin()}/llms-full.txt): how it works, the embed snippet, the API surface, limits
     - API host (JSON over HTTPS, not a website): #{api_origin()}
     - The embed is the `noizu-page-comments` web component from tobor-kit: https://tobor.dev
-    - There are no public API or embed documentation pages yet. The API, embed-auth and anchor docs are in a private repository and are given to site owners on request.
+    - There are no public embed documentation pages yet. The REST API is documented at #{origin()}/mcp-server#rest-api (endpoints, token flow, events); embed-auth and anchor docs are in a private repository and are given to site owners on request.
 
     ## How agents can interact
 
@@ -201,7 +202,7 @@ defmodule AnnotateWeb.SEO do
 
     ## What it is
 
-    The pitch: from a comment on the page to a fix in the repo. Shipped today: the comment widget, the owner dashboard with an inbox, a JSON REST API with live events, and an MCP server so coding agents can read, triage and reply. Planned: ticket creation in Jira, Notion, ClickUp, Asana and The Robot Plans. A waitlist on the home page takes an email for each.
+    The pitch: from a comment on the page to a fix in the repo. Shipped today: the comment widget, the owner dashboard with an inbox, a JSON REST API with live events, and an MCP server so coding agents can read, triage and reply. Ticket push to Agent-kit (Agentonomi.com) and The Robot Plans works today over MCP. Coming soon: ticket creation in Jira, Notion, ClickUp and Asana.
 
     A site owner adds one script tag and one `noizu-page-comments` element to a page. Visitors select an element or some text, and the comment thread attaches to exactly that spot. The thread is shown in a comment rail beside the element, and opening a comment rings the element it refers to on the page.
 
@@ -245,8 +246,9 @@ defmodule AnnotateWeb.SEO do
 
     - Shipped: everything under "What the widget does", the dashboard for site owners, per-site origin rules, GitHub sign-in for owners.
     - Shipped: the MCP server at #{origin()}/mcp (OAuth sign-in as a dashboard user; read, reply, resolve/reopen and delete tools, each behind its own permission). Tools: list_sites, get_site_config, list_threads, get_thread, reply_to_thread, resolve_thread, reopen_thread, delete_comment; prompts triage_open_threads and investigate_thread; resources for sites and threads. Reference page with connect snippets for Claude Code, Claude Desktop / claude.ai, Cursor, VS Code and Codex: #{origin()}/mcp-server.
-    - Planned, not shipped: ticket push (Jira, Notion, ClickUp, Asana, The Robot Plans); per-thread internal-only or public-only visibility.
-    - Pricing: none published. annotate is free to try while it is early software, with no uptime guarantee; see #{origin()}/terms.
+    - Coming soon, not shipped: ticket push to Jira, Notion, ClickUp and Asana; per-thread internal-only or public-only visibility.
+    - Shipped: ticket push to Agent-kit (Agentonomi.com) and The Robot Plans over MCP.
+    - Pricing: plans on #{origin()}/pricing — Start $0.99/mo, Standard $3.99/mo, Team $9.99/mo; unlimited comments on every plan, 14-day free trial. Early software, no uptime guarantee; see #{origin()}/terms.
 
     ## Publisher
 
