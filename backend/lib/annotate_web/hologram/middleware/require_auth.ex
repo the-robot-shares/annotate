@@ -18,7 +18,9 @@ defmodule AnnotateWeb.Hologram.Middleware.RequireAuth do
   def call(server, opts) do
     case Auth.current_user(server) do
       nil ->
-        Hologram.Server.put_redirect(server, LoginPage)
+        if Annotate.Auth.LoginMethods.password_enabled?(),
+          do: Hologram.Server.put_redirect(server, LoginPage),
+          else: Hologram.Server.put_redirect(server, "/sign-in")
 
       user ->
         if Keyword.get(opts, :invite) != :exempt and Auth.user_needs_invite?(user) do

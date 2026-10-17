@@ -32,6 +32,26 @@ defmodule Annotate.Release do
     end
   end
 
+  @doc """
+  Ops seed: grants OWNER on site `slug` to the verified dashboard user with
+  `email` (they must have signed in once so the user row exists). Idempotent.
+
+      bin/annotate eval 'Annotate.Release.grant_site_owner("demo", "someone@example.com")'
+
+  Prints only the outcome (never config, keys or other users' data).
+  """
+  def grant_site_owner(slug, email) when is_binary(slug) and is_binary(email) do
+    load_app()
+
+    {:ok, result, _} =
+      Ecto.Migrator.with_repo(Annotate.Repo, fn _repo ->
+        Annotate.SiteMembers.grant_owner_by_email(slug, email)
+      end)
+
+    IO.puts("grant_site_owner #{slug}: #{inspect(result)}")
+    result
+  end
+
   defp repos, do: Application.fetch_env!(@app, :ecto_repos)
 
   defp load_app do

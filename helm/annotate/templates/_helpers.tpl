@@ -185,11 +185,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.githubClientId }}
+      optional: true
 - name: GITHUB_CLIENT_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.githubClientSecret }}
+      optional: true
 {{- end }}
 {{- if .Values.secrets.keys.linkedinClientId }}
 - name: LINKEDIN_CLIENT_ID

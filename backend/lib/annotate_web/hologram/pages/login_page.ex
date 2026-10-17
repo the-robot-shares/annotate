@@ -12,6 +12,7 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
 
   route "/login"
   layout MainLayout, page_title: "Log In"
+  middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_params, component, _server) do

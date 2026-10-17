@@ -17,6 +17,6 @@ defmodule Annotate.Schema.Annotate.Page do
     page
     |> cast(attrs, [:site_id, :page_key, :last_url, :title])
     |> validate_required([:site_id, :page_key])
-    |> unique_constraint([:site_id, :page_key])
+    |> unique_constraint([:site_id, :page_key], name: :pages_site_page_key)
   end
 end

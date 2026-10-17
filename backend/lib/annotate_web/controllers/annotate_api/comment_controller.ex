@@ -43,7 +43,7 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
     commenter = conn.assigns.annotate_commenter
 
     with {:ok, comment} <- comment_for(conn, params),
-         :ok <- authorize(comment, site, commenter) do
+         :ok <- authorize_moderation(comment, site, commenter, conn.assigns[:annotate_claims]) do
       case Comments.soft_delete_comment(comment) do
         {:ok, _} ->
           send_resp(conn, :no_content, "")
@@ -59,6 +59,12 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
 
   defp authorize(comment, site, commenter) do
     if Comments.comment_manageable_by?(comment, site, commenter),
+      do: :ok,
+      else: {:error, :forbidden}
+  end
+
+  defp authorize_moderation(comment, site, commenter, claims) do
+    if Comments.comment_moderatable_by?(comment, site, commenter, claims),
       do: :ok,
       else: {:error, :forbidden}
   end

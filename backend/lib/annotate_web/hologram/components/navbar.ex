@@ -6,8 +6,7 @@ defmodule AnnotateWeb.Hologram.Components.Navbar do
   use Hologram.Component
 
   alias Hologram.UI.Link
-  alias AnnotateWeb.Hologram.Components.FloatingAuth
-  alias AnnotateWeb.Hologram.Pages.AppHomePage
+  alias AnnotateWeb.Hologram.Components.GithubAuth
   alias AnnotateWeb.Hologram.Pages.LandingPage
   alias AnnotateWeb.Hologram.Pages.StyleGuidePage
 
@@ -26,13 +25,13 @@ defmodule AnnotateWeb.Hologram.Components.Navbar do
           {%if @loading}
           {%else}
             {%if @user}
-              <Link to={AppHomePage} class="btn btn-outline btn-sm">Dashboard</Link>
-              <Link to={AppHomePage} class="sg-navbar__user">{@user.email}</Link>
+              <a href="/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
+              <a href="/dashboard" class="sg-navbar__user">{@user.email}</a>
               <button type="button" class="btn btn-outline btn-sm" $click={action: :logout, target: "layout"}>
                 Log Out
               </button>
             {%else}
-              <FloatingAuth cid="floating_auth" />
+              <GithubAuth cid="github_auth" />
             {/if}
           {/if}
         </div>

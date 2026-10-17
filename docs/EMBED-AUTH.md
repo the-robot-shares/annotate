@@ -68,6 +68,28 @@ back to the commenter's stored email; for them a `required_groups` policy
 fails closed (re-authentication required once, after which claims are
 persisted).
 
+## Team roles (`team_role` claim)
+
+A commenter is on a site's **team** (owner / admin / member, table
+`site_members`, managed in the owner dashboard) through one of two sources,
+recorded on the access token as `team_src`:
+
+- **`bridge`**: Authentik popup sign-in only. The id_token's `email_verified`
+  must be true, and that email must belong to a **verified** dashboard user
+  who is a member of the site. Host-asserted and guest commenters never
+  bridge, whatever their claims say.
+- **`host`**: host-assert with a `team_role` claim, honoured only while the
+  site's `comment_policy.trust_host_roles` is on (owner-only setting, default
+  off). Turning it on means anyone holding the service key can mint team
+  roles.
+
+Refresh tokens persist the **source** (never a derived role); every rotation
+re-derives the role (bridge: current membership; host: only while
+`trust_host_roles` is still on) and keeps the issuing-origin binding.
+Authorization never trusts the claim alone: moderation (owner/admin may
+delete others' comments) and `GET /config` `team` re-check membership and
+site policy on every request, so removal takes effect immediately.
+
 ## Anonymous posting (opt-in)
 
 Guest thread creation is disabled by default. A site may opt in via

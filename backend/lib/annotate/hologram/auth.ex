@@ -37,6 +37,12 @@ defmodule Annotate.Hologram.Auth do
   @doc "Authenticate with email/password and write tokens into the Hologram session."
   # <REMOVED UUID HERE> login :: Authenticate with email/password and write tokens into the Hologram session.
   def login(server, email, password) do
+    if Annotate.Auth.LoginMethods.password_enabled?(),
+      do: password_login(server, email, password),
+      else: {:error, "Email sign-in is disabled. Sign in with GitHub."}
+  end
+
+  defp password_login(server, email, password) do
     case Annotate.Users.Credentials.authenticate(
            {:login, {email, password}},
            Noizu.Context.system(),
@@ -74,6 +80,12 @@ defmodule Annotate.Hologram.Auth do
   """
   # <REMOVED UUID HERE> register :: Register a password user and issue tokens on success.
   def register(server, attrs) when is_map(attrs) do
+    if Annotate.Auth.LoginMethods.password_enabled?(),
+      do: password_register(server, attrs),
+      else: {:error, "Email sign-up is disabled. Sign up with GitHub."}
+  end
+
+  defp password_register(server, attrs) do
     email = Map.get(attrs, :email) || Map.get(attrs, "email")
     password = Map.get(attrs, :password) || Map.get(attrs, "password")
     raw_token = optional_string(Map.get(attrs, :invite_token) || Map.get(attrs, "invite_token"))
@@ -175,10 +187,13 @@ defmodule Annotate.Hologram.Auth do
   """
   # <REMOVED UUID HERE> post_auth_path :: Post-auth destination after login / SSO / magic link.
   def post_auth_path(user) when is_map(user) do
-    if user_needs_invite?(user), do: @invite_required_path, else: "/app"
+    if user_needs_invite?(user), do: @invite_required_path, else: default_post_auth_path()
   end
 
-  def post_auth_path(_), do: "/app"
+  def post_auth_path(_), do: default_post_auth_path()
+
+  # annotate lands owners on /dashboard (config :annotate, :post_auth_path).
+  defp default_post_auth_path, do: Application.get_env(:annotate, :post_auth_path, "/app")
 
   @doc """
   Redeem an invite for the signed-in Hologram user. Hologram commands bypass

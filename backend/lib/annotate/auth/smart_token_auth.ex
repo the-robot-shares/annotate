@@ -8,6 +8,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> request_magic_link :: auto-generated pointer for public function request_magic_link
   def request_magic_link(email) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_request_magic_link(email)
+  end
+
+  defp do_request_magic_link(email) do
     email = email |> String.trim() |> String.downcase()
 
     case find_active_user_by_email(email) do
@@ -36,6 +41,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> verify_magic_link :: auto-generated pointer for public function verify_magic_link
   def verify_magic_link(token_key, conn) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_verify_magic_link(token_key, conn)
+  end
+
+  defp do_verify_magic_link(token_key, conn) do
     context = Noizu.Context.system()
 
     case SmartToken.authorize!(token_key, conn, context) do
@@ -62,6 +72,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> request_otp_login :: auto-generated pointer for public function request_otp_login
   def request_otp_login(email) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_request_otp_login(email)
+  end
+
+  defp do_request_otp_login(email) do
     email = email |> String.trim() |> String.downcase()
 
     case find_active_user_by_email(email) do
@@ -76,6 +91,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> verify_otp_login :: auto-generated pointer for public function verify_otp_login
   def verify_otp_login(email, otp_code, conn) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_verify_otp_login(email, otp_code, conn)
+  end
+
+  defp do_verify_otp_login(email, otp_code, conn) do
     email = email |> String.trim() |> String.downcase()
     context = Noizu.Context.system()
 
@@ -108,6 +128,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> request_password_reset :: auto-generated pointer for public function request_password_reset
   def request_password_reset(email) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_request_password_reset(email)
+  end
+
+  defp do_request_password_reset(email) do
     email = email |> String.trim() |> String.downcase()
 
     case find_active_user_by_email(email) do
@@ -122,6 +147,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> verify_password_reset :: auto-generated pointer for public function verify_password_reset
   def verify_password_reset(email, otp_code, new_password, conn) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_verify_password_reset(email, otp_code, new_password, conn)
+  end
+
+  defp do_verify_password_reset(email, otp_code, new_password, conn) do
     email = email |> String.trim() |> String.downcase()
     context = Noizu.Context.system()
 
@@ -148,6 +178,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> request_email_verification :: auto-generated pointer for public function request_email_verification
   def request_email_verification(email) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_request_email_verification(email)
+  end
+
+  defp do_request_email_verification(email) do
     email = email |> String.trim() |> String.downcase()
 
     case find_active_user_by_email(email) do
@@ -176,6 +211,11 @@ defmodule Annotate.Auth.SmartTokenAuth do
 
   # <REMOVED UUID HERE> verify_email_token :: auto-generated pointer for public function verify_email_token
   def verify_email_token(token_key) do
+    with :ok <- Annotate.Auth.LoginMethods.require("password"),
+         do: do_verify_email_token(token_key)
+  end
+
+  defp do_verify_email_token(token_key) do
     context = Noizu.Context.system()
 
     # SmartToken.record_valid_access!/3 reads `conn.remote_ip`; a bare `%{}`

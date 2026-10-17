@@ -94,26 +94,48 @@ defmodule Annotate.Auth.ApiToken do
 
   def token_alg(_), do: nil
 
-  @doc "Issues an access token for a commenter on a site, bound to `origin`."
-  def issue_access(commenter, site, origin) do
-    sign(
-      %{
-        "sub" => commenter.id,
-        "site" => site.id,
-        "origin" => origin,
-        "typ" => @type_typ
-      },
-      @access_ttl_seconds
-    )
+  @doc """
+  Issues an access token for a commenter on a site, bound to `origin`.
+
+  `team` is EXPLICIT at every call site (no default, so a new issuance path
+  cannot silently run the email bridge for a host-asserted commenter):
+  `:bridge` (Authentik commenter), `{:host, role}` (host-assert under
+  `trust_host_roles`) or `:none`. When the commenter is on the team the token
+  carries `team_role` + `team_src` (see `Annotate.Embed.Team`; authorization
+  still re-derives the role per request).
+  """
+  def issue_access(commenter, site, origin, team) do
+    claims = %{
+      "sub" => commenter.id,
+      "site" => site.id,
+      "origin" => origin,
+      "typ" => @type_typ
+    }
+
+    claims =
+      case Annotate.Embed.Team.claim_for(team, site, commenter) do
+        {src, role} -> Map.merge(claims, %{"team_role" => role, "team_src" => src})
+        nil -> claims
+      end
+
+    sign(claims, @access_ttl_seconds)
   end
 
   @doc """
   Issues an access token + a fresh rotating refresh token. `identity_claims`
   (see `Annotate.Embed.Policy.identity_claims/1`) are persisted on the refresh
-  token so rotation can re-check the site's current `comment_policy`.
+  token so rotation can re-check the site's current `comment_policy`; the
+  team SOURCE (never a derived role) rides along so refresh re-derives it.
   """
-  def issue_pair(commenter, site, origin, identity_claims \\ nil) do
-    access = issue_access(commenter, site, origin)
+  def issue_pair(commenter, site, origin, identity_claims, team) do
+    access = issue_access(commenter, site, origin, team)
+
+    identity_claims =
+      Map.merge(
+        identity_claims || %{"email" => commenter.email, "groups" => nil},
+        Annotate.Embed.Team.identity_claims_for(team)
+      )
+
     {:ok, refresh} = Annotate.Auth.RefreshTokens.issue(commenter, site, identity_claims, origin)
     {:ok, %{access_token: access, refresh_token: refresh}}
   end

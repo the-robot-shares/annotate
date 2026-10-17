@@ -35,8 +35,16 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
       end
 
     case RefreshTokens.rotate(raw, request_origin) do
-      {:ok, %{commenter: commenter, site: site, refresh_token: fresh}} ->
-        access = ApiToken.issue_access(commenter, site, request_origin)
+      {:ok, %{commenter: commenter, site: site, refresh_token: fresh, identity_claims: ic}} ->
+        # Team carry-over: the persisted SOURCE is re-evaluated now (bridge →
+        # current membership; host → only while trust_host_roles is on).
+        access =
+          ApiToken.issue_access(
+            commenter,
+            site,
+            request_origin,
+            Annotate.Embed.Team.spec_from_identity_claims(ic)
+          )
 
         json(conn, %{
           "access_token" => access,
@@ -72,7 +80,17 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
          {:ok, commenter} <- Sites.upsert_commenter_by_external(site, claims["sub"], claims) do
       origin = claims_origin(conn, site)
 
-      case ApiToken.issue_pair(commenter, site, origin, Policy.identity_claims(claims)) do
+      # Host-asserted identities join the team ONLY when the site opted in
+      # via comment_policy["trust_host_roles"] (default false); otherwise a
+      # `team_role` in the host JWT is just a claim from the wire. The email
+      # bridge never applies to host-asserted commenters (S1).
+      team =
+        case Sites.trust_host_roles?(site) && Annotate.Embed.Team.host_role(claims["team_role"]) do
+          role when is_binary(role) -> {:host, role}
+          _ -> :none
+        end
+
+      case ApiToken.issue_pair(commenter, site, origin, Policy.identity_claims(claims), team) do
         {:ok, %{access_token: access, refresh_token: refresh}} ->
           conn
           |> put_status(:created)
