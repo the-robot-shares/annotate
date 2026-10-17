@@ -492,6 +492,8 @@ custom_roles ||--o{ custom_role_permissions : "has permissions"
 | 023 | media-visibility-and-short-id | media.short_id (unique), visibility CHECK ('public','private','org'), owner_type/owner_id + partial index, generate_media_short_id() |
 | 024 | media-variants-cache | media_variants |
 | 025 | auth-registration-consent | user_status_enum += 'pending'; users registration/approval columns; invite_tokens.starts_at/redemption_count; invite_token_redemptions; cookie_consents |
+| 031 | annotate-site-members | `annotate-0037` site_member_role_enum (owner/admin/member) · `annotate-0038` site_members (site_id FK sites CASCADE, user_id FK users CASCADE, role, invited_by FK users SET NULL, UNIQUE(site_id,user_id) `site_members_site_user_key`) · `annotate-0039` site_members_user_id_idx · `annotate-0040` commenters.email_verified (nullable; written only from the Authentik id_token) |
+| 034 | annotate-dashboard-identity | `annotate-0044` github_identities (github_id bigint UNIQUE, user_id FK users CASCADE UNIQUE, login, email citext, name, avatar_url) · `annotate-0045` commenters.user_id FK users SET NULL + partial UNIQUE(site_id,user_id) `commenters_site_user_key` (dashboard team identity) |
 
 ## Non-Liquibase Migrations
 
