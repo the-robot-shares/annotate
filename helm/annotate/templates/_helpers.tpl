@@ -259,6 +259,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 - name: S3_SCHEME
   value: {{ .Values.storage.scheme | quote }}
+{{- if .Values.storage.publicEndpoint }}
+- name: S3_PUBLIC_ENDPOINT
+  value: {{ .Values.storage.publicEndpoint | quote }}
+{{- end }}
 - name: AWS_ACCESS_KEY_ID
   valueFrom:
     secretKeyRef:

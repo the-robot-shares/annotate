@@ -187,6 +187,10 @@ storage:
   region: "us-east-1"
   endpoint: "http://minio-service.infra.svc.cluster.local:9000"
   scheme: "http://"
+  # Browser-reachable endpoint presigned upload/download urls are signed for
+  # (the widget PUTs attachments straight to it). The in-cluster endpoint
+  # above never resolves from a browser. Empty = sign for `endpoint`.
+  publicEndpoint: "https://minio.noizu.com"
 
 autoscaling:
   enabled: false
