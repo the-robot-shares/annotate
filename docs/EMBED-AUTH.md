@@ -18,7 +18,7 @@ registers the widget from that same release. Two forms:
 <noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
 
 <!-- Pinned: never changes until you edit the version -->
-<script type="module" src="https://cdn.derobot.is/tobor-kit/v1.0.0/annotate.js"></script>
+<script type="module" src="https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js"></script>
 <noizu-page-comments site="<slug>" api-base="https://annotate-srv.therobotlives.com"></noizu-page-comments>
 ```
 
@@ -60,11 +60,31 @@ Widget-side flow:
 4. The popup renders a tiny page that `postMessage`s to the **exact** opener
    origin:
 
+### Popup postMessage contract
+
+Built by `AnnotateWeb.AnnotateAPI.PopupPayload` for `/embed/callback` and the
+dev-only `/embed/dev-login`; pinned by `embed_auth_test.exs` (server) and
+tobor-kit `auth.test.ts` (widget).
+
 ```js
-{type: "annotate-auth", access, refresh, commenter, display_name}
-// failures: {type: "annotate-auth-error", reason: "state_mismatch" | "nonce_mismatch"
-//  | "group_not_allowed" | "email_domain_not_allowed" | "unknown_session" | "auth_failed"}
+// success
+{type: "annotate-auth",
+ access_token, refresh_token,   // what tobor-kit AnnotateAuth reads
+ expires_at,                    // access-token expiry, ms since epoch
+ access, refresh,               // legacy Phase-1a aliases (same values)
+ commenter, display_name}
+// failure — widget reads `error`; `reason` is the legacy alias
+{type: "annotate-auth-error", error, reason}
+// error/reason: "state_mismatch" | "nonce_mismatch" | "group_not_allowed"
+//  | "email_domain_not_allowed" | "unknown_session" | "auth_failed" | "access_denied"
 ```
+
+Until 2026-10-17 the server sent only `access` / `refresh` / `reason` while
+the widget read `access_token` / `refresh_token` / `error`, so a popup
+sign-in through the widget never completed (no error surfaced). The server
+now sends both spellings and the widget accepts both. The payload JSON is
+encoded `html_safe` (`/` escaped) so no field can close the inline script
+(T-07).
 
 Widget listens for the message and keeps the tokens in memory (access 15 min;
 refresh 30 days, single-use rotation via `POST /api/v1/token/refresh`).

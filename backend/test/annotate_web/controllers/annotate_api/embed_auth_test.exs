@@ -75,6 +75,12 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedAuthTest do
     :ok
   end
 
+  # The JSON object literal assigned to `var payload` in the broker page.
+  defp popup_payload!(html) do
+    [_, json] = Regex.run(~r/var payload = (\{.*?\});\n/s, html)
+    Jason.decode!(json)
+  end
+
   describe "Embed.Policy.check/2" do
     test "passes with no constraints" do
       assert :ok == Annotate.Embed.Policy.check(%{"groups" => [], "email" => "a@x.com"}, %{})
@@ -189,6 +195,25 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedAuthTest do
       assert html =~ "annotate-auth"
       refute html =~ "annotate-auth-error"
       assert html =~ @good_origin
+
+      # postMessage contract (docs/EMBED-AUTH.md): the widget reads
+      # access_token / refresh_token / expires_at; legacy access / refresh kept.
+      payload = popup_payload!(html)
+
+      assert Map.keys(payload) |> Enum.sort() ==
+               ~w(access access_token commenter display_name expires_at refresh refresh_token type)
+
+      assert payload["type"] == "annotate-auth"
+
+      assert {:ok, %{"origin" => @good_origin}} =
+               Annotate.Auth.ApiToken.verify(payload["access_token"])
+
+      assert payload["access"] == payload["access_token"]
+
+      assert payload["refresh"] == payload["refresh_token"] and
+               is_binary(payload["refresh_token"])
+
+      assert payload["expires_at"] > System.system_time(:millisecond)
 
       # Regression pin for the prod 500 (2026-10-16): the code exchange must
       # hand OpenIDConnect a MAP of atom-keyed params, never a keyword list.
@@ -309,6 +334,13 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedAuthTest do
 
       assert html =~ "annotate-auth-error"
       assert html =~ "auth_failed"
+
+      # contract: the widget reads `error`; `reason` is the legacy alias
+      assert popup_payload!(html) == %{
+               "type" => "annotate-auth-error",
+               "error" => "auth_failed",
+               "reason" => "auth_failed"
+             }
     end
 
     test "IdP error redirect (consent denied) → access_denied postMessage, no code exchange",

@@ -133,13 +133,7 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
            ) do
       render_postmessage(
         conn,
-        %{
-          "type" => "annotate-auth",
-          "access" => access,
-          "refresh" => refresh,
-          "commenter" => commenter.id,
-          "display_name" => commenter.display_name
-        },
+        AnnotateWeb.AnnotateAPI.PopupPayload.success(access, refresh, commenter),
         st["origin"]
       )
     else
@@ -185,14 +179,18 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
   def verify_nonce(_expected, _received), do: {:error, :nonce_mismatch}
 
   defp render_postmessage(conn, payload, origin) do
-    send_html(conn, postmessage_body(Jason.encode!(payload), origin))
+    # html_safe: escapes "/" (and U+2028/9) so a display name can never
+    # close the inline <script> (T-07).
+    send_html(conn, postmessage_body(Jason.encode!(payload, escape: :html_safe), origin))
   end
 
   defp render_error(conn, reason, origin) do
     send_html(
       conn,
       postmessage_body(
-        "{type: \"annotate-auth-error\", reason: " <> Jason.encode!(reason) <> "}",
+        Jason.encode!(AnnotateWeb.AnnotateAPI.PopupPayload.error(to_string(reason)),
+          escape: :html_safe
+        ),
         origin
       )
     )
