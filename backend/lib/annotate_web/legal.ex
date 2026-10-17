@@ -31,7 +31,9 @@ defmodule AnnotateWeb.Legal do
     uploads_storage: true,
     rate_limit_ip: true,
     cookies_session: true,
-    analytics: :none,
+    analytics: :ga4,
+    ga4_detail:
+      "The marketing pages (home, sign-in, privacy and terms) use Google Analytics 4 (Google LLC) to count visits, pages viewed and referrers in aggregate. It sets first-party analytics cookies and sends page-view data to Google; GA4 does not store IP addresses. Advertising features (ad storage, ad personalisation, Google signals) are switched off. Analytics runs on those pages by default; the comment widget embedded on customer sites and the annotate API host do not load it, and we do not run advertising scripts or sell your data. If you would rather not be counted, block googletagmanager.com / google-analytics.com or use a tracking-protection extension, or ask us to delete data linked to you.",
     waitlist_email: true,
     waitlist_detail:
       "If you join the waitlist we store your email address and the features you ticked (for example MCP tools or a ticket integration) and use them only to tell you when those ship. Ask us to remove it at any time.",
@@ -55,6 +57,11 @@ defmodule AnnotateWeb.Legal do
         name: "GitHub",
         description:
           "authenticates site owners. We receive the profile fields listed above; GitHub's own privacy statement governs what it does."
+      },
+      %{
+        name: "Google (Google Analytics 4)",
+        description:
+          "receives page-view and device data from the marketing pages for aggregate usage statistics; Google's own privacy policy governs its processing."
       },
       %{
         name: "Our own infrastructure",

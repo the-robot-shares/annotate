@@ -131,7 +131,7 @@ imagePullSecrets:
 
 analytics:
   ga:
-    measurementId: ""
+    measurementId: "G-477J8HGX4M"  # vnext_sites annotate_therobotlives_com.google-analytics.tracker (public id)
   posthog:
     key: ""
     host: "https://us.i.posthog.com"

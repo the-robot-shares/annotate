@@ -233,7 +233,7 @@ defmodule AnnotateWeb.SEO do
 
     ## Privacy and data
 
-    No third-party cookies. The widget keeps only what it needs to keep a visitor signed in. Details, processors and deletion requests are on #{origin()}/privacy.
+    No third-party cookies. The widget keeps only what it needs to keep a visitor signed in and does no analytics; the marketing site itself uses Google Analytics 4. Details, processors and deletion requests are on #{origin()}/privacy.
 
     ## Status and roadmap
 

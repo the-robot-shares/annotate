@@ -22,8 +22,9 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
 
   prop :page_title, :string, default: "annotate — site feedback that points at the thing"
 
-  def init(_props, component, _server) do
+  def init(_props, component, server) do
     cfg = marketing_cfg()
+    ga_id = AnnotateWeb.Analytics.for_server(server)
     m = AnnotateWeb.SEO.landing_meta()
 
     # All <head> metadata comes from AnnotateWeb.SEO (copy lives there). The
@@ -39,6 +40,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
       og_image_height: m.og_image_height,
       og_image_alt: m.og_image_alt,
       theme_color: AnnotateWeb.SEO.theme_color(),
+      ga_id: ga_id,
+      ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
       api_base: cfg.api_base,
       widget_src: cfg.widget_src,
       dogfood_site: cfg.dogfood_site
@@ -80,6 +83,10 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <link rel="stylesheet" href="/css/landing.css" />
         <script src="/js/keep-location.js"></script>
         <script src="/js/waitlist.js" defer></script>
+        {%if @ga_id}
+          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <script async src={@ga_src}></script>
+        {/if}
         <Hologram.UI.Runtime />
       </head>
       <body>
