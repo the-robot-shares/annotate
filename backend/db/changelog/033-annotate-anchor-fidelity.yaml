@@ -1,0 +1,71 @@
+databaseChangeLog:
+  # ── Annotate: anchor fidelity (additive only) ──────────────────────
+  # Every thread now records the exact page it was written on (full url,
+  # origin, normalized path, query params, hash, title) next to the element
+  # anchor jsonb. All columns nullable: pre-existing rows stay readable and a
+  # NULL query_params means "query unknown — match any query".
+  # ids 0041-0043: 0033-0036 reserved (visibility), 0037-0040 (site-members).
+
+  - changeSet:
+      id: annotate-0041-threads-page-context
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE threads
+                ADD COLUMN url text,
+                ADD COLUMN origin varchar(255),
+                ADD COLUMN page_path varchar(1024),
+                ADD COLUMN query_string text,
+                ADD COLUMN query_params jsonb,
+                ADD COLUMN hash text,
+                ADD COLUMN page_title varchar(512),
+                ADD COLUMN anchor_version smallint NOT NULL DEFAULT 1;
+      rollback:
+        - sql:
+            sql: |
+              ALTER TABLE threads
+                DROP COLUMN IF EXISTS url,
+                DROP COLUMN IF EXISTS origin,
+                DROP COLUMN IF EXISTS page_path,
+                DROP COLUMN IF EXISTS query_string,
+                DROP COLUMN IF EXISTS query_params,
+                DROP COLUMN IF EXISTS hash,
+                DROP COLUMN IF EXISTS page_title,
+                DROP COLUMN IF EXISTS anchor_version;
+
+  - changeSet:
+      id: annotate-0042-threads-backfill-page-context
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              -- Derivable fields only. query_params/query_string/hash stay NULL
+              -- (pages.last_url reflects the latest write, not necessarily this
+              -- thread's, so its query would be a guess).
+              UPDATE threads t
+                 SET url        = p.last_url,
+                     origin     = COALESCE(substring(p.last_url from '^(https?://[^/?#]+)'),
+                                           substring(p.page_key from '^(https?://[^/?#]+)')),
+                     page_path  = COALESCE(
+                                    NULLIF(regexp_replace(p.page_key, '^https?://[^/?#]+', ''), ''),
+                                    '/'),
+                     page_title = p.title
+                FROM pages p
+               WHERE t.page_id = p.id
+                 AND t.page_path IS NULL;
+      rollback:
+        - sql:
+            sql: |
+              UPDATE threads SET url = NULL, origin = NULL, page_path = NULL, page_title = NULL
+               WHERE query_params IS NULL AND query_string IS NULL AND anchor_version = 1;
+
+  - changeSet:
+      id: annotate-0043-threads-page-path-index
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE INDEX threads_page_path_index ON threads (page_path);
+      rollback:
+        - sql:
+            sql: DROP INDEX IF EXISTS threads_page_path_index;
