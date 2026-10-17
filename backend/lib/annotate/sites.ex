@@ -22,6 +22,7 @@ defmodule Annotate.Sites do
   # Dashboard-editable keys, split by required role (see `update_site_display/2`
   # vs `update_site_security/2`). Anything else in the input is ignored.
   @display_settings_keys ~w(public_read page_key_strategy max_upload_mb default_visibility)
+  @security_settings_keys ~w(require_auth_to_read)
   @security_policy_keys ~w(required_groups allowed_email_domains allow_anonymous trust_host_roles read_visibility)
   @read_visibilities ~w(public staff_only)
   @page_key_strategies ~w(strip_query_hash)
@@ -150,25 +151,35 @@ defmodule Annotate.Sites do
   end
 
   @doc """
-  Security settings (OWNER only at the caller): `allowed_origins` (validated,
-  exact-match contract) and the `comment_policy` keys
-  #{inspect(@security_policy_keys)}.
+  Security settings (OWNER only at the caller): `allowed_origins`, the
+  `comment_policy` keys #{inspect(@security_policy_keys)} and the
+  `settings` keys #{inspect(@security_settings_keys)} (secure fetch).
   """
   def update_site_security(%Site{} = site, attrs) do
     policy_in = attrs |> Map.get("comment_policy", %{}) |> Map.take(@security_policy_keys)
+    settings_in = attrs |> Map.get("settings", %{}) |> Map.take(@security_settings_keys)
 
     with {:ok, origins} <- normalize_origins(attrs["allowed_origins"] || site.allowed_origins),
-         {:ok, policy_in} <- validate_policy(policy_in) do
+         {:ok, policy_in} <- validate_policy(policy_in),
+         {:ok, settings_in} <- validate_security_settings(settings_in) do
       site
       |> Ecto.Changeset.cast(
         %{
           "allowed_origins" => origins,
-          "comment_policy" => Map.merge(site.comment_policy || %{}, policy_in)
+          "comment_policy" => Map.merge(site.comment_policy || %{}, policy_in),
+          "settings" => Map.merge(site.settings || %{}, settings_in)
         },
-        [:allowed_origins, :comment_policy]
+        [:allowed_origins, :comment_policy, :settings]
       )
       |> Repo.update()
     end
+  end
+
+  # Only explicit booleans are written; an absent key never flips the setting.
+  defp validate_security_settings(settings) do
+    if Enum.all?(settings, fn {_k, v} -> is_boolean(v) end),
+      do: {:ok, settings},
+      else: {:error, :invalid_settings}
   end
 
   defp validate_policy(policy) do
@@ -338,6 +349,20 @@ defmodule Annotate.Sites do
     end
   end
 
+  @doc """
+  Secure fetch: when the site's `settings.require_auth_to_read` is true,
+  comment READS — the REST thread listing and the realtime page channel —
+  require a valid commenter token. Default **false** (existing sites are
+  unchanged: anyone who can open the page can read). Enforced server-side
+  (`SiteThreadsController.index`, `AnnotateWeb.PageChannel`); unauthenticated
+  requests are answered 401 `"auth_required"` so the widget can prompt
+  sign-in before fetching.
+  """
+  def require_auth_to_read?(%Site{} = site),
+    do: get_in_settings(site, ["require_auth_to_read"], false) == true
+
+  def require_auth_to_read?(_), do: false
+
   def page_key_strategy(%Site{} = site),
     do: get_in_settings(site, ["page_key_strategy"], "strip_query_hash")
 
@@ -375,6 +400,44 @@ defmodule Annotate.Sites do
           email_verified: idp_email_verified(claims),
           avatar_url: claims["picture"],
           site_id: site && site.id
+        })
+        |> Repo.insert()
+    end
+  end
+
+  @doc """
+  Upserts a social-OAuth (github/google) embed commenter, keyed
+  `(site_id, "provider:uid")` like host-asserted rows. `email_verified` is
+  true unconditionally: the profile builders
+  (`Annotate.Dashboard.GithubLogin` / `GoogleLogin.profile_from_auth/1`)
+  refuse anything but a provider-verified email, so the flag is IdP-asserted
+  by construction and the team-role email bridge stays honest.
+  """
+  def upsert_commenter_by_social(%Site{} = site, provider, uid, profile)
+      when provider in ~w(github google) and is_binary(uid) do
+    external_id = "#{provider}:#{uid}"
+
+    claims = %{
+      "email" => profile.email,
+      "name" => profile.name || profile.login,
+      "picture" => profile.avatar_url,
+      # The profile builders refuse unverified emails, so this is IdP-asserted.
+      "email_verified" => true
+    }
+
+    case Repo.get_by(Commenter, site_id: site.id, external_id: external_id) do
+      %Commenter{} = commenter ->
+        {:ok, update_commenter_profile(commenter, claims, :social)}
+
+      nil ->
+        %Commenter{}
+        |> Commenter.changeset(%{
+          site_id: site.id,
+          external_id: external_id,
+          display_name: display_name(claims),
+          email: profile.email,
+          email_verified: true,
+          avatar_url: profile.avatar_url
         })
         |> Repo.insert()
     end

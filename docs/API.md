@@ -117,7 +117,12 @@ EMBED-AUTH.md "Learning the viewer's permissions".
 | POST | `/api/v1/sites/:site/threads` | token, or guest opt-in (see below) | create thread + root comment |
 
 `GET` honors site setting `public_read` (default true): when false, a valid
-token is required.
+token is required. Independently, `settings.require_auth_to_read` (default
+**false**, dashboard Settings → Security, owner only) requires a valid
+commenter token for reads even on `public_read` sites — unauthenticated
+callers get `401 {"error": "auth_required"}` on this endpoint and an
+`auth_required` reply on the realtime channel (the widget shows its sign-in
+modal; see EMBED-AUTH.md "Secure fetch").
 
 **Posting:** thread creation requires a token like every other write. A site
 may opt in to anonymous threads via `comment_policy.allow_anonymous` (default

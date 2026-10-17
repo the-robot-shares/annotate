@@ -22,22 +22,30 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
   def index(conn, %{"page_key" => page_key} = params) do
     site = conn.assigns.annotate_site
 
-    if Annotate.Sites.public_read?(site) or not is_nil(conn.assigns[:annotate_commenter]) do
-      threads =
-        Comments.list_threads_with_comments(site.id, page_key,
-          query: current_query(params),
-          viewer:
-            Annotate.Embed.Visibility.viewer(
-              site,
-              conn.assigns[:annotate_commenter],
-              conn.assigns[:annotate_claims]
-            ),
-          anchor_config: Annotate.Anchors.config(site, csv(params["ignore_params"]))
-        )
+    cond do
+      # Secure fetch (settings.require_auth_to_read): reads need a valid
+      # commenter token; the machine-readable code lets the widget prompt
+      # sign-in before fetching.
+      Sites.require_auth_to_read?(site) and is_nil(conn.assigns[:annotate_commenter]) ->
+        conn |> put_status(:unauthorized) |> json(%{"error" => "auth_required"})
 
-      json(conn, %{"threads" => Renderer.thread_list(threads)})
-    else
-      conn |> put_status(:unauthorized) |> json(%{"error" => "invalid_token"})
+      Annotate.Sites.public_read?(site) or not is_nil(conn.assigns[:annotate_commenter]) ->
+        threads =
+          Comments.list_threads_with_comments(site.id, page_key,
+            query: current_query(params),
+            viewer:
+              Annotate.Embed.Visibility.viewer(
+                site,
+                conn.assigns[:annotate_commenter],
+                conn.assigns[:annotate_claims]
+              ),
+            anchor_config: Annotate.Anchors.config(site, csv(params["ignore_params"]))
+          )
+
+        json(conn, %{"threads" => Renderer.thread_list(threads)})
+
+      true ->
+        conn |> put_status(:unauthorized) |> json(%{"error" => "invalid_token"})
     end
   end
 
@@ -67,12 +75,16 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
     site = conn.assigns.annotate_site
     commenter = conn.assigns[:annotate_commenter]
 
-    with {:ok, author} <- resolve_author(site, commenter, params),
+    with :ok <- Annotate.Moderation.check_text(params["body_md"]),
+         {:ok, author} <- resolve_author(site, commenter, params),
          {:ok, thread} <- Comments.create_thread(site, author, params) do
       conn
       |> put_status(:created)
       |> json(%{"thread" => Renderer.thread(thread)})
     else
+      {:error, :content_rejected} ->
+        conn |> put_status(:unprocessable_entity) |> json(Annotate.Moderation.rejection_payload())
+
       {:error, :guest_name_required} ->
         conn |> put_status(:bad_request) |> json(%{"error" => "guest_name_required"})
 

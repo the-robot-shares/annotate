@@ -66,6 +66,19 @@ defmodule Annotate.Storage do
     |> ExAws.request(Keyword.delete(config, :public))
   end
 
+  # <REMOVED UUID HERE> get_object :: auto-generated pointer for public function get_object
+  @doc """
+  Fetches one stored object (`{:ok, %{body: binary}}`). Server-side only:
+  used to verify an upload's ACTUAL byte size and to hand image bytes to the
+  moderation classifier at `complete` time.
+  """
+  def get_object(key) do
+    config = config()
+
+    ExAws.S3.get_object(config[:bucket], key)
+    |> ExAws.request(Keyword.delete(config, :public))
+  end
+
   @doc """
   Browser-facing origin of presigned urls (`"https://minio.example.com"`), or
   nil when storage is unconfigured. Used to extend CSP img-src/connect-src.
@@ -102,7 +115,8 @@ defmodule Annotate.Storage do
     end
   end
 
-  defp config do
+  @doc "Raw `:annotate, Annotate.Storage` config ([] when unconfigured)."
+  def config do
     Application.get_env(:annotate, __MODULE__, [])
   end
 end
