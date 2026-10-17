@@ -405,7 +405,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
   def action(:copy_snippet, params, c) do
     # Read from the DOM: the multi-line snippet never rides in page state.
     {id, flash} =
-      case params[:which] do
+      case Map.get(params, :which) do
         "pinned" -> {"dsh-snippet-code-pinned", "Pinned snippet copied."}
         _ -> {"dsh-snippet-code", "Snippet copied."}
       end
