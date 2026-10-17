@@ -1,0 +1,65 @@
+/* SiteFooter (annotate) — self-contained, loaded by the SiteFooter component
+ * itself so landing, legal pages and the dashboard shell all render it the
+ * same way. Themed by CSS vars; every var has a Night Desk fallback so the
+ * footer still looks right where a sheet defines none of --nd-*.
+ * Override per surface via --sf-* (e.g. the dashboard sets the inner gutter). */
+
+.nd-site-footer {
+  --sf-fg: var(--nd-text-secondary, #9a9ab0);
+  --sf-fg-hover: var(--nd-text-bright, #ededf4);
+  --sf-border: var(--nd-mist, #2a2a3a);
+  --sf-accent: var(--nd-ember-bright, #fb923c);
+  --sf-max: var(--nd-max, 1160px);
+  --sf-gutter: var(--nd-space-3, 24px);
+  --sf-gap: var(--nd-space-3, 24px);
+
+  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
+  border-top: 1px solid var(--sf-border);
+  padding: var(--nd-space-4, 32px) 0 var(--nd-space-6, 48px);
+  font-family: var(--nd-font-body, "Inter", system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+
+  /* tobor-kit <noizu-footer-brand> theming */
+  --noizu-footer-brand-fg: var(--sf-fg);
+  --noizu-footer-brand-brand-color: var(--sf-accent);
+  --noizu-footer-brand-font: var(--nd-font-body, "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-brand-font: var(--nd-font-display, "Geist", "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-size: 14px;
+}
+
+.nd-site-footer__inner {
+  box-sizing: border-box;
+  max-width: var(--sf-max);
+  margin: 0 auto;
+  padding: 0 var(--sf-gutter);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px var(--sf-gap);
+}
+
+.nd-site-footer__links { display: flex; flex-wrap: wrap; gap: 8px var(--sf-gap); }
+.nd-site-footer__links a {
+  color: var(--sf-fg);
+  text-decoration: none;
+}
+.nd-site-footer__links a:visited { color: var(--sf-fg); }
+.nd-site-footer__links a:hover { color: var(--sf-fg-hover); text-decoration: underline; }
+.nd-site-footer__links a:focus-visible { outline: 2px solid var(--sf-accent); outline-offset: 2px; border-radius: 2px; }
+
+/* Brand sits at the end of the row; may shrink and wrap instead of clipping. */
+.nd-site-footer__brand {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+@media (max-width: 560px) {
+  .nd-site-footer__inner { flex-direction: column; align-items: flex-start; }
+  .nd-site-footer__brand { margin-left: 0; }
+}
