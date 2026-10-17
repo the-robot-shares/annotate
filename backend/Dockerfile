@@ -70,6 +70,16 @@ RUN find _build/${MIX_ENV}/rel -name '*.js.map' -delete
 
 FROM ${BASE_IMAGE} AS production
 
+# CA bundle for outbound TLS. Without it, OTP's :pubkey_os_cacerts finds no
+# system roots and :httpc (Tesla's default adapter, used by oauth2/ueberauth
+# for the GitHub code→token exchange) crashes with FunctionClauseError
+# conv_error_reason(:no_cacerts_found) → /auth/github/callback 500
+# (prod incident 2026-10-17). Deps that bundle certs (hackney/certifi,
+# Req/castore) never noticed the gap.
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 RUN chown nobody /app
 

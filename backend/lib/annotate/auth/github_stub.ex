@@ -19,7 +19,7 @@ defmodule Annotate.Auth.GithubStub do
 
   alias Ueberauth.Auth.{Credentials, Extra, Info}
 
-  @stub_params ~w(stub_id stub_login stub_name stub_email stub_verified stub_emails)
+  @stub_params ~w(stub_id stub_login stub_name stub_email stub_verified stub_emails stub_crash)
 
   def handle_request!(conn) do
     if allowed?() do
@@ -33,6 +33,12 @@ defmodule Annotate.Auth.GithubStub do
     else
       set_errors!(conn, [error("stub_disabled", "GitHub stub strategy is disabled")])
     end
+  end
+
+  # `stub_crash=tls` simulates the prod 2026-10-17 failure: the token
+  # exchange raising inside the strategy (no CA roots in the image).
+  def handle_callback!(%Plug.Conn{params: %{"stub_crash" => "tls"}}) do
+    raise FunctionClauseError, module: :pubkey_os_cacerts, function: :conv_error_reason, arity: 1
   end
 
   def handle_callback!(%Plug.Conn{params: %{"stub_id" => id} = p} = conn) do
