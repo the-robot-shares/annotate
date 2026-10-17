@@ -13,7 +13,8 @@ defmodule Annotate.Config.RuntimeGithubTest do
     "ANNOTATE_JWT_SECRET" => "test-jwt",
     "ANNOTATE_KEY_ENC_SECRET" => "test-enc",
     "GUARDIAN_SECRET_KEY" => String.duplicate("g", 40),
-    "PHX_HOST" => "example.test"
+    "PHX_HOST" => "example.test",
+    "ANNOTATE_MCP_SIGNING_SECRET" => String.duplicate("m", 64)
   }
 
   defp read_prod(extra) do
@@ -82,5 +83,15 @@ defmodule Annotate.Config.RuntimeGithubTest do
 
     assert [github: {Ueberauth.Strategy.Github, _}] = c[:ueberauth][Ueberauth][:providers]
     assert c[:annotate][:github_enabled] == true
+  end
+
+  test "MCP: prod issuer is https://PHX_HOST and the signing secret is required (>= 32 bytes)" do
+    c = read_prod(%{})
+    assert c[:annotate][:mcp][:issuer] == "https://example.test"
+    assert c[:annotate][:mcp][:signing_secret] == String.duplicate("m", 64)
+
+    assert_raise RuntimeError, ~r/ANNOTATE_MCP_SIGNING_SECRET/, fn ->
+      read_prod(%{"ANNOTATE_MCP_SIGNING_SECRET" => "short"})
+    end
   end
 end

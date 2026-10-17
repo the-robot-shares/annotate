@@ -55,8 +55,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             <h1>From a comment on the page to a fix in the repo.</h1>
             <p class="nd-hero__sub">
               annotate anchors visitor feedback to the element it's about and streams
-              it to your dashboard and API. The next leg — MCP hooks so agents triage,
-              investigate, and patch — is in development.
+              it to your dashboard, your API and your AI agents — over MCP, an agent
+              can triage, investigate, reply and resolve.
             </p>
             <div class="nd-hero__ctas">
               <button type="button" class="nd-btn nd-btn--primary" $click="try_it">
@@ -106,8 +106,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             </li>
             <li class="nd-step">
               <h3>Agents investigate and patch</h3>
-              <p>MCP tools let an agent query open issues, pull the anchor and context, reproduce, and open a patch.</p>
-              <span class="nd-chip nd-chip--dev">In development</span>
+              <p>Connect Claude Code or another MCP client: it lists open threads, pulls the anchor and page context, reproduces, patches in your repo, and replies on the thread.</p>
+              <span class="nd-chip nd-chip--live">Shipped</span>
             </li>
             <li class="nd-step">
               <h3>Resolve back on the page</h3>
@@ -116,8 +116,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             </li>
           </ol>
           <p class="nd-footnote">
-            Steps 1, 2, and 5 work today. Step 3 is planned and step 4 is in development —
-            the REST API already carries what they need.
+            Steps 1, 2, 4 and 5 work today (step 4 over MCP). Step 3 is planned — the
+            REST API already carries what it needs.
           </p>
         </div>
       </section>
@@ -204,20 +204,21 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
                 The API reference isn't public yet.
               </p>
               <p>
-                <span class="nd-chip nd-chip--dev">In development</span>
-                MCP tools that package those calls for Claude and other agents — query
-                open issues, triage, investigate the anchored element, patch, resolve — so
-                the loop from "someone complained here" to "merged" closes without a human
-                carrying the context.
+                <span class="nd-chip nd-chip--live">Today</span>
+                An MCP server for Claude and other agents: list open threads, read one with
+                its anchored element and page context, reply as your site team, resolve —
+                so the loop from "someone complained here" to "merged" closes without a
+                human carrying the context. Agents sign in as you and see only your sites;
+                replying and deleting are separate permissions you opt into.
               </p>
               <p>
-                <a class="nd-btn nd-btn--secondary" href="#waitlist" data-waitlist-interest="mcp">Tell me when MCP tools ship</a>
+                <a class="nd-btn nd-btn--secondary" href="/dashboard/agents">Connect an agent</a>
               </p>
             </div>
             <ul class="nd-agents__status" aria-label="Agent surface status">
               <li><span>REST API</span><span class="nd-chip nd-chip--live">Available today</span></li>
               <li><span>Realtime events</span><span class="nd-chip nd-chip--live">Available today</span></li>
-              <li><span>MCP tools</span><span class="nd-chip nd-chip--dev">In development</span></li>
+              <li><span>MCP tools</span><span class="nd-chip nd-chip--live">Available today</span></li>
             </ul>
           </div>
         </div>
@@ -409,9 +410,9 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
               <summary>Can an AI agent read the feedback?</summary>
               <p>
                 Over the REST API, yes: threads, comments, anchors, and resolve state are
-                served as JSON, and reads are public unless you restrict them. MCP tools
-                that make that a one-liner for Claude and other agents are in development;
-                the waitlist above is how you hear when they ship.
+                served as JSON, and reads are public unless you restrict them. Or connect it
+                over MCP: <code>claude mcp add --transport http annotate https://annotate.therobotlives.com/mcp</code>,
+                sign in, and choose what it may do.
               </p>
             </details>
             <details>

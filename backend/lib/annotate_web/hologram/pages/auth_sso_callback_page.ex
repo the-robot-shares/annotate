@@ -72,6 +72,18 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
             path
         end
 
+      # A validated same-origin `return_to` (MCP OAuth resumes at
+      # /oauth/authorize) wins over the dashboard — but never over the invite
+      # interstitial: a gated account must not reach the consent screen.
+      path =
+        case AnnotateWeb.ReturnTo.safe(query_param(server, "return_to")) do
+          target when is_binary(target) ->
+            if Auth.user_needs_invite?(user), do: path, else: target
+
+          nil ->
+            path
+        end
+
       component =
         put_state(component,
           status: "ok",

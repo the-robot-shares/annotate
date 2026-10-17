@@ -97,6 +97,210 @@ defmodule Annotate.Comments do
     |> Repo.all()
   end
 
+  @doc """
+  Filtered, cursor-paginated thread search across one site (MCP `list_threads`).
+  Newest first by `(inserted_at, id)`. Options (all optional):
+
+    * `:status` — `:open` (default) | `:resolved` | `:all`
+    * `:page_path` — exact path, or a prefix when it ends in `*`; matched
+      against the URL-derived `page_path` and the page's `page_key`
+    * `:origin` — exact thread origin (`https://host[:port]`)
+    * `:since` — `%DateTime{}`: threads created, or commented on, at/after it
+    * `:text` — case-insensitive substring of any live comment body or the page title
+    * `:author` — case-insensitive substring of any live comment author's display name
+    * `:orphaned` — `true` | `false` (anchor lost / found)
+    * `:cursor` — opaque cursor from a previous page
+    * `:limit` — 1..100 (default 25)
+
+  Returns `{threads, next_cursor | nil}`; threads preload page, creator and
+  live comments (author, attachments). The caller is responsible for having
+  authorized `site_id`.
+  """
+  def search_site_threads(site_id, opts \\ []) do
+    limit = opts |> Keyword.get(:limit, 25) |> min(100) |> max(1)
+
+    query =
+      from(t in Thread,
+        as: :thread,
+        join: p in assoc(t, :page),
+        where: p.site_id == ^site_id,
+        order_by: [desc: t.inserted_at, desc: t.id],
+        limit: ^(limit + 1),
+        preload: [
+          :page,
+          :creator,
+          comments:
+            ^from(c in Comment,
+              where: is_nil(c.deleted_at),
+              order_by: [asc: c.inserted_at],
+              preload: [:author, :attachments]
+            )
+        ]
+      )
+      |> filter_status(Keyword.get(opts, :status, :open))
+      |> search_page_path(Keyword.get(opts, :page_path))
+      |> search_origin(Keyword.get(opts, :origin))
+      |> search_since(Keyword.get(opts, :since))
+      |> search_text(Keyword.get(opts, :text))
+      |> search_author(Keyword.get(opts, :author))
+      |> search_orphaned(Keyword.get(opts, :orphaned))
+      |> search_after(decode_cursor(Keyword.get(opts, :cursor)))
+
+    rows = Repo.all(query)
+
+    if length(rows) > limit do
+      page = Enum.take(rows, limit)
+      last = List.last(page)
+      {page, encode_cursor(last)}
+    else
+      {rows, nil}
+    end
+  end
+
+  defp search_page_path(q, nil), do: q
+  defp search_page_path(q, ""), do: q
+
+  defp search_page_path(q, path) when is_binary(path) do
+    if String.ends_with?(path, "*") do
+      pat = (path |> String.trim_trailing("*") |> like_escape()) <> "%"
+      where(q, [t, p], like(t.page_path, ^pat) or like(p.page_key, ^pat))
+    else
+      norm = Annotate.Anchors.normalize_path(path)
+      where(q, [t, p], t.page_path == ^norm or p.page_key == ^path or p.page_key == ^norm)
+    end
+  end
+
+  defp search_origin(q, nil), do: q
+  defp search_origin(q, ""), do: q
+  defp search_origin(q, origin), do: where(q, [t], t.origin == ^String.downcase(origin))
+
+  defp search_since(q, %DateTime{} = since) do
+    where(
+      q,
+      [t],
+      t.inserted_at >= ^since or
+        exists(
+          from(c in Comment,
+            where: c.thread_id == parent_as(:thread).id and c.inserted_at >= ^since
+          )
+        )
+    )
+  end
+
+  defp search_since(q, _), do: q
+
+  defp search_text(q, text) when is_binary(text) and text != "" do
+    pat = "%" <> like_escape(text) <> "%"
+
+    where(
+      q,
+      [t],
+      ilike(t.page_title, ^pat) or
+        exists(
+          from(c in Comment,
+            where:
+              c.thread_id == parent_as(:thread).id and is_nil(c.deleted_at) and
+                ilike(c.body_md, ^pat)
+          )
+        )
+    )
+  end
+
+  defp search_text(q, _), do: q
+
+  defp search_author(q, author) when is_binary(author) and author != "" do
+    pat = "%" <> like_escape(author) <> "%"
+
+    where(
+      q,
+      [t],
+      exists(
+        from(c in Comment,
+          join: a in assoc(c, :author),
+          where:
+            c.thread_id == parent_as(:thread).id and is_nil(c.deleted_at) and
+              ilike(a.display_name, ^pat)
+        )
+      )
+    )
+  end
+
+  defp search_author(q, _), do: q
+
+  defp search_orphaned(q, true), do: where(q, [t], not is_nil(t.orphaned_at))
+  defp search_orphaned(q, false), do: where(q, [t], is_nil(t.orphaned_at))
+  defp search_orphaned(q, _), do: q
+
+  defp search_after(q, {%DateTime{} = at, id}),
+    do: where(q, [t], t.inserted_at < ^at or (t.inserted_at == ^at and t.id < ^id))
+
+  defp search_after(q, _), do: q
+
+  defp like_escape(s),
+    do:
+      s
+      |> String.replace("\\", "\\\\")
+      |> String.replace("%", "\\%")
+      |> String.replace("_", "\\_")
+
+  defp encode_cursor(%Thread{inserted_at: at, id: id}),
+    do: Base.url_encode64(DateTime.to_iso8601(at) <> "|" <> id, padding: false)
+
+  defp decode_cursor(nil), do: nil
+
+  defp decode_cursor(cursor) when is_binary(cursor) do
+    with {:ok, raw} <- Base.url_decode64(cursor, padding: false),
+         [iso, id] <- String.split(raw, "|", parts: 2),
+         {:ok, at, _} <- DateTime.from_iso8601(iso),
+         {:ok, id} <- Ecto.UUID.cast(id) do
+      {at, id}
+    else
+      _ -> :invalid
+    end
+  end
+
+  defp decode_cursor(_), do: :invalid
+
+  @doc """
+  A thread and its site by thread id alone (MCP tools accept a bare thread
+  id). nil for a malformed or unknown id. The caller MUST then authorize the
+  returned site for the user (non-member ⇒ not_found).
+  """
+  def get_thread_and_site(thread_id) do
+    with {:ok, id} <- Ecto.UUID.cast(thread_id),
+         {%Thread{} = thread, %Site{} = site} <-
+           from(t in Thread,
+             join: p in assoc(t, :page),
+             join: s in Site,
+             on: s.id == p.site_id,
+             where: t.id == ^id,
+             select: {t, s}
+           )
+           |> Repo.one() do
+      {thread, site}
+    else
+      _ -> nil
+    end
+  end
+
+  @doc "Thread with page, creator and live comments (author, attachments)."
+  def preload_thread_detail(%Thread{} = thread) do
+    Repo.preload(
+      thread,
+      [
+        :page,
+        :creator,
+        comments:
+          from(c in Comment,
+            where: is_nil(c.deleted_at),
+            order_by: [asc: c.inserted_at],
+            preload: [:author, :attachments]
+          )
+      ],
+      force: true
+    )
+  end
+
   defp filter_status(query, :open), do: where(query, [t], t.status == :open)
   defp filter_status(query, :resolved), do: where(query, [t], t.status == :resolved)
   defp filter_status(query, _), do: query
@@ -339,6 +543,46 @@ defmodule Annotate.Comments do
       {:ok, comment}
     end
   end
+
+  @doc """
+  A live comment, its thread and its site by comment id alone (MCP
+  `delete_comment`). nil for a malformed/unknown/already-deleted id. The
+  caller MUST authorize the returned site for the user.
+  """
+  def get_comment_and_site(comment_id) do
+    with {:ok, id} <- Ecto.UUID.cast(comment_id),
+         {%Comment{} = comment, %Thread{} = thread, %Site{} = site} <-
+           from(c in Comment,
+             join: t in assoc(c, :thread),
+             join: p in assoc(t, :page),
+             join: s in Site,
+             on: s.id == p.site_id,
+             where: c.id == ^id and is_nil(c.deleted_at),
+             select: {c, t, s}
+           )
+           |> Repo.one() do
+      {comment, thread, site}
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Dashboard/MCP team moderation rule (single source; was private to the
+  inbox panel): a site **admin or owner** may soft-delete any comment; any
+  member may delete their OWN team replies (the `(site_id, user_id)` team
+  commenter). `role` must be the user's CURRENT role on `site`.
+  """
+  def team_can_delete?(%Comment{} = comment, %Site{} = site, user_id, role)
+      when is_binary(user_id) do
+    Annotate.SiteMembers.role_at_least?(role, :admin) or
+      case Repo.get_by(Annotate.Schema.Annotate.Commenter, site_id: site.id, user_id: user_id) do
+        %{id: id} -> comment.author_id == id
+        nil -> false
+      end
+  end
+
+  def team_can_delete?(_, _, _, _), do: false
 
   @doc "True when the commenter may edit/delete: author, else site owner."
   def comment_manageable_by?(%Comment{} = comment, site, commenter)

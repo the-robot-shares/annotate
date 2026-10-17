@@ -97,8 +97,9 @@ defmodule AnnotateWeb.SEOTest do
       assert body =~ "[Terms of Service](https://#{@host}/terms)"
       assert body =~ "llms-full.txt"
       assert body =~ "Not shipped yet"
-      assert body =~ "in development"
-      assert body =~ "no MCP server yet"
+      assert body =~ "MCP server (Streamable HTTP)"
+      assert body =~ "/mcp"
+      refute body =~ "no MCP server yet"
     end
 
     test "llm.txt alias is byte-identical to llms.txt", %{conn: conn} do

@@ -167,6 +167,36 @@ defmodule Annotate.Anchors do
 
   # ── Deep link ────────────────────────────────────────────────────
 
+  @doc """
+  `deep_link/2`, but only when `url` is an http(s) URL whose origin is one of
+  the site's `allowed_origins` (exact, with or without the default port).
+  A thread's `url` is visitor-submitted and never validated at write time, so
+  anything handed to a human or an agent as a link must pass this first;
+  otherwise nil.
+  """
+  def safe_deep_link(%Site{} = site, url, id) do
+    if url_on_site?(site, url), do: deep_link(url, id), else: nil
+  end
+
+  def safe_deep_link(_, _, _), do: nil
+
+  @doc "True when `url`'s origin is one of the site's allowed origins."
+  def url_on_site?(%Site{allowed_origins: origins}, url)
+      when is_binary(url) and is_list(origins) do
+    case URI.new(url) do
+      {:ok, %URI{scheme: scheme, host: host, userinfo: nil} = uri}
+      when scheme in ["http", "https"] and is_binary(host) and host != "" ->
+        o = origin(uri)
+        explicit = "#{scheme}://#{String.downcase(host)}:#{uri.port}"
+        o in origins or explicit in origins
+
+      _ ->
+        false
+    end
+  end
+
+  def url_on_site?(_, _), do: false
+
   @doc "`url` (sans fragment) + `#annotate=<thread_id>`; nil when the thread has no url."
   def deep_link(nil, _id), do: nil
 
