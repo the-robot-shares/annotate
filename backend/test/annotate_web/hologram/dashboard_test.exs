@@ -244,6 +244,8 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
       conn = signed_in_conn(1)
       html = conn |> recycle() |> get("/dashboard") |> html_response(200)
       assert html =~ "Add your first site"
+      assert html =~ "<noizu-footer-brand"
+      assert html =~ ~s(data-cy="footer-terms")
 
       user = Repo.get_by!(Annotate.Schema.Users.User, email: "h1@example.com")
 

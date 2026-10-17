@@ -585,44 +585,33 @@ a:hover {
   max-width: 64ch;
 }
 
-/* ── Footer ──────────────────────────────────────────────────── */
-.nd-footer {
+/* ── Footer (SiteFooter component) ───────────────────────────── */
+.nd-site-footer {
+  margin-top: auto;
   border-top: 1px solid var(--nd-mist);
-  padding: var(--nd-space-6) 0 var(--nd-space-8);
+  padding: var(--nd-space-4, 32px) 0 var(--nd-space-6, 48px);
+  /* tobor-kit <noizu-footer-brand> theming (Night Desk) */
+  --noizu-footer-brand-fg: var(--nd-text-secondary);
+  --noizu-footer-brand-brand-color: var(--nd-ember-bright);
+  --noizu-footer-brand-font: var(--nd-font-body, "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-brand-font: var(--nd-font-display, "Geist", "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-size: 14px;
 }
-.nd-footer__inner {
-  max-width: var(--nd-max);
+.nd-site-footer__inner {
+  max-width: var(--nd-max, 1160px);
   margin: 0 auto;
-  padding: 0 var(--nd-space-3);
+  padding: 0 var(--nd-space-3, 24px);
   display: flex;
-  gap: var(--nd-space-4);
+  gap: var(--nd-space-3, 24px);
   flex-wrap: wrap;
   align-items: baseline;
+  justify-content: space-between;
 }
-.nd-footer__brand {
-  font-family: var(--nd-font-display);
-  color: var(--nd-text-bright);
-  font-weight: 500;
-}
-.nd-footer__links {
-  display: flex;
-  gap: var(--nd-space-3);
-  flex-wrap: wrap;
-  margin-left: auto;
-}
-.nd-footer__links a {
-  color: var(--nd-text-secondary);
-  font-size: 15px;
-}
-.nd-footer__links a:hover {
-  color: var(--nd-text-bright);
-}
-.nd-footer__disclosure {
-  flex-basis: 100%;
-  font-size: 13px;
-  color: var(--nd-text-secondary);
-  margin: var(--nd-space-2) 0 0;
-}
+.nd-site-footer__links { display: flex; gap: var(--nd-space-3, 24px); }
+.nd-site-footer__links a { color: var(--nd-text-secondary); font-size: 14px; text-decoration: none; }
+.nd-site-footer__links a:hover { color: var(--nd-text-bright); }
+.nd-site-footer__links a:focus-visible { outline: 2px solid var(--nd-ember-bright, #fb923c); outline-offset: 2px; }
+.nd-site-footer__brand { display: inline-block; }
 
 /* ── Legal pages (/privacy, /terms) ──────────────────────────── */
 .nd-legal { padding: var(--nd-space-8) 0 var(--nd-space-12); }

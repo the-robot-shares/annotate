@@ -17,6 +17,7 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
   use Hologram.Component
 
   alias AnnotateWeb.Hologram.Components.SignOutButton
+  alias AnnotateWeb.Hologram.Components.SiteFooter
 
   prop :user, :map, default: nil
   prop :sites, :list, default: []
@@ -53,7 +54,6 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
             </span>
           {/if}
           <SignOutButton cid="dsh_sign_out" />
-          <p class="dsh-sidebar__legal"><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></p>
         </div>
       </aside>
       <div class="dsh-main">
@@ -68,6 +68,7 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
         <main class="dsh-main__body" id="main">
           <slot />
         </main>
+        <SiteFooter />
       </div>
     </div>
     """

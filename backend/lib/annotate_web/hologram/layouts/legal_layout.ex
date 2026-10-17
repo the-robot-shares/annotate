@@ -10,6 +10,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
 
   use Hologram.Component
 
+  alias AnnotateWeb.Hologram.Components.SiteFooter
+
   prop :page_title, :string, default: "annotate"
   prop :description, :string, default: ""
   prop :path, :string, default: "/"
@@ -57,17 +59,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
         <main id="main" class="nd-legal">
           <slot />
         </main>
-        <footer class="nd-footer">
-          <div class="nd-footer__inner">
-            <span class="nd-footer__brand">annotate</span>
-            <nav class="nd-footer__links" aria-label="Footer">
-              <a href="/privacy">Privacy</a>
-              <a href="/terms">Terms</a>
-              <a href="https://status.noizu.com">Status</a>
-              <a href="/">Home</a>
-            </nav>
-          </div>
-        </footer>
+        <SiteFooter />
       </body>
     </html>
     """

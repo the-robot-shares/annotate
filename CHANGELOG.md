@@ -4,6 +4,8 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- footer: one shared `SiteFooter` (Privacy / Terms + tobor-kit `<noizu-footer-brand>` "A The Robot Lives Joint", CDN-pinned to the live kit sha, themed via `--noizu-footer-brand-*`) on the landing, legal pages and owner dashboard; sitemap link and every "AI-generated" disclosure removed from the site (hero caption now "The rail on this page is the real widget."). legal pages #107 → stage (#108) → main (#109).
+
 - legal: add `/privacy` and `/terms` (Night Desk `LegalLayout`; as-is, no SLA, no data guarantee, AUP, indemnity; governing law is a `[TODO: confirm]`), linked from the landing nav + footer, the dashboard sidebar, `/sign-in` and the sign-in modal copy; real sitemap.xml; legal routes get the landing hardening headers. (PR pending)
 
 - feat(auth-ui): navbar Sign in / Sign up now open the tobor-kit `<noizu-auth>` modal in its new provider-redirect mode (`redirect-providers="github"`, tobor-kit #110 → main #112, CDN `sha-0e5a20e`): centred dialog + dimmed backdrop, title per flow, close ×, Esc, click-outside, focus trap/return, scroll lock, `aria-modal`, GitHub mark, "not configured" state (`unavailable-providers`); declarative CSP-safe triggers; Night Desk / style-guide looks via `--auth-*` tokens; copy from `/js/annotate-auth.js`. Replaces the hand-rolled GithubAuth card (rendered unstyled inline on the landing) and deletes the dead FloatingAuth component + its CSS. Widget/kit pin bumped `sha-5f07f4c` → `sha-0e5a20e` in all 5 places. Verified in Chrome on a dev server (landing + app navbar).
