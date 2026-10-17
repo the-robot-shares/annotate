@@ -42,7 +42,7 @@ config :annotate, :marketing,
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
       # Exact tobor-kit release; keep in step with AnnotateWeb.WidgetCdn.
-      "https://cdn.derobot.is/tobor-kit/v1.0.0/annotate.js"
+      "https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 

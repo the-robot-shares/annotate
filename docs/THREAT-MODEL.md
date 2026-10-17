@@ -42,7 +42,7 @@ graph LR
 | T-04 | Med | Uploads | Declared `bytes` and content-type are not enforced or verified at the storage layer; `complete` never checks the object | Open |
 | T-05 | Med | Tenant isolation | One global HS256 secret signs tokens for all sites; no `kid`/rotation | Partial |
 | T-06 | Med | Authorization | Resolve/reopen/re-anchor need only a site-valid token, not authorship; default policy admits any Authentik user | Open |
-| T-07 | Low | XSS | `display_name` is interpolated into an inline `<script>` on `/embed/callback` without `</script>` escaping | Open |
+| T-07 | Low | XSS | `display_name` is interpolated into an inline `<script>` on `/embed/callback` without `</script>` escaping | **Fixed** 2026-10-17 for the payload (JSON encoded `html_safe`, `/` escaped, so `</script` cannot appear); CSP on `/embed/callback` still open |
 | T-08 | Low | Uploads | Sweeper deletes `pending` rows but never the stored objects; no per-user quota | Open |
 | T-09 | Med | Websocket | Token verified once at connect; socket outlives the 15-minute token | Open |
 | T-10 | Med | Host-assert | Assertions have no `jti`; replayable for up to 5 minutes | Open |
