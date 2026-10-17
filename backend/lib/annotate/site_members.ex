@@ -140,7 +140,9 @@ defmodule Annotate.SiteMembers do
 
   Returns `{:ok, member}` · `{:error, :user_not_found}` ·
   `{:error, :user_not_verified}` · `{:error, :already_member}` ·
-  `{:error, :invalid_role}` · `{:error, changeset}`.
+  `{:error, :invalid_role}` · `{:error, :plan_user_limit}` (billing on and the
+  SITE OWNER's plan users limit is reached — distinct members across the
+  owner's sites) · `{:error, changeset}`.
   """
   def add_member(site, who, role, inviter \\ nil)
 
@@ -209,7 +211,8 @@ defmodule Annotate.SiteMembers do
 
   defp insert_member(site, user_id, role, inviter) do
     with {:role, role} when role != nil <- {:role, normalize_role(role)},
-         {:existing, nil} <- {:existing, get_membership(site, user_id)} do
+         {:existing, nil} <- {:existing, get_membership(site, user_id)},
+         :ok <- Annotate.Billing.check_member_addition(site.id) do
       %SiteMember{}
       |> SiteMember.changeset(%{
         site_id: site.id,

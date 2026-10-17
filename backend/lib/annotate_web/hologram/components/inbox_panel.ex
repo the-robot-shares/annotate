@@ -259,6 +259,7 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
       else
         {:body, _} -> {:error, "Write a reply first (max #{@max_body} characters)."}
         {:thread, _} -> {:error, "That thread no longer exists."}
+        {:error, :billing_read_only} -> {:error, Annotate.Billing.locked_message()}
         _ -> {:error, "Could not send the reply."}
       end
     end)

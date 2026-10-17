@@ -30,6 +30,14 @@ defmodule AnnotateWeb.AnnotateAPI.ThreadCommentsController do
         {:error, :attachment_mismatch} ->
           conn |> put_status(:unprocessable_entity) |> json(%{"error" => "attachment_mismatch"})
 
+        {:error, :billing_read_only} ->
+          conn
+          |> put_status(:forbidden)
+          |> json(%{
+            "error" => "billing_read_only",
+            "message" => Annotate.Billing.locked_message()
+          })
+
         {:error, _} ->
           conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
       end
