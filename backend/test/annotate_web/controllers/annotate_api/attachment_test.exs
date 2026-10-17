@@ -60,12 +60,27 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentTest do
       assert %{"error" => "unsupported_content_type"} = json_response(conn, 400)
     end
 
-    test "oversized upload → 413", %{conn: conn, site: site} do
+    test "oversized image → 413 image_too_large (1MB cap)", %{conn: conn, site: site} do
       conn =
         conn
         |> post("/api/v1/attachments/presign?site=#{site.slug}", %{
           "filename" => "big.png",
           "content_type" => "image/png",
+          "bytes" => 21 * 1024 * 1024
+        })
+
+      assert %{
+               "error" => "image_too_large",
+               "message" => "That image is too large. Please upload an image of 1 MB or less."
+             } = json_response(conn, 413)
+    end
+
+    test "oversized non-image → 413 too_large (site max_upload_mb)", %{conn: conn, site: site} do
+      conn =
+        conn
+        |> post("/api/v1/attachments/presign?site=#{site.slug}", %{
+          "filename" => "big.pdf",
+          "content_type" => "application/pdf",
           "bytes" => 21 * 1024 * 1024
         })
 
