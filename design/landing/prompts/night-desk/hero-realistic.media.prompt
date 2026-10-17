@@ -1,0 +1,128 @@
+# ============================================================================
+# annotate landing — Night Desk direction — HERO, realistic variant (16:9)
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: output must be disclosed as AI-generated when published
+# (caption, alt text, or credits line).
+# Run: generate-media-prompt design/landing/prompts/night-desk/hero-realistic.media.prompt
+# Replaces the abstract night-desk hero with a believable screenshot-style
+# product shot: real-looking dark pricing page + annotate comment rail.
+# Round 3: explicit string manifest, fewer distinct strings, rail docked.
+# ============================================================================
+schema: '0.4'
+
+id: annotate-landing-nightdesk-hero-realistic
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Realistic product screenshot of a dark-themed SaaS pricing page in a clean
+    flat browser window: three small window dots, address bar completely
+    empty. Deep near-black background around the window with one
+    soft warm ember glow behind it. The page is a modern dark UI: near-black
+    canvas, slightly raised dark cards, hairline gray borders. Top-left heading
+    "Simple pricing" with subheading "Pay for the team, not for seats".
+    Below, three plan cards side by side. Left card: muted gray title
+    "Starter" and muted price "$5" and nothing else. Right card: muted gray
+    title "Pro" and muted price "$25" and nothing else. Center card is highlighted with a thin ember-orange
+    border: title "Team" in orange, large price "$12", one gray line reading
+    "per seat / month", two short feature lines "Unlimited comments" and
+    "Email summaries", and a solid orange button "Start free trial". A crisp
+    glowing ember-orange ring (soft warm bloom, the
+    single brightest element in the scene) is drawn tightly around the words "per seat" within
+    that "per seat / month" line — an annotation drawn over the existing words so
+    they stay readable inside the ring, not a copy of them. A thin luminous orange connector line runs from the
+    ring's right edge horizontally to a comment rail docked flush against the
+    INSIDE right edge of the browser window. The rail is a dark raised panel with a
+    hairline gray border and an almost-empty header bar with exactly two rounded comment cards. First
+    card: small circular avatar with initials "MK" on a muted orange-tinted
+    background, name "Mara K.", timestamp "2m", comment text "Can we say
+    \"per seat\" here?", and below it an indented reply: smaller avatar "DT",
+    name "Devon T.", one line "Legal flagged it. Switch to per user." Second
+    card: avatar "JS", name "Jonas S.", one line "Looks good otherwise."
+    The page uses EXACTLY these strings and no others: Simple pricing · Pay
+    for the team, not for seats · Starter · $5 · Team · $12 · per seat /
+    month · Pro · $25 · Unlimited comments · Email summaries · Start free
+    trial · Mara K. · 2m · Can we say "per seat" here? · Devon T. · Legal
+    flagged it. Switch to per user. · Jonas S. · Looks good otherwise. · MK ·
+    DT · JS. All text crisp, correctly spelled, clean grotesque sans-serif,
+    high contrast, no warping, no duplicated strings. Calm, precise,
+    professional — believable enough to pass for a real app screenshot.
+  negative: garbled glyphs, pseudo-letters, distorted or misspelled words,
+    duplicated strings, hex color codes, hash symbols, any text in the rail
+    header bar, any strings beyond the listed manifest, any URL or
+    address-bar text, extra buttons or feature lines, watermarks, real brand
+    logos, browser logo, photographic human faces, photorealistic people, a
+    second glow color, neon signage, rainbow gradients, light theme,
+    cluttered layout, lens flares, floating detached comment card, comment
+    card overlapping the window edge, ring drawn as separate text
+  style: believable UI product screenshot, dark-native flat design, crisp
+    vector-sharp interface rendering, single warm ember accent, soft bloom,
+    generous negative space around the window
+
+output:
+  formats:
+    - format: png
+  dimensions:
+    width: 1344
+    height: 768
+    aspect_ratio: '16:9'
+
+requirements:
+  subject: dark pricing page with ember ring on "per seat" and right-docked comment rail
+  composition: browser window centered with margin, rail docked flush inside the window's right edge, ring focal on "per seat"
+  palette: near-black canvas, dark UI surfaces, single ember accent #F97316
+  do:
+    - only the listed strings appear, spelled exactly
+    - avatars are colored initials circles, never faces
+    - ring hugs the existing "per seat" words, connector reaches the rail
+  dont:
+    - any URL, brand logo, or extra text
+    - photographic humans
+    - more than one accent hue
+
+eval:
+  pass_threshold: 0.75
+  required_pass:
+    - text_legibility
+    - layout_realism
+  criteria:
+    text_legibility:
+      weight: 3
+      description: Every visible UI string matches the manifest, crisp and correctly spelled
+      fail_signals:
+        - garbled or pseudo-letter glyphs
+        - warped, duplicated, or misspelled words
+    layout_realism:
+      weight: 3
+      description: Believable pricing page; comment rail docked flush inside the window
+      fail_signals:
+        - floating detached panels
+        - card overlapping the window frame
+    ring_and_connection:
+      weight: 2
+      description: Ember ring hugs "per seat"; thin connector reaches the pinned comment
+      fail_signals:
+        - ring absent, misplaced, or rendered as its own text
+        - connector detached or pointing at nothing
+    palette_discipline:
+      weight: 2
+      description: Near-black canvas with a single warm ember accent
+      fail_signals:
+        - second glowing hue (blue, green, pink)
+        - light theme or washed-out surfaces
+  reject_if:
+    - garbled or misspelled text anywhere in the UI
+    - real brand logo, URL, or watermark
+    - photographic human face
+    - more than one glow color
+    - comment card detached from the window edge
+
+tags:
+  - marketing
+  - landing-hero
+  - annotate
+  - ai-generated
+product_targets: [annotate.therobotlives.com]

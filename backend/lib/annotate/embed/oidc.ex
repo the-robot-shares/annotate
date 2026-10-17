@@ -40,6 +40,8 @@ defmodule Annotate.Embed.OIDC do
 
     # OpenIDConnect returns %URI{} (older builds: a string); tests may fake an
     # {:ok, _}. Normalize to {:ok, uri_string} for the controller.
+    # OpenIDConnect.authorization_uri/3 merges `params` into the authorize
+    # query with Map.merge/2 — atom-keyed map per its @spec.
     case impl().authorization_uri(config, config.redirect_uri, params) do
       {:ok, uri} -> {:ok, uri}
       %URI{} = uri -> {:ok, URI.to_string(uri)}
@@ -49,8 +51,13 @@ defmodule Annotate.Embed.OIDC do
   end
 
   def fetch_tokens(%{"code" => code, "redirect_uri" => redirect_uri}) do
-    # OpenIDConnect.fetch_tokens/2 takes a keyword list of opts.
-    impl().fetch_tokens(config(), code: code, redirect_uri: redirect_uri)
+    # OpenIDConnect.fetch_tokens/2 takes a MAP of atom-keyed token-request
+    # params (merged into the POST form via Map.merge/2). A keyword list
+    # raises BadMapError mid-exchange — that was the prod 500 on
+    # /embed/callback (2026-10-16): the crash happened AFTER the session
+    # state/nonce checks, so the popup died with an opaque 500 at the code
+    # exchange even though the cookie flow was healthy.
+    impl().fetch_tokens(config(), %{code: code, redirect_uri: redirect_uri})
   end
 
   def verify(id_token) do

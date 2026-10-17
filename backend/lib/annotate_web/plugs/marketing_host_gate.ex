@@ -53,7 +53,9 @@ defmodule AnnotateWeb.Plugs.MarketingHostGate do
     s3 = s3_origin()
 
     img = ["'self'", "data:", "blob:", @cdn] ++ List.wrap(s3)
-    connect = ["'self'"] ++ List.wrap(api_base)
+    # The comment widget PUTs attachments straight to the presigned storage
+    # url (XHR), so the storage origin must be in connect-src as well.
+    connect = ["'self'"] ++ List.wrap(api_base) ++ List.wrap(s3)
 
     [
       "default-src 'self'",
@@ -75,20 +77,8 @@ defmodule AnnotateWeb.Plugs.MarketingHostGate do
   defp api_base_with_ws("http://" <> rest), do: ["http://#{rest}", "ws://#{rest}"]
   defp api_base_with_ws(_), do: nil
 
-  # Screenshot/image URLs may be served straight off object storage; include the
-  # configured endpoint host so they render under the CSP. Internal cluster
-  # endpoints (minio .svc.cluster.local) never match browser origins in
-  # practice — harmless to list, and correct for dev/ingress setups.
-  defp s3_origin do
-    case Application.get_env(:annotate, Annotate.Storage) do
-      kw when is_list(kw) ->
-        case Keyword.get(kw, :host) do
-          host when is_binary(host) and host != "" -> host
-          _ -> nil
-        end
-
-      _ ->
-        nil
-    end
-  end
+  # Screenshot/image URLs are served straight off object storage via presigned
+  # urls, and uploads PUT to it: list the browser-facing (public) storage
+  # origin — the same origin `Annotate.Storage` signs presigned urls for.
+  defp s3_origin, do: Annotate.Storage.public_origin()
 end
