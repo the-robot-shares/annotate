@@ -17,6 +17,12 @@ Conventions:
 - Anonymous (guest) thread creation is **off by default** — see below. Writes
   are rate-limited per (ip, site); reads are not counted.
 
+## Agents (MCP)
+
+AI agents use the **MCP server** at `https://annotate.therobotlives.com/mcp`
+(OAuth 2.1 as a dashboard user, per-call membership checks, untrusted-field
+labelling), not this REST API. See [`MCP.md`](MCP.md).
+
 ## Site provisioning
 
 ```

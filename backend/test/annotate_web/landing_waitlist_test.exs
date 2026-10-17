@@ -25,13 +25,12 @@ defmodule AnnotateWeb.LandingWaitlistTest do
     test "renders the key strings", %{html: html} do
       for s <- [
             "From a comment on the page to a fix in the repo.",
-            "is in development",
+            "over MCP, an agent",
             "Comment. Triage. Ticket. Patch. Resolve.",
             "Built to be read by software.",
             "Where the work goes next.",
             "Get one email when these ship.",
             "MCP tools",
-            "In development",
             "Planned",
             "Available today",
             "Jira",
@@ -68,7 +67,7 @@ defmodule AnnotateWeb.LandingWaitlistTest do
 
     test "meta carries the new title and OG image", %{html: html} do
       assert html =~ "<title>annotate — site feedback that points at the thing</title>"
-      assert html =~ "agent tools are in development"
+      assert html =~ "with an AI agent over MCP"
       assert html =~ "/images/landing/og.png"
     end
   end

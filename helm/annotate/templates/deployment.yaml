@@ -6,6 +6,12 @@ metadata:
     {{- include "annotate.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicas }}
+  # MCP sessions (Streamable HTTP, /mcp) are node-local (Registry + ETS) and
+  # the app runs one replica: Recreate never runs two pods side by side, so a
+  # client is never split across an old and a new pod mid-session. A deploy
+  # drops sessions; clients get 404 and re-initialize (benign per spec).
+  strategy:
+    type: {{ .Values.strategy | default "Recreate" }}
   selector:
     matchLabels:
       {{- include "annotate.selectorLabels" . | nindent 6 }}

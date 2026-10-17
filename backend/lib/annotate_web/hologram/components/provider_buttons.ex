@@ -11,13 +11,16 @@ defmodule AnnotateWeb.Hologram.Components.ProviderButtons do
 
   prop :providers, :list, default: []
   prop :invite, :string, default: ""
+  # Same-origin post-sign-in path (already validated by the page with
+  # AnnotateWeb.ReturnTo.safe/1); rides `?return_to=` into prepare_oauth.
+  prop :return_to, :string, default: ""
 
   def template do
     ~HOLO"""
     <div class="sg-auth__providers" data-cy="provider-buttons">
       {%for p <- @providers}
         {%if p.configured}
-          <p><a class="btn btn-black" href={href(p.id, @invite)} data-cy={"sign-in-" <> p.id}>{p.label}</a></p>
+          <p><a class="btn btn-black" href={href(p.id, @invite, @return_to)} data-cy={"sign-in-" <> p.id}>{p.label}</a></p>
         {%else}
           <p><button type="button" class="btn btn-black" disabled aria-disabled="true">{p.label}</button></p>
           <p class="sg-auth__note" role="status" data-cy={"sign-in-unconfigured-" <> p.id}>{p.name} sign-in is not configured yet.</p>
@@ -27,9 +30,19 @@ defmodule AnnotateWeb.Hologram.Components.ProviderButtons do
     """
   end
 
-  def href(id, ""), do: "/auth/" <> id
-  def href(id, nil), do: "/auth/" <> id
-  def href(id, invite), do: "/auth/" <> id <> "?invite=" <> URI.encode_www_form(invite)
+  def href(id, invite), do: href(id, invite, "")
+
+  def href(id, invite, return_to) do
+    params =
+      [{"invite", invite}, {"return_to", return_to}]
+      |> Enum.reject(fn {_k, v} -> v == nil or v == "" end)
+      |> Enum.map(fn {k, v} -> k <> "=" <> URI.encode_www_form(v) end)
+
+    case params do
+      [] -> "/auth/" <> id
+      _ -> "/auth/" <> id <> "?" <> Enum.join(params, "&")
+    end
+  end
 
   @doc "Provider rows for the configured dashboard login methods."
   def providers do

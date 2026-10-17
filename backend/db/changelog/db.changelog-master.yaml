@@ -107,3 +107,6 @@ databaseChangeLog:
   - include:
       file: 036-annotate-oauth-identities.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 037-annotate-mcp-oauth.yaml
+      relativeToChangelogFile: true
