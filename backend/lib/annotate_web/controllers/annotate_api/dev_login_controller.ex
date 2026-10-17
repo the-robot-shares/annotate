@@ -42,15 +42,9 @@ if Mix.env() == :dev do
            {:ok, commenter} <- Sites.upsert_commenter_by_external(site, claims["sub"], claims),
            {:ok, %{access_token: access, refresh_token: refresh}} <-
              ApiToken.issue_pair(commenter, site, origin, %{}, :none) do
-        payload = %{
-          "type" => "annotate-auth",
-          "access" => access,
-          "refresh" => refresh,
-          "commenter" => commenter.id,
-          "display_name" => commenter.display_name
-        }
+        payload = AnnotateWeb.AnnotateAPI.PopupPayload.success(access, refresh, commenter)
 
-        html(conn, postmessage_page(Jason.encode!(payload), origin))
+        html(conn, postmessage_page(Jason.encode!(payload, escape: :html_safe), origin))
       else
         {:error, reason} when is_binary(reason) ->
           conn |> put_status(:bad_request) |> html(form_page(slug, origin, reason))
