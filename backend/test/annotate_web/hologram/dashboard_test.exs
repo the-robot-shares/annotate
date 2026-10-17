@@ -173,7 +173,7 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
                  o.server
                )
 
-      assert e =~ "sign in with GitHub"
+      assert e =~ "sign in first"
 
       assert {:failed, %{error: lock}} =
                run_command(

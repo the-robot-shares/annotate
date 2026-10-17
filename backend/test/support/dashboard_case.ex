@@ -21,6 +21,17 @@ defmodule AnnotateWeb.DashboardCase do
 
     {:ok, %{user: user, session: session}} = Annotate.Dashboard.GithubLogin.sign_in(profile)
 
+    # The dashboard is invite-only; these helpers model INVITED (active)
+    # owners unless `pending: true` is passed in attrs.
+    user =
+      if Map.get(attrs, :pending) do
+        user
+      else
+        user
+        |> Ecto.Changeset.change(status: :active, approved_at: DateTime.utc_now())
+        |> Annotate.Repo.update!()
+      end
+
     {:ok, token, _} =
       Annotate.Guardian.encode_and_sign(session, %{}, token_type: "access", ttl: {1, :hour})
 
@@ -48,6 +59,15 @@ defmodule AnnotateWeb.DashboardCase do
 
     conn = dispatch(build_conn(), AnnotateWeb.Endpoint, :get, "/auth/github?" <> q, nil)
     conn = conn |> recycle() |> dispatch(AnnotateWeb.Endpoint, :get, redirected_to(conn), nil)
+
+    # Invite-only dashboard: model an invited (active) owner.
+    import Ecto.Query
+
+    Annotate.Repo.update_all(
+      from(u in Annotate.Schema.Users.User, where: u.email == ^"h#{n}@example.com"),
+      set: [status: :active, approved_at: DateTime.utc_now()]
+    )
+
     conn |> recycle() |> dispatch(AnnotateWeb.Endpoint, :get, redirected_to(conn), nil)
   end
 end

@@ -59,6 +59,19 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
          {:ok, server, user, _orgs} <- Auth.issue_tokens_from_session(server, session) do
       path = Auth.post_auth_path(user)
 
+      # An invite carried through OAuth that could not be redeemed: the
+      # interstitial explains why (the account itself was created, pending).
+      path =
+        case query_param(server, "invite_error") do
+          reason when reason in ["invalid_token", "invite_exhausted"] and is_binary(path) ->
+            if String.starts_with?(path, "/auth/invite-required"),
+              do: path <> "?invite_error=" <> reason,
+              else: path
+
+          _ ->
+            path
+        end
+
       component =
         put_state(component,
           status: "ok",
@@ -106,6 +119,16 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
 
   defp human_error("github_email_in_use"),
     do: "That email is already linked to a different GitHub account."
+
+  defp human_error("google_email_unverified"),
+    do:
+      "Google did not confirm your email address as verified, so we can't use it to sign you in."
+
+  defp human_error("google_email_in_use"),
+    do: "That email is already linked to a different Google account."
+
+  defp human_error("google_not_configured"), do: "Google sign-in is not configured yet."
+  defp human_error("google_failed"), do: "Google sign-in failed. Try again."
 
   defp human_error("github_not_configured"), do: "GitHub sign-in is not configured yet."
   defp human_error("github_failed"), do: "GitHub sign-in failed. Try again."
