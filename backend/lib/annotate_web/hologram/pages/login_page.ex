@@ -6,12 +6,12 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
 
   alias Hologram.UI.Link
   alias Annotate.Hologram.Auth
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Pages.ForgotPasswordPage
   alias AnnotateWeb.Hologram.Pages.SignupPage
 
   route "/login"
-  layout MainLayout, page_title: "Log In"
+  layout AuthLayout, page_title: "Log In"
   middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
@@ -33,15 +33,15 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Log In</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Log In</h1>
 
       {%if @step == "email"}
-        <form class="sg-form" $submit.prevent_default={:submit_email}>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_email}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="login-email">Email</label>
             <input
               id="login-email"
@@ -53,30 +53,30 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
               $change={:set_email}
             />
           </div>
-          <button type="submit" class="btn btn-black">Continue</button>
-          <div class="sg-form-footer">
+          <button type="submit" class="nd-btn nd-btn--primary">Continue</button>
+          <div class="nd-auth__footer">
             <p>Don't have an account? <Link to={SignupPage}>Sign up</Link></p>
           </div>
         </form>
       {/if}
 
       {%if @step == "sso"}
-        <div class="sg-stack">
+        <div class="nd-auth__stack">
           <p>{@email}</p>
           {%for provider <- @domain_providers}
-            <a href={Auth.sso_path(provider)} class="btn btn-black">{Auth.sso_label(provider)}</a>
+            <a href={Auth.sso_path(provider)} class="nd-btn nd-btn--primary">{Auth.sso_label(provider)}</a>
           {/for}
-          <button type="button" class="btn btn-outline" $click={:use_password}>Use password instead</button>
-          <button type="button" class="btn btn-outline" $click={:back_to_email}>Change email</button>
+          <button type="button" class="nd-btn nd-btn--ghost" $click={:use_password}>Use password instead</button>
+          <button type="button" class="nd-btn nd-btn--ghost" $click={:back_to_email}>Change email</button>
         </div>
       {/if}
 
       {%if @step == "password"}
-        <form class="sg-form" $submit.prevent_default={:submit_password}>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_password}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="login-password-email">Email</label>
             <input
               id="login-password-email"
@@ -88,7 +88,7 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
               $change={:set_email}
             />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="login-password">Password</label>
             <input
               id="login-password"
@@ -100,10 +100,10 @@ defmodule AnnotateWeb.Hologram.Pages.LoginPage do
               $change={:set_password}
             />
           </div>
-          <button type="submit" class="btn btn-black" disabled={@loading}>
+          <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
             {%if @loading}Logging in...{%else}Log In{/if}
           </button>
-          <div class="sg-form-footer">
+          <div class="nd-auth__footer">
             <p><Link to={ForgotPasswordPage}>Forgot password?</Link></p>
             <p><a href="#" $click.prevent_default={:back_to_email}>Change email</a></p>
             <p>Don't have an account? <Link to={SignupPage}>Sign up</Link></p>

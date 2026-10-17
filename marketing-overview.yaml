@@ -1,0 +1,476 @@
+# marketing-overview.yaml — annotate.therobotlives.com
+# Owned by the marketing skill; other disciplines read and propose changes.
+# Schema: skills/business-growth/marketing/references/marketing-overview-schema.md
+# HARD RULE: no secret values here — credentials appear only as key NAMES.
+#
+# Honesty rule (mirrors backend/lib/annotate_web/seo.ex): only describe what ships.
+# Ticket push (Jira / Notion / ClickUp / Asana / The Robot Plans) and the agent
+# triage add-on are PLANNED — never copy them as live.
+# NOTE: /pricing and Stripe checkout ARE shipped (pricing_page.ex, Billing.Plans);
+# the seo.ex moduledoc line "There is no pricing" is stale — see open_questions.
+
+schema_version: "1"
+updated: 2026-10-18
+
+product:
+  name: annotate
+  one_liner: >-
+    annotate pins website feedback to the exact element or text it is about —
+    one script tag, then triage in a dashboard, over a REST API, or by AI
+    agents over MCP.
+  category: page-annotation / visual feedback embed for websites
+  stage: private_beta
+  urls:
+    site: https://annotate.therobotlives.com
+    app: https://annotate.therobotlives.com/dashboard
+    docs: https://annotate.therobotlives.com/mcp-server   # plus /llms.txt, /llms-full.txt; full API/embed docs are in the private repo, shared with site owners on request
+    repo: https://github.com/the-robot-lives/annotate.therobotlives.com
+
+positioning:
+  problem: >-
+    Website feedback arrives as screenshots, Slack pings, and phrases like
+    "the button near the top". The context — exactly which element, on which
+    page state — is lost before the work starts, so triage costs more than
+    the fix.
+  solution: >-
+    A site owner pastes one script tag. Visitors select an element or text and
+    the thread anchors to that exact spot (multi-strategy anchors survive DOM
+    changes). The team triages in a dashboard inbox, over a JSON REST API with
+    live events, or hands threads to AI agents over a hosted MCP server.
+  differentiators:
+    - Element-precise anchoring (id, data-*, CSS, XPath, text quote, position fallback) with re-find, deep links, and orphan detection — not page-level comments, not screenshots.
+    - Agent-native: a remote MCP server with OAuth 2.1 sign-in as the dashboard user, opt-in write scopes, audit of every write, and untrusted-content labeling so agents treat visitor text as data.
+    - Five-minute install: one script tag + one custom element, latest or version-pinned CDN loader.
+    - One data plane, three surfaces: widget rail, dashboard/API, MCP agents — same threads, same anchors, live everywhere.
+  category_frame: >-
+    Not a comment plug-in (page-level Disqus heritage) and not a QA suite —
+    "feedback that points at the thing": element-anchored comments wired into
+    the fix loop. Judged on anchor precision and triage surface, not on
+    community features.
+  competitors:
+    - name: Status quo — screenshots + Slack/email tickets
+      how_we_differ: >-
+        No re-describing location; the thread IS the location. Anchor, page
+        context and attachments travel with the comment into dashboard, API,
+        and agent.
+    - name: Page-level comment plug-ins (Disqus heritage)
+      how_we_differ: >-
+        They comment on the page; annotate comments on an element or text
+        selection, re-finds it after redesigns, and speaks MCP to agents.
+    - name: Screenshot-annotation QA tools
+      how_we_differ: >-
+        They annotate a frozen picture; annotate anchors the live DOM (screenshots
+        are attachments, not the medium), and the loop ends resolved on the page
+        itself.
+
+audiences:
+  - id: agency_devs
+    name: Freelance / agency developers shipping client sites
+    primary: true
+    jtbd: >-
+      When client feedback arrives scattered across email and chat, turn it
+      into located, actionable threads I can fix and close — without
+      re-explaining "which button" or living in a ticket queue.
+    awareness_stage: problem-aware
+    sophistication: >-
+      High web fluency; knows embed script tags, CORS, and APIs; may not know
+      MCP exists or that agents can triage feedback.
+    pains:
+      - Feedback with lost context ("it looks broken near the top")
+      - Chasing clients for the page, the browser, the exact spot
+      - Fix shipped but the thread dies in chat; reopen loops never close
+    desires:
+      - Client marks the exact thing; I get anchor + page context + screenshot
+      - Triage without another inbox to babysit — API/agent does the first pass
+      - Install measured in minutes, not an afternoon of configuration
+    objections:
+      - "Will the script slow my site or shift layout?"
+      - "Can a leaked key be used on someone else's site?"
+      - "Another vendor in my client stack — what does it cost to leave?"
+    channels:
+      - r/webdev
+      - r/web_design
+      - Hacker News (Show HN)
+      - X build-in-public
+      - indie/agency newsletters
+    voice:
+      register: casual-technical, plain — a senior dev explaining to a peer
+      tone: >-
+        dry, understated, specific; per-section shifts: objection row and FAQ
+        may get a wry line; pricing strictly matter-of-fact; agent section
+        precise and unexcited
+      reading_level: fluent-technical, short
+      pov: >-
+        you/your for the site owner and the developer; visitors/clients in
+        third person; "we" only in founder-voice lines (none on the landing)
+      jargon_use:
+        - script tag
+        - anchor
+        - CSS selector / XPath / text quote
+        - CORS / origin
+        - REST API / websocket
+        - MCP / OAuth scopes (agent section only)
+      jargon_avoid:
+        - synergy / workflow orchestration
+        - headless / composable (unexplained)
+        - PBAC, tenant, multi-tenancy (say "per-site rules")
+      colloquialisms_use:
+        - 'the button near the top (the pain, quoted)'
+        - 'drop in'
+        - 'paste one snippet'
+      colloquialisms_avoid:
+        - yeet / slaps / other dated slang
+        - memes the brand does not own
+      locale: en-US
+      humor: dry at most; none above the fold; a wry line allowed in FAQ
+      emoji: none
+      taboo_phrases:
+        - game-changer
+        - revolutionary
+        - seamless
+        - effortless
+        - supercharge
+        - "we're excited to announce"
+        - 10x your productivity
+      trusted_proof: live demo (the page runs the product) plus real, citable numbers; honest limitations
+      cta_style: concrete verb + object — "Try it on this page", "Add to your site", "Paste one snippet"
+      sample_lines:
+        - "Feedback that points at the thing."
+        - "One script tag. Visitors pick the exact element; the thread anchors there and survives redesigns."
+        - "Try it on this page — the rail you're reading is the product."
+        - "No signup to look around. Sign-in to post."
+        - "Tickets to Jira and friends are planned; today the REST API is the honest answer."
+      wrong_voice_example: >-
+        "Supercharge your client workflow with seamless, game-changing visual
+        feedback! Effortlessly annotate any page and 10x your triage speed."
+        (hype adjectives, exclamation points, unverifiable number — instant
+        credibility loss with this audience)
+      evidence_flags:
+        register: ASSUMED
+        tone: researched
+        jargon_use: researched
+        taboo_phrases: researched
+        pains: ASSUMED
+        channels: ASSUMED
+        cta_style: researched
+
+  - id: product_teams
+    name: Product / design teams running review rounds
+    primary: false
+    jtbd: >-
+      When a staging build needs review, collect comments on the build itself —
+      pinned to the element — instead of screenshots pasted into chat.
+    awareness_stage: problem-aware
+    sophistication: >-
+      Comfortable with web tools, not necessarily code; knows Figma comments
+      and wants the same precision on the live page.
+    pains:
+      - Review comments detached from the build they describe
+      - Screenshot drift after every deploy
+      - Designers and engineers arguing about which element was meant
+    desires:
+      - Comments that survive deploys and re-anchor themselves
+      - A resolve state visible on the page, not just in a doc
+      - Attachments and cropped screenshots next to the thread
+    objections:
+      - "Who can read the comments on a public staging URL?"
+      - "Do our reviewers need yet another account?"
+    channels:
+      - design/product communities
+      - X
+      - LinkedIn
+    voice:
+      register: conversational-professional
+      tone: practical, calm; same honesty rules, slightly warmer than agency_devs
+      reading_level: plain professional
+      pov: you/your for the team; "reviewers"/"visitors" third person
+      jargon_use:
+        - review round
+        - staging
+        - thread / resolve
+      jargon_avoid:
+        - XPath and CSS-selector internals (say "the exact element")
+        - CORS, OAuth internals
+      colloquialisms_use:
+        - "pin a comment"
+        - "the build"
+      colloquialisms_avoid:
+        - engineering slang (break glass, footgun)
+      locale: en-US
+      humor: none in claims; warmth allowed in onboarding copy
+      emoji: none on the landing
+      taboo_phrases:
+        - game-changer
+        - seamless
+        - effortless
+        - revolutionary
+      trusted_proof: demo of the review loop; peer stories once real (none yet)
+      cta_style: 'Try it on this page / See the review loop'
+      sample_lines:
+        - "Comments on the build, not screenshots of it."
+        - "Open a comment and the element rings — review starts at the right spot."
+        - "Resolve on the page, where the round started."
+      wrong_voice_example: >-
+        "Streamline design critique with our enterprise-grade annotation
+        platform." (category-speak, no mechanic, reads vendor-y)
+      evidence_flags:
+        register: ASSUMED
+        tone: ASSUMED
+        pains: ASSUMED
+        objections: researched
+
+  - id: agent_first_teams
+    name: AI-agent-driven dev teams (Claude Code, Codex, Cursor)
+    primary: false
+    jtbd: >-
+      When user feedback lands, have the agent triage it — read the thread,
+      find the element in the repo, reproduce, patch, reply, resolve — with
+      the human keeping the keys.
+    awareness_stage: solution-aware
+    sophistication: >-
+      Knows MCP, OAuth, prompt-injection risks; will read the tool table and
+      the audit story before the hero.
+    pains:
+      - Copying visitor reports into agent context by hand
+      - Agents acting on untrusted text without guardrails
+      - Unclear blast radius when granting an agent write access
+    desires:
+      - Threads with anchor + page context delivered over MCP
+      - Untrusted-content labeling and scoped, revocable grants
+      - Audit of every agent write and refusal
+    objections:
+      - "What can the agent do once connected?"
+      - "Is visitor text sandboxed against prompt injection?"
+      - "How do I revoke a client?"
+    channels:
+      - Hacker News
+      - MCP/client communities
+      - X
+    voice:
+      register: plain-technical, factual
+      tone: precise, zero salesmanship; the trust bullets do the persuading
+      reading_level: fluent-technical
+      pov: you/your for the operator; the agent in third person
+      jargon_use:
+        - MCP / Streamable HTTP
+        - OAuth 2.1 / PKCE / scopes
+        - untrusted content
+        - audit log
+      jargon_avoid:
+        - agentic (as adjective)
+        - AI-powered
+      colloquialisms_use:
+        - "connect a client"
+        - "step-up consent"
+      colloquialisms_avoid:
+        - skynet / robot-overlord jokes
+      locale: en-US
+      humor: none; dry factual
+      emoji: none
+      taboo_phrases:
+        - AI-powered
+        - agentic workflow
+        - revolutionize
+      trusted_proof: the live tool table, scopes, audit description; connect snippet that works verbatim
+      cta_style: 'the snippet IS the CTA: claude mcp add --transport http annotate https://annotate.therobotlives.com/mcp'
+      sample_lines:
+        - "Your agents read the feedback too."
+        - "One line connects Claude Code. OAuth in your browser — no API keys to paste."
+      wrong_voice_example: >-
+        "Unlock the power of agentic AI for your feedback!" (register failure;
+        this audience discounts hype by policy)
+      evidence_flags:
+        register: researched
+        tone: researched
+        pains: ASSUMED
+        jargon_use: researched
+
+value_props:
+  - audience_id: agency_devs
+    claim: Feedback arrives pinned to the exact element, with anchor and page context attached.
+    proof: docs/ANCHORS.md (multi-strategy anchor v2, re-find, deep links); landing 7-step demo frames
+  - audience_id: agency_devs
+    claim: Install is one script tag and one custom element.
+    proof: docs/EMBED-AUTH.md § 0; landing_page.ex snippet section; WidgetCdn latest/pinned loaders
+  - audience_id: agency_devs
+    claim: A leaked key only works on the origins you register.
+    proof: sites.ex per-site allowed_origins (max 20); EMBED-AUTH origin-bound tokens; CORS plug
+  - audience_id: product_teams
+    claim: Comments survive redesigns and re-find their element.
+    proof: ANCHORS.md resolution order + orphan detection; "Anchor that survives" tile
+  - audience_id: product_teams
+    claim: Reviewers never need an annotate account to read; posting can use your own sign-in or host-vouching.
+    proof: EMBED-AUTH popup broker + host-assert; sites.ex allow_anonymous / trust_host_roles; public read default
+  - audience_id: agent_first_teams
+    claim: An agent goes from "someone complained here" to "replied and resolved" over MCP — with scoped, revocable, audited access.
+    proof: docs/MCP.md (scopes, step-up consent, revoke at /dashboard/agents, audit table 037); mcp_server_page.ex
+  - audience_id: agent_first_teams
+    claim: Visitor text is returned only under `untrusted` keys so agents treat it as data.
+    proof: docs/MCP.md "Untrusted content"; MCP.md tools table; llms.txt agent section
+
+proof_points:
+  metrics: []
+  testimonials: []
+  logos: []
+  case_studies: []
+  # Deliberately EMPTY: no published metrics, testimonials, or customer logos
+  # exist yet. Do not fabricate. Social-proof slots on COPY-v2 are marked
+  # EMPTY until a real, citable number or quote exists (PROOF NEEDED).
+
+demo:
+  url: https://annotate.therobotlives.com
+  environment: prod
+  how_to_access: >-
+    Open the landing page — it dogfoods the live widget. Reading needs no
+    account. Posting on the demo site requires sign-in (Authentik popup);
+    anonymous posting is off there.
+  credentials_ref: none   # no credentials used or needed for the public demo; never store demo creds here
+  script_steps:
+    - "Land on the page: the collapsed comment pill sits on the right rail (the real widget, CDN-pinned)."
+    - "Click 'Try it on this page' — the widget arms pick mode; a dashed ring follows the cursor."
+    - "Click any element or select text — the composer opens anchored, quoting the pick."
+    - "Crop a screenshot, draw on it (box/arrow/pen/text/blur), or attach a file — uploads run while typing and retry on failure."
+    - "Post (sign-in popup) — the thread appears in the rail and syncs live to other open sessions."
+    - "Switch hats to the site owner: the dashboard inbox shows the thread with anchor, page context, and attachments — reply as the site team, resolve or reopen."
+    - "Agent leg: `claude mcp add --transport http annotate https://annotate.therobotlives.com/mcp`, OAuth sign-in, then list_threads → get_thread → reply_to_thread → resolve_thread."
+  key_flows:
+    - pick → compose → post → rail (visitor loop)
+    - inbox → reply → resolve → page shows settled (owner loop)
+    - list_threads → investigate → patch → reply → resolve (agent loop)
+  aha_moment: >-
+    The ring. Open any comment and the exact element rings on the page —
+    "points at the thing" made physical. Second aha: an agent answers the
+    thread and the visitor sees it live.
+  duration: 60-90s scripted; the live-widget moment is immediate
+  video_url: null   # none yet — PROOF NEEDED
+  reset_notes: >-
+    Demo-site comments are production data on a public-read site; the demo
+    reads clean because visitors self-moderate — no reset flow exists. Keep
+    scripted comments clearly labelled as demo posts.
+  known_gotchas:
+    - Posting needs sign-in on the demo site (anonymous off); reading is open — say so near the CTA or the click feels broken.
+    - Pick mode arms only after the widget bootstraps; the CTA polls ~2s before the ring appears — on a cold cache there is a beat of nothing.
+    - Demo-site comments are publicly readable — never post anything sensitive while demoing.
+    - Rail docks right on desktop, bottom sheet on mobile.
+    - Hero art (hero-loop) depicts a "ticket" step; ticket push is PLANNED. Alt text and captions must not claim tickets ship.
+
+ctas:
+  primary: Try it on this page
+  # flow: account → sign in → add site domain → script tag issued for that domain
+  secondary: Start free
+
+brand:
+  voice_summary: >-
+    A senior developer explaining a tool they actually use: short declarative
+    sentences, concrete verbs, numbers over adjectives, claims limited to
+    shipped behavior, planned features labeled "Planned". Dry humor at most,
+    never in a claim.
+  visual_refs:
+    - design/landing/DIRECTIONS.md (Margin / Night Desk / Red Pen / Proof Sheet)
+    - design/landing/CRITIQUE.md (render ranking; Night Desk 8.5 leads)
+    - og.png = 1200x630 crop of hero-loop art
+  styleguide: app design system (Inter + JetBrains Mono seeds); see DIRECTIONS.md pairing notes
+  do_not_say:
+    - seamless
+    - effortless
+    - game-changing / game-changer
+    - revolutionary
+    - supercharge
+    - AI-powered
+    - "we're excited to announce"
+    - 'ticket created in Jira (planned, not shipped)'
+
+channels:
+  - channel: Hacker News (Show HN)
+    status: planned
+  - channel: X build-in-public
+    status: planned
+  - channel: Reddit r/webdev, r/web_design
+    status: planned
+  - channel: Product Hunt
+    status: planned
+
+campaigns:
+  - id: landing-revamp-2026-10
+    name: Landing revamp (COPY-v2)
+    goal: Convert problem-aware devs with the live-widget demo and honest shipped-only claims
+    audience_ids: [agency_devs, product_teams, agent_first_teams]
+    channels: [organic landing]
+    status: live
+    start: 2026-10-18
+    end: null
+    offer: 14-day free trial, no card; plans from $0.99/mo (shipped pricing)
+    key_message: Feedback that points at the thing — triaged by dashboard, API, or your agents.
+    creative_refs:
+      - design/landing/COPY-v2.md
+      - design/landing/COPY.md
+    results: {}
+    metrics: {}
+    learnings: []
+
+ads:
+  platforms: []
+  ad_accounts_ref: none   # no ad accounts yet
+  audience_targeting: {}
+  budget_notes: none — organic only until launch planning says otherwise
+  ad_copy_rules:
+    char_limits: {}
+    claims_to_avoid:
+      - ticket integrations presented as live
+      - agent add-on presented as purchasable (waitlist only)
+      - uptime/reliability promises (terms are as-is)
+    policy_sensitive_terms:
+      - competitor names (Jira, Notion, ClickUp, Asana are text-only references with ownership disclaimer)
+
+launches: []
+
+experiments:
+  - hypothesis: Hero A ("Feedback that points at the thing.") beats hero B (loop headline) on widget activation rate
+    variant: headline + subhead pair, single dimension
+    result: not run
+    decision: pending   # candidate first experiment after revamp ships
+
+open_questions:
+  - question: >-
+      seo.ex moduledoc and llms.txt/llms-full.txt say "no pricing / none
+      published", but /pricing ships with Stripe checkout, 14-day trial, and
+      plan tiers. Which is authoritative — and may the .ex lane update the
+      llms_* pricing lines to match the shipped pricing page?
+    raised_by: marketing copy lane
+    date: 2026-10-18
+  - question: >-
+      Dashboard signup is invite-gated (invite_required_page, limited plan
+      batches). Should landing copy say "request an invite", or keep the plain
+      GitHub sign-in button and let the gate speak for itself?
+    raised_by: marketing copy lane
+    date: 2026-10-18
+  - question: >-
+      Confirm agency/freelance developers as the primary audience (chosen for
+      controlling install + owning triage). Alternative: lead with product/
+      design teams (bigger review-round pain, less technical page).
+    raised_by: marketing copy lane
+    date: 2026-10-18
+  - question: >-
+      Hero illustration (hero-loop) renders the ticket step that is still
+      planned. Re-render art without the ticket, keep it with a "planned"
+      caption, or accept as aspirational with honest alt text?
+    raised_by: marketing copy lane
+    date: 2026-10-18
+
+assumptions:
+  - assumption: >-
+      Audience segmentation (agency devs primary; product teams; agent-first
+      teams) is derived from what the product does, not from user research.
+    appears_in: audiences[]
+    date: 2026-10-18
+  - assumption: Stage is private_beta (invite gate on dashboard access, plan batches limited) — inferred from code, not announced anywhere.
+    appears_in: product.stage
+    date: 2026-10-18
+  - assumption: >-
+      Awareness stage problem-aware for the two human audiences (they feel
+      feedback pain; few know element-anchored tools exist).
+    appears_in: audiences[].awareness_stage
+    date: 2026-10-18
+  - assumption: No test personas or complaint-mining corpus exists yet; voice cards need a review pass once real visitor/support language lands.
+    appears_in: audiences[].voice
+    date: 2026-10-18

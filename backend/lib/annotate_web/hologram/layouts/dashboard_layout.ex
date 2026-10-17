@@ -12,13 +12,27 @@ defmodule AnnotateWeb.Hologram.Layouts.DashboardLayout do
 
   prop :page_title, :string, default: "annotate — dashboard"
 
+  # Dogfood widget (feedback 2026-10-18: annotate should run on the dashboard
+  # too, not just the landing page). Same origin as the landing page, so the
+  # annotate-landing site's allowed origin already covers it.
+  @widget_default %{
+    api_base: "https://annotate-srv.therobotlives.com",
+    widget_src: AnnotateWeb.WidgetCdn.pinned_src(),
+    dogfood_site: "annotate-landing"
+  }
+
   def init(_props, component, _server) do
+    cfg = widget_cfg()
+
     component =
       put_state(component, dashboard_css: AnnotateWeb.Assets.versioned("/css/dashboard.css"))
 
     put_state(
       component,
-      lightbox_js: AnnotateWeb.Assets.versioned("/js/dashboard-lightbox.js")
+      lightbox_js: AnnotateWeb.Assets.versioned("/js/dashboard-lightbox.js"),
+      api_base: cfg.api_base,
+      widget_src: cfg.widget_src,
+      dogfood_site: cfg.dogfood_site
     )
   end
 
@@ -44,8 +58,28 @@ defmodule AnnotateWeb.Hologram.Layouts.DashboardLayout do
       <body>
         <a class="dsh-skip" href="#main">Skip to content</a>
         <slot />
+        <noizu-page-comments
+          site={@dogfood_site}
+          api-base={@api_base}
+          rail-mode="overlay"
+        ></noizu-page-comments>
+        <script type="module" src={@widget_src}></script>
       </body>
     </html>
     """
+  end
+
+  defp widget_cfg do
+    case Application.get_env(:annotate, :marketing) do
+      kw when is_list(kw) ->
+        %{
+          api_base: Keyword.get(kw, :api_base, @widget_default.api_base),
+          widget_src: Keyword.get(kw, :widget_src, @widget_default.widget_src),
+          dogfood_site: Keyword.get(kw, :dogfood_site, @widget_default.dogfood_site)
+        }
+
+      _ ->
+        @widget_default
+    end
   end
 end

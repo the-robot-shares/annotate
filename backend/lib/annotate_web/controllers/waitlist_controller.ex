@@ -14,6 +14,9 @@ defmodule AnnotateWeb.WaitlistController do
       {:error, :invalid_email} ->
         respond(conn, 422, "invalid_email", "Enter a valid email address.")
 
+      {:error, :no_about} ->
+        respond(conn, 422, "no_about", "Tell us a little about you or your site.")
+
       {:error, :no_interest} ->
         respond(conn, 422, "no_interest", "Pick at least one thing to hear about.")
     end

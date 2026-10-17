@@ -18,7 +18,8 @@ defmodule Annotate.Billing.Stripe do
   Live objects: ONE product ("Annotate") with monthly prices carrying lookup
   keys `annotate_start_monthly`, `annotate_standard_monthly`,
   `annotate_team_monthly`, `annotate_extra_user_monthly`,
-  `annotate_extra_gb_monthly`, `annotate_agent_addon_monthly`
+  `annotate_extra_gb_monthly`, `annotate_agent_addon_monthly`, plus the
+  one-time `annotate_beta_join_once` price
   (`mix annotate.stripe.setup` creates them in TEST mode).
   """
 
@@ -100,6 +101,35 @@ defmodule Annotate.Billing.Stripe do
           "plan" => to_string(Keyword.get(opts, :plan))
         },
         allow_promotion_codes: true
+      }
+
+      Stripe.Checkout.Session.create(params)
+    end
+  end
+
+  @doc """
+  Creates a one-time-payment Checkout Session for the $19.95 beta join
+  (`Annotate.Billing.BetaJoin`). Success returns to the invite interstitial,
+  which reports activation; the webhook does the granting.
+  """
+  def create_beta_checkout_session(customer_id, opts \\ []) do
+    with :ok <- ensure_configured(),
+         {:ok, price_id} <- price_id(Annotate.Billing.BetaJoin.lookup_key()) do
+      params = %{
+        mode: "payment",
+        customer: customer_id,
+        line_items: [
+          %{
+            price: price_id,
+            quantity: 1
+          }
+        ],
+        success_url: trim(base_url()) <> "/auth/invite-required?beta=joined",
+        cancel_url: trim(base_url()) <> "/auth/invite-required?beta=cancelled",
+        metadata: %{
+          "user_id" => to_string(Keyword.get(opts, :user_id)),
+          "kind" => "beta_join"
+        }
       }
 
       Stripe.Checkout.Session.create(params)

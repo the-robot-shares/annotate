@@ -31,7 +31,11 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
   def init(_params, component, server) do
     user = Auth.current_user(server)
 
-    put_state(component, snapshot(user) |> Map.merge(base_ui()))
+    # A plan picked on the landing/pricing page rides through sign-in as
+    # ?return_to=/dashboard/billing%3Fplan%3D<key> — highlight it here.
+    selected = selected_plan(server)
+
+    put_state(component, snapshot(user, selected) |> Map.merge(base_ui(selected)))
   end
 
   def template do
@@ -140,7 +144,9 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
               <tbody>
                 {%for p <- @plans}
                   <tr data-cy="dsh-billing-plan-row">
-                    <td><strong>{p.name}</strong></td>
+                    <td><strong>{p.name}</strong>
+                      {%if p.selected}<span class="dsh-chip" data-cy="dsh-plan-picked">your pick</span>{/if}
+                    </td>
                     <td>{p.price}</td>
                     <td>{p.apps}</td>
                     <td>{p.users}</td>
@@ -267,7 +273,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         busy: false,
         billing: params.billing,
         plans: params.plans,
-        flash: params.flash || c.state.flash
+        flash: params.flash || nil
       )
 
   def action(:plan_full, params, c),
@@ -403,10 +409,16 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
 
   # ── serialization (server-side only) ──────────────────────────
 
-  defp base_ui do
+  defp base_ui(selected_plan) do
+    name =
+      case selected_plan && Plans.get(selected_plan) do
+        %{name: n} -> n
+        _ -> selected_plan
+      end
+
     %{
       error: nil,
-      flash: nil,
+      flash: if(selected_plan, do: "Finish picking the #{name} plan below.", else: nil),
       busy: false,
       waitlist_plan: nil,
       waitlist_email: "",
@@ -414,7 +426,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
     }
   end
 
-  defp snapshot(user) do
+  defp snapshot(user, selected_plan) do
     {:ok, row} = Billing.ensure_subscription(user.id)
     state = Billing.state(user.id)
     limits = Billing.limits(row)
@@ -446,8 +458,18 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         users_display: limit_display(limits.users),
         storage_display: limit_bytes_display(limits.storage_bytes)
       },
-      plans: serialize_plans(state.plan)
+      plans: serialize_plans(state.plan, selected_plan)
     }
+  end
+
+  defp selected_plan(server) do
+    case server |> Map.get(:query, %{}) |> Map.get("plan") do
+      key when is_binary(key) ->
+        if key in Plans.purchasable(), do: key, else: nil
+
+      _ ->
+        nil
+    end
   end
 
   defp refresh(server, flash) do
@@ -455,7 +477,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
 
     case user do
       %{id: id} when is_binary(id) ->
-        snap = snapshot(user)
+        snap = snapshot(user, nil)
 
         put_action(server, :refreshed,
           billing: snap.billing,
@@ -468,7 +490,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
     end
   end
 
-  defp serialize_plans(current_plan) do
+  defp serialize_plans(current_plan, selected_plan) do
     Enum.map(Plans.purchasable(), fn key ->
       plan = Plans.get(key)
       status = SignupCaps.status(key)
@@ -481,6 +503,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         users: Integer.to_string(plan.users),
         storage: format_bytes(plan.storage_bytes),
         current: current_plan == key,
+        selected: selected_plan == key,
         cta: if(current_plan == key, do: "Renew / manage", else: "Choose " <> plan.name),
         full: status != nil and status.full,
         taken: (status && status.taken) || 0,

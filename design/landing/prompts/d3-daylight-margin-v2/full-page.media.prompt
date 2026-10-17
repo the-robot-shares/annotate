@@ -1,0 +1,127 @@
+# ============================================================================
+# annotate landing revamp — D3 Daylight Margin v2 — FULL PAGE
+# Model: nano banana (gemini / gemini-2.5-flash-image) — pinned below.
+# AI-GENERATED MEDIA: disclose as AI-generated when published.
+# Gate A PASSED 2026-10-18 (user approved D1/D2/D3 generation).
+# Copy: design/landing/COPY-v2.md §2 (headline + subhead + CTA pair).
+# Run: generate-media-prompt design/landing/prompts/d3-daylight-margin-v2/full-page.media.prompt
+# Text budget: 8 strings — the subhead is rendered truncated at its first
+#   sentence for render legibility; the full approved subhead lives in
+#   COPY-v2 §2. Ticket push is PLANNED: no ticket-creation card anywhere —
+#   the roadmap row may carry only a tiny "Soon" chip.
+# IA section order (approved): hero → try-it demo band → 7-step walkthrough →
+#   features bento → embed snippet → for agents/MCP → roadmap → FAQ → final CTA.
+# COPY CORRECTION 2026-10-18 (user): hero secondary CTA is now "Start free"
+#   (was "Add to your site"); hero caption and embed heading added; the three
+#   embed steps render as bars for text budget (full strings: COPY-v2 §10).
+# Build-lane motion notes (not part of the render): 150–200ms ease-out;
+#   ring draw-on ~400ms; staggered rail fade. Widget stays dark-on-light
+#   (honest dogfood default) or light re-theme via --tobor-kit-* vars —
+#   this render stages the dark rail as deliberate contrast per the
+#   direction card, but the page itself is paper-light.
+# ============================================================================
+schema: '0.4'
+id: annotate-landing-daylight-margin-v2-fullpage
+type: image
+quality: high
+service: gemini
+model: gemini-2.5-flash-image
+
+prompt:
+  text: |
+    Full-page desktop website mockup, tall portrait, a bright paper-white
+    landing page like a well-set document, generous whitespace, one red
+    accent. Background #FAFAF8, ink #17171C, hairline borders #E4E4DF. Top:
+    slim nav, serif wordmark reading exactly "annotate", four small gray
+    nav-link bars, one
+    red-filled button. Hero, subject large and high in the frame, left/right
+    split: left column has a small eyebrow bar, the two-line large serif
+    headline "Feedback that points at the thing.", a two-line muted subhead
+    reading "annotate pins threaded comments to the exact element or text
+    they're about." with both words "annotate" and "threaded" spelled
+    exactly — the complete sentence, no repeated words, all in plain muted
+    gray — a red primary button "Try it on this page" beside an
+    outlined button "Start free", plus a one-line small muted caption below
+    the buttons reading "No signup to look around. To post or install:
+    create an account, add your site, paste your tag."; right side, a large
+    flat light
+    browser window filling most of the frame width: title bar with three GRAY
+    dots, a light app page of gray placeholder bars and card shapes, one
+    "Export" button surrounded by a HEAVY crisp red ink ring (3px, confident,
+    unmistakable) with a small red pin, a thin red connector line running to
+    a WHITE comment rail card that is FLUSH DOCKED against the browser's
+    right edge with no gap, containing two rows with small red-tinted circle
+    avatars and short comment bars. Below, sections in this exact order,
+    separated by hairline borders: a wide live-demo band showing a dashed red
+    ring around one page element with a small pill; a single row of exactly
+    seven small
+    light screenshot thumbnails; a bento grid of six bordered tiles with
+    placeholder bars and small line glyphs; a small heading "Add your site,
+    get your tag" (spelled exactly) above a wide light code panel holding
+    only abstract gray bars of varied widths and indents — zero characters,
+    no code — and one small icon-only copy button with no
+    text label; a short two-column text row with
+    bars; a low roadmap row of small outline chips where exactly one tiny
+    chip reads "Soon"; four slim accordion rows of gray bars with one small
+    "FAQ" label to their left — the word FAQ appears exactly once; a
+    closing
+    full-width paper strip with one red button. Generous margins everywhere, no
+    dead space above the hero. The ONLY text in the whole image is exactly:
+    annotate · Feedback that points at the thing. · annotate pins threaded
+    comments to the exact element or text they're about. · Try it on this
+    page · Start free · No signup to look around. To post or install: create
+    an account, add your site, paste your tag. · Add your site, get your tag ·
+    Export · Soon · FAQ. All other copy is abstract
+    gray placeholder bars. Elegant serif display for the headline, clean
+    grotesque for UI strings, small muted type for the subhead, high
+    contrast, crisp, no warped text.
+  negative: >-
+    garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices,
+    dollar signs, currency, any real brand name or logo, URLs, hex codes, hash
+    symbols, photographic people or faces, initials in avatars, dark theme,
+    heavy shadows, hand-drawn scribbles, more than one red element per region,
+    second saturated hue, ticket-creation card, Jira or tracker logo,
+    watermark, cluttered spacing, dead empty margins, annoate or anobate
+    misspellings of the wordmark, legible or semi-legible code characters,
+    the word FAQ repeated on every row, the string Add to your site,
+    annocate, annobate, a Roadmap label, garbled text rows
+  style: >-
+    minimal editorial paper-and-ink, heavy 3px red ink ring #D92D20,
+    flush-docked rail, generous whitespace, flat vector UI illustration
+
+output:
+  formats:
+    - format: png
+  dimensions: {width: 832, height: 1248, aspect_ratio: '2:3'}
+
+requirements:
+  subject: light editorial landing page, nav to final strip, hero with
+    heavy-ringed element and flush-docked rail, demo band, walkthrough,
+    bento, snippet, roadmap, FAQ
+  composition: subject fills frame, no dead space above hero, sections in
+    approved order (hero, demo band, seven thumbnails, bento, snippet, agents
+    row, roadmap, FAQ, strip), rail attached with no gap, red reserved for
+    ring, pin and primary CTA
+  palette: >-
+    paper #FAFAF8, surface #F1F1EE, ink #17171C, secondary #5B5B66, border
+    #E4E4DF, markup red #D92D20
+  dont: [prices, brand logos, URLs, extra text, faces, dark theme, thin faint
+    ring, detached rail, ticket-creation imagery as a shipped step]
+
+eval:
+  pass_threshold: 0.75
+  required_pass: [text_legibility, full_page_structure, rail_flush_docked, ring_weight]
+  criteria:
+    text_legibility: {weight: 3, description: exact string manifest, crisp, no garbled glyphs}
+    full_page_structure: {weight: 3, description: nav, hero with CTAs, demo band, seven
+      thumbnails, bento, snippet, agents row, roadmap with Soon chip, FAQ, final strip —
+      present, ordered, rail attached}
+    rail_flush_docked: {weight: 3, description: rail card attached to the browser edge
+      with no visible gap}
+    ring_weight: {weight: 3, description: heavy crisp 3px red ring — fails if thin or faint}
+  reject_if: [garbled or misspelled text, price or currency symbol, third-party logo,
+    dark theme, thin faint ring, visible gap between rail and page edge,
+    ticket-creation card shown as shipped]
+
+tags: [marketing, landing-fullpage, annotate, daylight-margin-v2, ai-generated]
+product_targets: [annotate.therobotlives.com]

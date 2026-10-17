@@ -2,7 +2,7 @@ defmodule AnnotateWeb.Hologram.Pages.TermsPage do
   @moduledoc """
   `/terms` — Terms of Service. Text lives in the `legal_forms` component
   (Components/legal-forms); this page supplies `AnnotateWeb.Legal` config. As-is, no SLA, no data guarantees. Operator and
-  contact follow house prior art (Noizu Labs, Inc.; keith.brings@noizu.com).
+  contact follow house prior art (Noizu Labs, Inc.; support@noizu.com).
   No governing-law clause: no jurisdiction has been specified.
   """
 

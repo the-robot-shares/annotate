@@ -24,21 +24,21 @@ defmodule AnnotateWeb.LandingWaitlistTest do
 
     test "renders the key strings", %{html: html} do
       for s <- [
-            "From a comment on the page to a fix in the repo.",
-            "over MCP, an agent",
-            "Comment. Triage. Ticket. Patch. Resolve.",
+            "Feedback that points at the thing.",
+            "AI agent over MCP",
+            "Comment. Triage. Fix. Resolve.",
             "Your agents read the feedback too.",
             "claude mcp add",
             "Where the work goes next.",
-            "Get one email when these ship.",
-            "Planned",
+            "Signup for updates, promotions and events.",
+            "Soon",
             "Available today",
             "Jira",
             "Notion",
             "ClickUp",
             "Asana",
             "The Robot Plans",
-            "hero-loop-1600"
+            "nd-hero__mock"
           ] do
         assert html =~ s, "missing #{inspect(s)}"
       end
@@ -54,7 +54,9 @@ defmodule AnnotateWeb.LandingWaitlistTest do
       # (Hologram's asset manifest may list stale files from an old build priv;
       # only the markup that references images matters.)
       refute html =~ ~r/(src|srcset)="[^"]*hero-1600/
-      assert html =~ ~s(src="/images/landing/hero-loop-1600.png")
+      # the hero art is the CSS browser mock (D3 Daylight Margin), not the old loop png
+      assert html =~ ~s(class="nd-hero__mock")
+      assert html =~ "Export"
       # shipped features are not softened to roadmap
       refute html =~ "export or delete it at any time"
     end
@@ -62,7 +64,7 @@ defmodule AnnotateWeb.LandingWaitlistTest do
     test "waitlist form is wired with a honeypot and a no-JS action", %{html: html} do
       assert html =~ ~s(action="/waitlist")
       assert html =~ ~s(name="website")
-      assert html =~ ~s(name="interests")
+      assert html =~ ~s(name="about")
     end
 
     test "meta carries the new title and OG image", %{html: html} do

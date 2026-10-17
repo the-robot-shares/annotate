@@ -6,14 +6,6 @@
   "use strict";
   var FORM = "form[data-waitlist]";
 
-  document.addEventListener("click", function (e) {
-    var t = e.target && e.target.closest ? e.target.closest("[data-waitlist-interest]") : null;
-    if (!t) return;
-    var v = t.getAttribute("data-waitlist-interest");
-    var box = document.querySelector(FORM + ' input[name="interests"][value="' + v + '"]');
-    if (box) box.checked = true;
-  });
-
   document.addEventListener("submit", function (e) {
     var form = e.target;
     if (!form || !form.matches || !form.matches(FORM)) return;
@@ -22,11 +14,19 @@
     var wrap = form.closest("[data-waitlist-box]") || form;
     var btn = form.querySelector('button[type="submit"]');
     var data = new FormData(form);
+    var interests = data.getAll("interests");
     var payload = {
       email: String(data.get("email") || ""),
-      website: String(data.get("website") || ""),
-      interests: data.getAll("interests")
+      website: String(data.get("website") || "")
     };
+    // The landing form asks who you are (about + optional use case); the
+    // dashboard plan waitlists still post interests.
+    if (interests.length) {
+      payload.interests = interests;
+    } else {
+      payload.about = String(data.get("about") || "");
+      payload.use_case = String(data.get("use_case") || "");
+    }
     function say(text) { if (msg) msg.textContent = text; }
     say("");
     if (btn) btn.disabled = true;

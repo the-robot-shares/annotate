@@ -1,0 +1,40 @@
+service: gemini
+model: gemini-2.5-flash-image
+timestamp: 1792273788
+eval_score: 0.475
+eval_notes: "Text manifest heavily violated: extra labels 'live-demo', 'Bento', 'Roadmap', 'Copy' appear, and the code panel contains garbled nonsense strings; the red roadmap chip reads 'Soom' (misspelled). The red ring around the button is reasonably heavy and crisp. Nav with serif wordmark and red button is present, but the overall layout is a messy collage of overlapping zoomed panels rather than a clean single page. The white comment rail card shows a visible gap from the browser's right edge rather tha"
+prompt: |
+  Full-page desktop website mockup, tall portrait, a bright paper-white
+  landing page like a well-set document, generous whitespace, one red
+  accent. Background #FAFAF8, ink #17171C, hairline borders #E4E4DF. Top:
+  slim nav, serif wordmark "annotate", four small gray nav-link bars, one
+  red-filled button. Hero, subject large and high in the frame, left/right
+  split: left column has a small eyebrow bar, the two-line large serif
+  headline "Feedback that points at the thing.", a two-line muted subhead
+  reading "annotate pins threaded comments to the exact element or text
+  they're about.", a red primary button "Try it on this page" beside an
+  outlined button "Add to your site"; right side, a large flat light
+  browser window filling most of the frame width: title bar with three GRAY
+  dots, a light app page of gray placeholder bars and card shapes, one
+  "Export" button surrounded by a HEAVY crisp red ink ring (3px, confident,
+  unmistakable) with a small red pin, a thin red connector line running to
+  a WHITE comment rail card that is FLUSH DOCKED against the browser's
+  right edge with no gap, containing two rows with small red-tinted circle
+  avatars and short comment bars. Below, sections in this exact order,
+  separated by hairline borders: a wide live-demo band showing a dashed red
+  ring around one page element with a small pill; a row of seven small
+  light screenshot thumbnails; a bento grid of six bordered tiles with
+  placeholder bars and small line glyphs; a wide light code panel with
+  monospaced bars and one copy button; a short two-column text row with
+  bars; a low roadmap row of small outline chips where exactly one tiny
+  chip reads "Soon"; four slim FAQ accordion rows of gray bars; a closing
+  full-width strip with one red button. Generous margins everywhere, no
+  dead space above the hero. The ONLY text in the whole image is exactly:
+  annotate · Feedback that points at the thing. · annotate pins threaded
+  comments to the exact element or text they're about. · Try it on this
+  page · Add to your site · Export · Soon · FAQ. All other copy is abstract
+  gray placeholder bars. Elegant serif display for the headline, clean
+  grotesque for UI strings, small muted type for the subhead, high
+  contrast, crisp, no warped text.
+negative: |
+  garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices, dollar signs, currency, any real brand name or logo, URLs, hex codes, hash symbols, photographic people or faces, initials in avatars, dark theme, heavy shadows, hand-drawn scribbles, more than one red element per region, second saturated hue, ticket-creation card, Jira or tracker logo, watermark, cluttered spacing, dead empty margins
