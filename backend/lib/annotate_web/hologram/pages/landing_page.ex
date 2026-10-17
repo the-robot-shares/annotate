@@ -22,7 +22,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
 
     component
     |> put_state(:copied, false)
-    |> put_state(:snippet_src, cfg.widget_src)
+    # Visitors copy the always-newest loader; this page itself runs the pin.
+    |> put_state(:snippet_src, AnnotateWeb.WidgetCdn.latest_src())
     |> put_state(:snippet_api, cfg.api_base)
   end
 
@@ -320,7 +321,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
           </p>
           <div class="nd-snippet">
             <pre class="nd-snippet__code" tabindex="0"><code id="nd-snippet-code">&lt;<span class="nd-tok-tag">script</span> <span class="nd-tok-attr">type</span>=<span class="nd-tok-str">"module"</span> <span class="nd-tok-attr">src</span>=<span class="nd-tok-str">"{@snippet_src}"</span>&gt;&lt;/<span class="nd-tok-tag">script</span>&gt;
-    &lt;<span class="nd-tok-tag">noizu-page-comments</span> <span class="nd-tok-attr">site</span>=<span class="nd-tok-str">"your-site"</span> <span class="nd-tok-attr">api-base</span>=<span class="nd-tok-str">"{@snippet_api}"</span> <span class="nd-tok-attr">enabled</span>&gt;&lt;/<span class="nd-tok-tag">noizu-page-comments</span>&gt;</code></pre>
+    &lt;<span class="nd-tok-tag">noizu-page-comments</span> <span class="nd-tok-attr">site</span>=<span class="nd-tok-str">"your-site"</span> <span class="nd-tok-attr">api-base</span>=<span class="nd-tok-str">"{@snippet_api}"</span>&gt;&lt;/<span class="nd-tok-tag">noizu-page-comments</span>&gt;</code></pre>
             <div class="nd-snippet__aside">
               <button type="button" class="nd-btn nd-btn--secondary" $click="copy_snippet">
                 {%if @copied}Copied ✓{%else}Copy code{/if}
@@ -484,15 +485,14 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             Keyword.get(
               kw,
               :widget_src,
-              "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
+              AnnotateWeb.WidgetCdn.pinned_src()
             )
         }
 
       _ ->
         %{
           api_base: "https://annotate-srv.therobotlives.com",
-          widget_src:
-            "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
+          widget_src: AnnotateWeb.WidgetCdn.pinned_src()
         }
     end
   end

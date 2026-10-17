@@ -25,6 +25,12 @@ comments/docs are intentional).
 - **Uploads** — presigned S3/MinIO PUT, pending → ready completion, content-type
   allowlist, per-site size cap, 24 h pending sweeper (Oban cron).
 
+- **Widget** — tobor-kit `<noizu-page-comments>` (collapsed by default). Embed
+  `https://cdn.derobot.is/tobor-kit/latest/annotate.js` (always newest) or
+  `.../tobor-kit/v<X.Y.Z>/annotate.js` (pinned); annotate's own pages pin the
+  exact version in `AnnotateWeb.WidgetCdn`. See
+  [`docs/EMBED-AUTH.md` § 0](docs/EMBED-AUTH.md#0-embed-snippet-widget-source).
+
 Docs: [`docs/API.md`](docs/API.md) · [`docs/EMBED-AUTH.md`](docs/EMBED-AUTH.md).
 
 ## Stack

@@ -182,6 +182,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .dsh-field textarea { font-family: var(--dsh-mono); font-size: 0.85rem; resize: vertical; }
 .dsh-hint { margin: 0; font-size: 0.78rem; color: var(--nd-text-dim); }
+.dsh-panel__subtitle { margin: 0.75rem 0 0.35rem; font-size: 0.82rem; font-weight: 600; color: var(--nd-text); }
 .dsh-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
 .dsh-btn {

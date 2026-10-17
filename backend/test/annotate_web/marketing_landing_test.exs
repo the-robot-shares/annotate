@@ -21,6 +21,12 @@ defmodule AnnotateWeb.MarketingLandingTest do
     assert body =~ "From a comment on the page to a fix in the repo."
     assert body =~ "noizu-page-comments"
     assert body =~ "cdn.derobot.is"
+    # The landing runs the exact tobor-kit release; the copyable snippet
+    # offers the always-newest loader. Neither forces the widget open.
+    assert body =~ ~s(src="#{AnnotateWeb.WidgetCdn.pinned_src()}")
+    assert body =~ AnnotateWeb.WidgetCdn.latest_src()
+    [mount] = Regex.run(~r{<noizu-page-comments\b[^>]*>}s, body)
+    refute mount =~ ~r/\benabled\b/
 
     csp = get_resp_header(conn, "content-security-policy") |> List.first()
     assert csp =~ "frame-ancestors 'none'"
@@ -40,8 +46,7 @@ defmodule AnnotateWeb.MarketingLandingTest do
       host: @marketing_host,
       api_host: @api_host,
       api_base: "https://#{@api_host}",
-      widget_src:
-        "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js",
+      widget_src: "https://cdn.derobot.is/tobor-kit/v1.0.0/annotate.js",
       dogfood_site: "annotate-landing"
     )
 

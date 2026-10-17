@@ -101,12 +101,20 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
           <section class="dsh-panel" data-cy="dsh-snippet">
             <h2 class="dsh-panel__title">Embed snippet</h2>
             <div class="dsh-panel__body">
-              <p class="dsh-hint">Paste this before <code>&lt;/body&gt;</code> on any page served from one of the site's allowed origins.</p>
-              <pre class="dsh-code" tabindex="0"><code id="dsh-snippet-code">&lt;script type="module" src="{@snippet.widget_src}"&gt;&lt;/script&gt;
-    &lt;noizu-page-comments site="{@slug}" api-base="{@snippet.api_base}" enabled&gt;&lt;/noizu-page-comments&gt;</code></pre>
+              <p class="dsh-hint">Paste this before <code>&lt;/body&gt;</code> on any page served from one of the site's allowed origins. The widget loads collapsed (a small comment-count pill); add <code>default-open</code> to start it expanded.</p>
+              <h3 class="dsh-panel__subtitle">Latest (recommended)</h3>
+              <pre class="dsh-code" tabindex="0" data-cy="dsh-snippet-latest"><code id="dsh-snippet-code">&lt;script type="module" src="{@snippet.latest_src}"&gt;&lt;/script&gt;
+    &lt;noizu-page-comments site="{@slug}" api-base="{@snippet.api_base}"&gt;&lt;/noizu-page-comments&gt;</code></pre>
               <div class="dsh-actions">
-                <button type="button" class="dsh-btn dsh-btn--primary" $click={:copy_snippet} data-cy="dsh-copy-snippet">Copy snippet</button>
+                <button type="button" class="dsh-btn dsh-btn--primary" $click={:copy_snippet, which: "latest"} data-cy="dsh-copy-snippet">Copy snippet</button>
               </div>
+              <h3 class="dsh-panel__subtitle">Pinned version ({@snippet.version})</h3>
+              <pre class="dsh-code" tabindex="0" data-cy="dsh-snippet-pinned"><code id="dsh-snippet-code-pinned">&lt;script type="module" src="{@snippet.pinned_src}"&gt;&lt;/script&gt;
+    &lt;noizu-page-comments site="{@slug}" api-base="{@snippet.api_base}"&gt;&lt;/noizu-page-comments&gt;</code></pre>
+              <div class="dsh-actions">
+                <button type="button" class="dsh-btn" $click={:copy_snippet, which: "pinned"} data-cy="dsh-copy-snippet-pinned">Copy pinned snippet</button>
+              </div>
+              <p class="dsh-hint" data-cy="dsh-snippet-tradeoff">Latest picks up widget fixes automatically (within minutes, up to a few hours in a cached browser); pinned never changes until you edit the version.</p>
               <dl class="dsh-kv">
                 <dt>Site code</dt><dd data-cy="dsh-site-code">{@slug}</dd>
                 <dt>API base</dt><dd>{@snippet.api_base}</dd>
@@ -394,13 +402,19 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
   def action(:remove_member, params, c),
     do: c |> busy() |> put_command(:remove_member, slug: c.state.slug, user_id: params.user_id)
 
-  def action(:copy_snippet, _params, c) do
+  def action(:copy_snippet, params, c) do
     # Read from the DOM: the multi-line snippet never rides in page state.
+    {id, flash} =
+      case params[:which] do
+        "pinned" -> {"dsh-snippet-code-pinned", "Pinned snippet copied."}
+        _ -> {"dsh-snippet-code", "Snippet copied."}
+      end
+
     Hologram.JS.exec(
-      "var e=document.getElementById('dsh-snippet-code');if(e){navigator.clipboard.writeText(e.textContent).catch(function(){});}"
+      "var e=document.getElementById('#{id}');if(e){navigator.clipboard.writeText(e.textContent).catch(function(){});}"
     )
 
-    put_state(c, flash: "Snippet copied.")
+    put_state(c, flash: flash)
   end
 
   def action(:copy_key, _params, c) do
@@ -662,12 +676,9 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
     cfg = Application.get_env(:annotate, :marketing) || []
 
     %{
-      widget_src:
-        Keyword.get(
-          cfg,
-          :widget_src,
-          "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
-        ),
+      latest_src: AnnotateWeb.WidgetCdn.latest_src(),
+      pinned_src: AnnotateWeb.WidgetCdn.pinned_src(),
+      version: AnnotateWeb.WidgetCdn.version(),
       api_base: Keyword.get(cfg, :api_base, "https://annotate-srv.therobotlives.com")
     }
   end
