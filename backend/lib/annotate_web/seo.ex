@@ -10,8 +10,10 @@ defmodule AnnotateWeb.SEO do
   `llms_*` functions; nothing else needs to change. Served by
   `AnnotateWeb.Plugs.SEO`.
 
-  Honesty rules (mirror the product): only describe what ships. MCP hooks and
-  ticket push are *planned*; there is no pricing, so no `offers`.
+  Honesty rules (mirror the product): only describe what ships. The MCP server
+  ships (see the `llms_*` functions and `/mcp-server`); ticket push to Jira /
+  Notion / ClickUp / Asana / The Robot Plans is planned. There is no pricing,
+  so no `offers`.
   """
 
   @default_host "annotate.therobotlives.com"
@@ -49,6 +51,7 @@ defmodule AnnotateWeb.SEO do
   # `lastmod` nil => build date. Legal pages carry their own "Last updated".
   @pages [
     %{path: "/", changefreq: "weekly", priority: "1.0", lastmod: nil},
+    %{path: "/mcp-server", changefreq: "monthly", priority: "0.7", lastmod: nil},
     %{path: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: "2026-10-17"},
     %{path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-10-17"}
   ]
@@ -165,6 +168,7 @@ defmodule AnnotateWeb.SEO do
     ## Key pages
 
     - [Home](#{origin()}/): what annotate does, the embed snippet, and the FAQ
+    - [MCP server reference](#{origin()}/mcp-server): endpoint, tools, scopes, prompts and connect snippets for Claude Code, Claude Desktop / claude.ai, Cursor, VS Code and Codex
     - [Privacy Policy](#{origin()}/privacy): what is collected, who processes it, retention, deletion
     - [Terms of Service](#{origin()}/terms): as-is service terms, acceptable use, data loss
 
@@ -179,8 +183,8 @@ defmodule AnnotateWeb.SEO do
 
     - Reading: every page above is server-rendered HTML; no JavaScript is needed to read it.
     - Site owners sign in with GitHub at #{origin()}/sign-in to create a site and get its embed snippet. This is a human sign-in; there is no agent token flow.
-    - MCP server (Streamable HTTP): #{origin()}/mcp. Agents sign in with OAuth as an annotate dashboard user (GitHub or Google, invite-only) and act only on that user's sites, with that user's role. Reading is always granted; replying/resolving and deleting are separate opt-in permissions on the consent screen. Tools: list_sites, get_site_config, list_threads, get_thread, reply_to_thread, resolve_thread, reopen_thread, delete_comment. Comment text is visitor-written and returned under `untrusted`.
-    - Connect: `claude mcp add --transport http annotate #{origin()}/mcp` (Claude Code), or add a custom connector with that URL in Claude.ai / Claude Desktop.
+    - MCP server (Streamable HTTP): #{origin()}/mcp. Agents sign in with OAuth as an annotate dashboard user (GitHub or Google, invite-only) and act only on that user's sites, with that user's role. Reading is always granted; replying/resolving and deleting are separate opt-in permissions on the consent screen. Tools: list_sites, get_site_config, list_threads, get_thread, reply_to_thread, resolve_thread, reopen_thread, delete_comment. Prompts: triage_open_threads, investigate_thread. Comment text is visitor-written and returned under `untrusted`.
+    - Connect: `claude mcp add --transport http annotate #{origin()}/mcp` (Claude Code), or add a custom connector with that URL in Claude.ai / Claude Desktop. Full reference: #{origin()}/mcp-server.
 
     ## Optional
 
@@ -239,7 +243,7 @@ defmodule AnnotateWeb.SEO do
     ## Status and roadmap
 
     - Shipped: everything under "What the widget does", the dashboard for site owners, per-site origin rules, GitHub sign-in for owners.
-    - Shipped: the MCP server at #{origin()}/mcp (OAuth sign-in as a dashboard user; read, reply, resolve/reopen and delete tools, each behind its own permission).
+    - Shipped: the MCP server at #{origin()}/mcp (OAuth sign-in as a dashboard user; read, reply, resolve/reopen and delete tools, each behind its own permission). Tools: list_sites, get_site_config, list_threads, get_thread, reply_to_thread, resolve_thread, reopen_thread, delete_comment; prompts triage_open_threads and investigate_thread; resources for sites and threads. Reference page with connect snippets for Claude Code, Claude Desktop / claude.ai, Cursor, VS Code and Codex: #{origin()}/mcp-server.
     - Planned, not shipped: ticket push (Jira, Notion, ClickUp, Asana, The Robot Plans); per-thread internal-only or public-only visibility.
     - Pricing: none published. annotate is free to try while it is early software, with no uptime guarantee; see #{origin()}/terms.
 
