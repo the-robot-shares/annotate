@@ -20,7 +20,7 @@ defmodule AnnotateWeb.Endpoint do
     at: "/",
     from: :annotate,
     gzip: false,
-    only: ~w(themes css hologram favicon.ico robots.txt fonts images)
+    only: ~w(themes css js hologram favicon.ico robots.txt fonts images)
 
   if code_reloading? do
     plug Phoenix.CodeReloader

@@ -134,7 +134,7 @@ config :annotate, :marketing,
   api_host: "annotate-srv.therobotlives.com",
   api_base: "https://annotate-srv.therobotlives.com",
   widget_src:
-    "https://cdn.derobot.is/tobor-kit/sha-74079d06395a6b961b784067ee02f2e054456853/components/page-comments/page-comments.js",
+    "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js",
   dogfood_site: "annotate-landing"
 
 # i18n
