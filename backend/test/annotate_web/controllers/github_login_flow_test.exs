@@ -128,6 +128,18 @@ defmodule AnnotateWeb.GithubLoginFlowTest do
     assert html =~ ~s(content="0;url=/dashboard")
   end
 
+  test "prod shape: providers observed as \"\" → not-configured redirect, not a 500" do
+    prev = Application.get_env(:ueberauth, Ueberauth)
+    Application.put_env(:ueberauth, Ueberauth, providers: "")
+    on_exit(fn -> Application.put_env(:ueberauth, Ueberauth, prev) end)
+
+    assert redirected_to(get(build_conn(), "/auth/github")) ==
+             "/auth/sso-callback?error=github_not_configured"
+
+    assert redirected_to(get(build_conn(), "/auth/github/callback?code=x&state=y")) ==
+             "/auth/sso-callback?error=github_not_configured"
+  end
+
   test "/sign-in shows 'not configured' when GitHub creds are absent" do
     Application.put_env(:annotate, :github_enabled, false)
     on_exit(fn -> Application.put_env(:annotate, :github_enabled, true) end)
