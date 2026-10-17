@@ -14,6 +14,7 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
 
   alias Annotate.Billing.Plans
   alias AnnotateWeb.Hologram.Layouts.LandingLayout
+  alias AnnotateWeb.Hologram.Components.SiteFooter
 
   route "/pricing"
   layout LandingLayout, page_title: "Pricing — annotate"
