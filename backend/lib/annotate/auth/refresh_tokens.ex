@@ -18,7 +18,22 @@ defmodule Annotate.Auth.RefreshTokens do
   def hash(raw) when is_binary(raw), do: Base.encode16(:crypto.hash(:sha256, raw), case: :lower)
 
   @doc "Issues a new refresh token for a commenter/site; returns `{:ok, raw}`."
-  def issue(commenter, site, identity_claims \\ nil) do
+  def issue(commenter, site, identity_claims \\ nil, origin \\ nil) do
+    # The issuing origin rides in the existing `identity_claims` jsonb column
+    # (key "origin") so no schema change is needed. A nil `identity_claims`
+    # keeps its legacy meaning (policy falls back to the commenter's email), so
+    # materialise that fallback before attaching the origin.
+    identity_claims =
+      if is_binary(origin) do
+        Map.put(
+          identity_claims || %{"email" => commenter.email, "groups" => nil},
+          "origin",
+          origin
+        )
+      else
+        identity_claims
+      end
+
     raw = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
     expires_at = DateTime.add(DateTime.utc_now(), @ttl_days, :day)
 
@@ -40,11 +55,11 @@ defmodule Annotate.Auth.RefreshTokens do
   @doc """
   Rotates `raw`: revokes it and issues a fresh pair for its commenter/site.
   Returns `{:ok, %{commenter:, site:, refresh_token:, identity_claims:}}`,
-  `{:error, :invalid}`, or `{:error, :policy}` when the site's CURRENT
+  `{:error, :invalid}`, `{:error, :origin}` or `{:error, :policy}` when the site's CURRENT
   `comment_policy` rejects the identity stored at issuance (the presented
   token is revoked either way — a policy failure kills the session).
   """
-  def rotate(raw) when is_binary(raw) do
+  def rotate(raw, request_origin) when is_binary(raw) do
     now = DateTime.utc_now()
 
     query =
@@ -63,10 +78,18 @@ defmodule Annotate.Auth.RefreshTokens do
         {:error, :invalid}
 
       %RefreshToken{} = rt ->
-        {:ok, _} = revoke(rt)
-
-        with :ok <- check_current_policy(rt),
-             {:ok, fresh_raw} <- issue(rt.commenter, rt.site, rt.identity_claims) do
+        # Origin gate runs BEFORE revoke: a forged-Origin probe must not burn
+        # the legitimate holder's token.
+        with :ok <- check_origin(rt, request_origin),
+             {:ok, _} <- revoke(rt),
+             :ok <- check_current_policy(rt),
+             {:ok, fresh_raw} <-
+               issue(
+                 rt.commenter,
+                 rt.site,
+                 rt.identity_claims,
+                 issuing_origin(rt) || request_origin
+               ) do
           {:ok,
            %{
              commenter: rt.commenter,
@@ -78,7 +101,30 @@ defmodule Annotate.Auth.RefreshTokens do
     end
   end
 
-  def rotate(_), do: {:error, :invalid}
+  def rotate(_, _), do: {:error, :invalid}
+
+  @doc "Origin the token was issued for (nil for tokens minted before binding)."
+  def issuing_origin(%RefreshToken{identity_claims: %{"origin" => o}}) when is_binary(o), do: o
+  def issuing_origin(_), do: nil
+
+  # The request Origin must be (a) an exact member of the site's current
+  # allowed_origins and (b) when the token recorded its issuing origin, equal
+  # to it. No Origin header ⇒ rejected (browsers always send one on a
+  # cross-origin POST; an Origin-less caller cannot prove the binding).
+  # Tokens issued before binding existed have no recorded origin and are
+  # constrained by (a) only; the first rotation re-binds them.
+  defp check_origin(rt, request_origin) when is_binary(request_origin) do
+    bound = issuing_origin(rt)
+
+    if Annotate.Sites.allowed_origin?(rt.site, request_origin) and
+         (is_nil(bound) or bound == request_origin) do
+      :ok
+    else
+      {:error, :origin}
+    end
+  end
+
+  defp check_origin(_rt, _), do: {:error, :origin}
 
   defp revoke(rt),
     do:

@@ -269,6 +269,13 @@ if config_env() == :prod do
     config :annotate, :oidc_enabled, true
   end
 
+  # Trusted reverse-proxy hops in front of the app for rate-limit client-IP
+  # derivation (rightmost-Nth X-Forwarded-For entry). 1 = ingress-nginx, which
+  # overwrites/appends the peer address. 0 = ignore XFF, use the socket peer.
+  config :annotate,
+         :rate_limit_trusted_hops,
+         String.to_integer(System.get_env("RATE_LIMIT_TRUSTED_HOPS") || "1")
+
   # ── Annotate embeddable-comments API ────────────────────────────
   config :annotate, Annotate.Auth.ApiToken,
     secret:
