@@ -16,8 +16,12 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
   prop :description, :string, default: ""
   prop :path, :string, default: "/"
 
-  def init(_props, component, _server) do
+  def init(_props, component, server) do
+    ga_id = AnnotateWeb.Analytics.for_server(server)
+
     put_state(component,
+      ga_id: ga_id,
+      ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
       host: marketing_host(),
       theme_color: AnnotateWeb.SEO.theme_color(),
       og_image: AnnotateWeb.SEO.landing_meta().og_image
@@ -56,6 +60,10 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/landing.css" />
+        {%if @ga_id}
+          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <script async src={@ga_src}></script>
+        {/if}
         <Hologram.UI.Runtime />
       </head>
       <body>

@@ -114,6 +114,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 - name: RATE_LIMIT_CLIENT_IP_HEADER
   value: "cf-connecting-ip"
 {{- end }}
+# GA4 measurement id (public, not a secret). Marketing-host pages only; the app
+# renders gtag only in prod and only when this is set.
+{{- if .Values.analytics.ga.measurementId }}
+- name: GA_MEASUREMENT_ID
+  value: {{ .Values.analytics.ga.measurementId | quote }}
+{{- end }}
 - name: PHX_SERVER
   value: "true"
 - name: PORT

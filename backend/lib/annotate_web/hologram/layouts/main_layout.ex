@@ -22,6 +22,7 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_props, component, server) do
     {user, organizations} = Auth.current_user_and_orgs(server)
+    ga_id = AnnotateWeb.Analytics.for_server(server)
     consent = Hologram.Server.get_session(server, :cookie_consent)
     color_mode = Hologram.Server.get_cookie(server, "color-mode", "system")
     theme_slug = Hologram.Server.get_cookie(server, "sg-theme", "style-guide")
@@ -31,6 +32,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
     component =
       put_state(component,
         user: user,
+        ga_id: ga_id,
+        ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
         organizations: organizations || [],
         show_cookie_banner: is_nil(consent),
         color_mode: color_mode,
@@ -67,6 +70,10 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
         <link rel="stylesheet" href="/css/app.css" />
         <link rel="stylesheet" href="/css/tobor-kit.css" />
         <link rel="stylesheet" href="/css/viewer.css" />
+        {%if @ga_id}
+          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <script async src={@ga_src}></script>
+        {/if}
         <Hologram.UI.Runtime />
       </head>
       <body>
