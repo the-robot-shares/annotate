@@ -34,6 +34,8 @@ defmodule AnnotateWeb.MCP.OAuthPlug do
         config = Annotate.MCP.Config.auth_server()
         router = Noizu.MCP.Auth.Server.Router
 
+        if endpoint == "consent" and conn.method == "POST", do: narrow_consent(conn, config)
+
         conn
         |> put_resp_header("x-robots-tag", "noindex")
         |> router.call(router.init(config))
@@ -48,4 +50,42 @@ defmodule AnnotateWeb.MCP.OAuthPlug do
   end
 
   def call(conn, _opts), do: conn
+
+  @doc """
+  Consent checkboxes: the user grants a SUBSET of what the client asked for.
+  `comments:read` is always granted (the base scope); `comments:write` and
+  `comments:moderate` only when ticked (`grant_scope[]`). Before the library
+  records consent and mints the code it reads the request scope from the
+  login state, so the narrowed scope is written there first — only after the
+  flow's CSRF token checks out (`Noizu.MCP.Auth.Server.Consent.valid_csrf?/2`;
+  the library re-checks it). The code, its tokens and the recorded consent
+  then carry only the ticked scopes. Denials pass through untouched.
+  """
+  def narrow_consent(conn, config) do
+    params = conn.body_params
+
+    with %{"decision" => "approve", "login_state" => state} when is_binary(state) <- params,
+         {store, opts} = Noizu.MCP.Auth.Server.Config.store(config),
+         {:ok, payload} <- store.get_login_state(state, opts),
+         true <- Noizu.MCP.Auth.Server.Consent.valid_csrf?(payload, params["csrf_token"]) do
+      requested = payload |> Map.get("scope") |> List.wrap()
+      _ = store.update_login_state(state, %{"scope" => granted_scopes(requested, params)}, opts)
+      :ok
+    else
+      _ -> :ok
+    end
+  end
+
+  @doc "requested ∩ ({comments:read} ∪ ticked)."
+  def granted_scopes(requested, params) do
+    ticked =
+      case params["grant_scope"] do
+        list when is_list(list) -> Enum.filter(list, &is_binary/1)
+        one when is_binary(one) -> [one]
+        _ -> []
+      end
+
+    allowed = [Annotate.MCP.Scopes.base() | ticked]
+    Enum.filter(requested, &(&1 in allowed))
+  end
 end

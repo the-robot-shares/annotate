@@ -163,7 +163,8 @@ defmodule AnnotateWeb.MCP.OAuthFlowTest do
         |> post(URI.parse(action).path, %{
           "login_state" => state,
           "csrf_token" => csrf,
-          "decision" => "approve"
+          "decision" => "approve",
+          "grant_scope" => ["comments:write", "comments:moderate"]
         })
 
       redirect = redirected_to(conn)
@@ -233,6 +234,141 @@ defmodule AnnotateWeb.MCP.OAuthFlowTest do
         )
 
       assert refreshed.status == 400
+    end
+
+    test "consent checkboxes: read-only grant → no write in the token → 403 step-up → re-consent adds write" do
+      %{user: user, token: session} = AnnotateWeb.DashboardCase.gh_user!(9104)
+      client_id = register_client!("Stepper")
+
+      # Consent screen: read pre-checked + required, write/moderate opt-in, unchecked.
+      %{tokens: tok, consent_html: html} = oauth_grant!(session, client_id, [])
+      assert html =~ ~s(type="checkbox" checked disabled)
+      assert html =~ ~s(name="grant_scope[]" value="comments:write")
+      refute html =~ ~s(value="comments:write" checked)
+      assert peek_claims(tok["access_token"])["scope"] == "comments:read"
+      assert tok["scope"] == "comments:read"
+
+      # A write tool → HTTP 403 insufficient_scope naming the step-up scope.
+      sid = mcp_session!(tok["access_token"])
+
+      conn =
+        mcp_post(
+          tok["access_token"],
+          %{
+            jsonrpc: "2.0",
+            id: 7,
+            method: "tools/call",
+            params: %{name: "reply_to_thread", arguments: %{}}
+          },
+          sid
+        )
+
+      assert conn.status == 403
+      [challenge] = get_resp_header(conn, "www-authenticate")
+      assert challenge =~ ~s(error="insufficient_scope")
+      assert challenge =~ "comments:write"
+      assert challenge =~ "resource_metadata="
+
+      # Read tools (and every non-write method) still pass the HTTP gate.
+      ok =
+        mcp_post(
+          tok["access_token"],
+          %{jsonrpc: "2.0", id: 8, method: "tools/list", params: %{}},
+          sid
+        )
+
+      assert ok.status == 200
+
+      # A client-forged scope header changes nothing (stripped by the plug).
+      forged =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> put_req_header("accept", "application/json, text/event-stream")
+        |> put_req_header("authorization", "Bearer " <> tok["access_token"])
+        |> put_req_header("mcp-session-id", sid)
+        |> put_req_header("mcp-protocol-version", "2025-11-25")
+        |> put_req_header("x-annotate-mcp-required-scope", "")
+        |> post(
+          "/mcp",
+          Jason.encode!(%{
+            jsonrpc: "2.0",
+            id: 9,
+            method: "tools/call",
+            params: %{name: "delete_comment", arguments: %{}}
+          })
+        )
+
+      assert forged.status == 403
+
+      # Re-consent: the broadened ask re-prompts; ticking write grants it.
+      %{tokens: tok2, consent_html: html2} = oauth_grant!(session, client_id, ["comments:write"])
+      assert html2, "a broadened request must re-prompt"
+      assert peek_claims(tok2["access_token"])["scope"] == "comments:read comments:write"
+
+      sid2 = mcp_session!(tok2["access_token"])
+
+      write =
+        mcp_post(
+          tok2["access_token"],
+          %{
+            jsonrpc: "2.0",
+            id: 10,
+            method: "tools/call",
+            params: %{name: "reply_to_thread", arguments: %{}}
+          },
+          sid2
+        )
+
+      refute write.status == 403
+
+      moderate =
+        mcp_post(
+          tok2["access_token"],
+          %{
+            jsonrpc: "2.0",
+            id: 11,
+            method: "tools/call",
+            params: %{name: "delete_comment", arguments: %{}}
+          },
+          sid2
+        )
+
+      assert moderate.status == 403
+
+      # /dashboard/agents data: the connection lists exactly the granted scopes.
+      assert [%{client_id: ^client_id, scopes: scopes}] = Annotate.MCP.Grants.list(user.id)
+      assert Enum.sort(scopes) == ["comments:read", "comments:write"]
+    end
+
+    test "a forged consent POST (bad CSRF) cannot rewrite the requested scope" do
+      %{token: session} = AnnotateWeb.DashboardCase.gh_user!(9105)
+      client_id = register_client!()
+      {_v, challenge} = pkce()
+
+      html =
+        build_conn()
+        |> init_test_session(%{"access_token" => session})
+        |> get(
+          "/oauth/authorize?" <>
+            authorize_query(client_id, challenge, "comments:read comments:write")
+        )
+        |> html_response(200)
+
+      [_, state] = Regex.run(~r{name="login_state" value="([^"]+)"}, html)
+
+      bad =
+        build_conn()
+        |> init_test_session(%{"access_token" => session})
+        |> put_req_header("content-type", "application/x-www-form-urlencoded")
+        |> post(
+          "/oauth/consent",
+          URI.encode_query(%{login_state: state, csrf_token: "nope", decision: "approve"})
+        )
+
+      assert bad.status == 400
+      {store, opts} = Annotate.MCP.Config.store()
+      {:ok, payload} = store.get_login_state(state, opts)
+      assert payload["scope"] == ["comments:read", "comments:write"]
     end
 
     test "a pending (invite-gated) dashboard user never reaches consent" do

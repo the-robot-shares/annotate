@@ -40,10 +40,19 @@ defmodule AnnotateWeb.MCP.Consent do
     name = esc(client.client_name || client.client_id)
     email = account_email(assigns[:subject])
 
+    # Checkboxes: read is required (always granted); write/moderate are
+    # opt-in and unchecked. AnnotateWeb.MCP.OAuthPlug.narrow_consent/2 turns
+    # the ticked set into the grant.
     scopes =
       Enum.map_join(assigns.scope, "", fn scope ->
         text = Map.get(@scope_text, scope, "Unrecognized permission")
-        "<li><strong>#{esc(text)}</strong> <code>#{esc(scope)}</code></li>"
+        id = "scope-" <> String.replace(scope, ~r/[^a-z]/, "-")
+
+        if scope == Annotate.MCP.Scopes.base() do
+          ~s|<li><label><input type="checkbox" checked disabled> <strong>#{esc(text)}</strong> <code>#{esc(scope)}</code> <span class="muted">(required)</span></label></li>|
+        else
+          ~s|<li><label for="#{id}"><input type="checkbox" id="#{id}" name="grant_scope[]" value="#{esc(scope)}"> <strong>#{esc(text)}</strong> <code>#{esc(scope)}</code></label></li>|
+        end
       end)
 
     hosts =
@@ -76,6 +85,8 @@ defmodule AnnotateWeb.MCP.Consent do
       body { font: 16px/1.55 system-ui, -apple-system, sans-serif; background: #0f1115; color: #e8e6e1; max-width: 34rem; margin: 3.5rem auto; padding: 0 1.25rem; }
       h1 { font-size: 1.35rem; margin: 0 0 1rem; }
       ul { padding-left: 1.2rem; } li { margin: .35rem 0; }
+      ul.scopes { list-style: none; padding-left: 0; } ul.scopes li { margin: .6rem 0; }
+      input[type=checkbox] { width: 1.05rem; height: 1.05rem; vertical-align: -2px; margin-right: .35rem; }
       code { background: rgba(255,255,255,.08); padding: .08em .35em; border-radius: 4px; font-size: .88em; word-break: break-all; }
       .muted { color: #a8a39a; font-size: .92rem; }
       .warn { background: rgba(232,170,40,.12); border: 1px solid rgba(232,170,40,.35); padding: .75rem .9rem; border-radius: 8px; }
@@ -88,11 +99,11 @@ defmodule AnnotateWeb.MCP.Consent do
     <h1><code>#{name}</code> wants to use annotate as you</h1>
     #{if email, do: ~s(<p class="muted">Signed in as <strong>#{esc(email)}</strong>.</p>), else: ""}
     #{kind_note}
-    <p>It is asking to:</p>
-    <ul>#{scopes}</ul>
+    <form method="post" action="#{esc(assigns.action)}">
+    <p>Choose what it may do (you can grant more later by reconnecting):</p>
+    <ul class="scopes">#{scopes}</ul>
     <p class="muted">Access covers every site you are a member of, with your current role on each (checked on every request). It returns to #{hosts}. Revoke it any time at <strong>Dashboard → Agents</strong>.</p>
     <p class="muted">Comment text on your sites is written by visitors. An agent should treat it as data, not instructions.</p>
-    <form method="post" action="#{esc(assigns.action)}">
       <input type="hidden" name="login_state" value="#{esc(assigns.login_state)}">
       <input type="hidden" name="csrf_token" value="#{esc(assigns.csrf_token)}">
       <div class="actions">

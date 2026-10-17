@@ -37,6 +37,8 @@ defmodule AnnotateWeb.MCP.Plug do
         )
 
   def call(%Plug.Conn{path_info: ["mcp"]} = conn, _opts) do
+    conn = conn |> Plug.Conn.delete_req_header(Annotate.MCP.Scopes.header()) |> decode_body()
+
     serve(
       %{conn | path_info: [], script_name: conn.script_name ++ ["mcp"]},
       Noizu.MCP.Transport.StreamableHTTP.Plug,
@@ -50,6 +52,45 @@ defmodule AnnotateWeb.MCP.Plug do
   end
 
   def call(conn, _opts), do: conn
+
+  # Decode a POST body ONCE (the transport accepts pre-parsed `body_params`)
+  # so the write-tool scope can be enforced at the HTTP layer as a 403
+  # step-up. Bounded like Plug.Parsers' default (8 MB) — anything bigger or
+  # malformed is left unread for the transport to reject as it always has.
+  @max_body 8_000_000
+  defp decode_body(%Plug.Conn{method: "POST"} = conn) do
+    case Plug.Conn.read_body(conn, length: @max_body) do
+      {:ok, raw, conn} ->
+        case Jason.decode(raw) do
+          {:ok, body} when is_map(body) or is_list(body) ->
+            conn = %{conn | body_params: wrap(body), params: wrap(body)}
+
+            case Annotate.MCP.Scopes.required(body) do
+              [] ->
+                conn
+
+              scopes ->
+                Plug.Conn.put_req_header(
+                  conn,
+                  Annotate.MCP.Scopes.header(),
+                  Enum.join(scopes, " ")
+                )
+            end
+
+          _ ->
+            %{conn | body_params: %{"_json" => :invalid}, params: %{}}
+        end
+
+      _ ->
+        conn
+    end
+  end
+
+  defp decode_body(conn), do: conn
+
+  # A JSON-RPC batch arrives as a list; Plug's convention is `%{"_json" => list}`.
+  defp wrap(body) when is_map(body), do: body
+  defp wrap(body) when is_list(body), do: %{"_json" => body}
 
   defp serve(conn, module, opts), do: conn |> module.call(module.init(opts)) |> Plug.Conn.halt()
 end

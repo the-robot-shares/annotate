@@ -58,6 +58,75 @@ defmodule AnnotateWeb.MCPCase do
   end
 
   @doc """
+  Signed-in authorize → consent (ticking `ticked` scopes) → token, for a
+  dashboard session `access_token`. Returns `%{tokens, consent_html}`;
+  `consent_html` is nil when consent was skipped (already granted).
+  """
+  def oauth_grant!(
+        session_token,
+        client_id,
+        ticked,
+        scope \\ "comments:read comments:write comments:moderate"
+      ) do
+    {verifier, challenge} = pkce()
+
+    conn =
+      build_conn()
+      |> init_test_session(%{"access_token" => session_token})
+      |> get("/oauth/authorize?" <> authorize_query(client_id, challenge, scope))
+
+    {redirect, consent_html} =
+      case conn.status do
+        200 ->
+          html = conn.resp_body
+          [_, csrf] = Regex.run(~r{name="csrf_token" value="([^"]+)"}, html)
+          [_, state] = Regex.run(~r{name="login_state" value="([^"]+)"}, html)
+
+          body =
+            URI.encode_query([
+              {"login_state", state},
+              {"csrf_token", csrf},
+              {"decision", "approve"}
+            ]) <>
+              Enum.map_join(ticked, "", &("&" <> URI.encode_query([{"grant_scope[]", &1}])))
+
+          posted =
+            build_conn()
+            |> init_test_session(%{"access_token" => session_token})
+            |> put_req_header("content-type", "application/x-www-form-urlencoded")
+            |> post("/oauth/consent", body)
+
+          {redirected_to(posted), html}
+
+        302 ->
+          {redirected_to(conn), nil}
+      end
+
+    code = URI.decode_query(URI.parse(redirect).query)["code"] || raise "no code: #{redirect}"
+
+    tokens =
+      build_conn()
+      |> put_req_header("content-type", "application/x-www-form-urlencoded")
+      |> post(
+        "/oauth/token",
+        URI.encode_query(%{
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: "http://localhost:53682/callback",
+          client_id: client_id,
+          code_verifier: verifier,
+          resource: resource()
+        })
+      )
+      |> Phoenix.ConnTest.json_response(200)
+
+    %{tokens: tokens, consent_html: consent_html}
+  end
+
+  @doc "Claims of a JWT, unverified (test inspection only)."
+  def peek_claims(jwt), do: JOSE.JWT.peek_payload(jwt).fields
+
+  @doc """
   Mint an access token straight from the library for `user_id` (the same
   path `/oauth/token` uses), with a recorded consent so the verifier accepts
   it. Returns the raw JWT.
