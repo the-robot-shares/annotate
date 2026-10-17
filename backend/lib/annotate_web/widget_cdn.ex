@@ -12,7 +12,7 @@ defmodule AnnotateWeb.WidgetCdn do
   pinned form. Bump `@version` to move annotate to a new tobor-kit release.
   """
 
-  @version "1.0.4"
+  @version "1.0.8"
   @base "https://cdn.derobot.is/tobor-kit"
 
   @doc "tobor-kit release annotate pins."
