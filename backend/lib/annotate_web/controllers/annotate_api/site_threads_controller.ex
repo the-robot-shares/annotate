@@ -17,11 +17,16 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
 
   @guest_name_max 80
 
-  def index(conn, %{"page_key" => page_key} = _params) do
+  def index(conn, %{"page_key" => page_key} = params) do
     site = conn.assigns.annotate_site
 
     if Annotate.Sites.public_read?(site) or not is_nil(conn.assigns[:annotate_commenter]) do
-      threads = Comments.list_threads_with_comments(site.id, page_key)
+      threads =
+        Comments.list_threads_with_comments(site.id, page_key,
+          query: current_query(params),
+          anchor_config: Annotate.Anchors.config(site, csv(params["ignore_params"]))
+        )
+
       json(conn, %{"threads" => Renderer.thread_list(threads)})
     else
       conn |> put_status(:unauthorized) |> json(%{"error" => "invalid_token"})
@@ -31,6 +36,22 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
   def index(conn, _params) do
     conn |> put_status(:bad_request) |> json(%{"error" => "page_key_required"})
   end
+
+  # `query=a=1&b=2` (raw) or `url=<full current url>` narrows to threads whose
+  # stored query params match; neither => legacy behaviour (whole page).
+  defp current_query(%{"query" => q}) when is_binary(q), do: q
+
+  defp current_query(%{"url" => url}) when is_binary(url) do
+    case Annotate.Anchors.parse_url(url) do
+      %{"query_params" => qp} -> qp
+      _ -> nil
+    end
+  end
+
+  defp current_query(_), do: nil
+
+  defp csv(v) when is_binary(v), do: v |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+  defp csv(_), do: []
 
   def create(conn, params) do
     site = conn.assigns.annotate_site
