@@ -46,7 +46,7 @@ defmodule AnnotateWeb.MarketingLandingTest do
       host: @marketing_host,
       api_host: @api_host,
       api_base: "https://#{@api_host}",
-      widget_src: "https://cdn.derobot.is/tobor-kit/v1.0.4/annotate.js",
+      widget_src: "https://cdn.derobot.is/tobor-kit/v1.0.8/annotate.js",
       dogfood_site: "annotate-landing"
     )
 
