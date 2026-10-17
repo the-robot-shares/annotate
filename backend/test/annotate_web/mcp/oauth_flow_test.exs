@@ -401,6 +401,94 @@ defmodule AnnotateWeb.MCP.OAuthFlowTest do
       assert html =~ "&lt;script&gt;"
     end
 
+    test "Cursor: cursor:// redirect registers, consent returns the code to cursor:// (exact match)" do
+      cursor_cb = "cursor://anysphere.cursor-mcp/oauth/callback"
+
+      reg =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> post(
+          "/oauth/register",
+          Jason.encode!(%{
+            client_name: "Cursor",
+            redirect_uris: [cursor_cb],
+            token_endpoint_auth_method: "none"
+          })
+        )
+
+      assert reg.status == 201
+      client_id = Jason.decode!(reg.resp_body)["client_id"]
+      %{token: session} = AnnotateWeb.DashboardCase.gh_user!(9106)
+      {_v, challenge} = pkce()
+
+      q = fn redirect ->
+        URI.encode_query(%{
+          response_type: "code",
+          client_id: client_id,
+          redirect_uri: redirect,
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+          scope: "comments:read",
+          state: "s1",
+          resource: resource()
+        })
+      end
+
+      # A lookalike of the registered URI is refused (rendered, never redirected).
+      bad =
+        build_conn()
+        |> init_test_session(%{"access_token" => session})
+        |> get("/oauth/authorize?" <> q.("cursor://anysphere.cursor-mcp/oauth/callback/x"))
+
+      assert bad.status == 400
+
+      html =
+        build_conn()
+        |> init_test_session(%{"access_token" => session})
+        |> get("/oauth/authorize?" <> q.(cursor_cb))
+        |> html_response(200)
+
+      assert html =~ "the Cursor app"
+      [_, csrf] = Regex.run(~r{name="csrf_token" value="([^"]+)"}, html)
+      [_, state] = Regex.run(~r{name="login_state" value="([^"]+)"}, html)
+
+      approved =
+        build_conn()
+        |> init_test_session(%{"access_token" => session})
+        |> put_req_header("content-type", "application/x-www-form-urlencoded")
+        |> post(
+          "/oauth/consent",
+          URI.encode_query(%{login_state: state, csrf_token: csrf, decision: "approve"})
+        )
+
+      [location] = get_resp_header(approved, "location")
+      assert String.starts_with?(location, cursor_cb <> "?")
+      assert URI.decode_query(URI.parse(location).query)["code"]
+    end
+
+    test "DCR still refuses javascript:/data:/file: redirect URIs" do
+      for uri <- [
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "file:///etc/passwd",
+            "cursorx://a/cb"
+          ] do
+        conn =
+          build_conn()
+          |> put_req_header("content-type", "application/json")
+          |> post(
+            "/oauth/register",
+            Jason.encode!(%{
+              client_name: "x",
+              redirect_uris: [uri],
+              token_endpoint_auth_method: "none"
+            })
+          )
+
+        assert conn.status == 400, uri
+      end
+    end
+
     test "DCR refuses a non-allowlisted https redirect host" do
       conn =
         build_conn()

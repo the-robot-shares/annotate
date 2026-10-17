@@ -13,6 +13,8 @@ defmodule AnnotateWeb.MCP.AgentsPageTest do
     assert html =~ "claude mcp add --transport http annotate " <> resource()
     assert html =~ "Connected clients"
     assert html =~ "dsh-nav-agents"
+    assert html =~ "Cursor opens the sign-in"
+    refute html =~ "Not yet supported"
 
     anon = get(build_conn(), "/dashboard/agents")
     assert anon.status in [302, 200]
