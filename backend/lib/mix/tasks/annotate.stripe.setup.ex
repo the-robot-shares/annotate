@@ -36,7 +36,11 @@ defmodule Mix.Tasks.Annotate.Stripe.Setup do
 
     product_id = ensure_product()
 
-    plans = Annotate.Billing.Plans.all()
+    # Only plans with a Stripe lookup key get a price (enterprise is
+    # ops-assigned and carries no lookup key by design).
+    plans =
+      Annotate.Billing.Plans.all()
+      |> Enum.filter(fn {_key, plan} -> is_binary(plan.lookup_key) end)
 
     base =
       Enum.map(plans, fn {_key, plan} ->

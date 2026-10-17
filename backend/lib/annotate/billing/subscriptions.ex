@@ -288,7 +288,9 @@ defmodule Annotate.Billing.Subscriptions do
     :ok
   end
 
-  # The plan is the item whose price lookup key is a base plan key.
+  # The plan is the item whose price lookup key is a base plan key. Plans
+  # with no lookup key (enterprise — ops-assigned) can never match a Stripe
+  # price: `nil == nil` must not elect them.
   defp plan_from_sub(sub) do
     sub
     |> items()
@@ -296,7 +298,9 @@ defmodule Annotate.Billing.Subscriptions do
       lookup = get_in(item, ["price", "lookup_key"])
 
       Plans.all()
-      |> Enum.find_value(fn {key, plan} -> (plan.lookup_key == lookup && key) || nil end)
+      |> Enum.find_value(fn {key, plan} ->
+        ((is_binary(plan.lookup_key) and plan.lookup_key == lookup) && key) || nil
+      end)
     end)
   end
 

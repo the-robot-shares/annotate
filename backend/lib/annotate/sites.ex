@@ -16,7 +16,12 @@ defmodule Annotate.Sites do
     "default_visibility" => "public"
   }
 
-  # Self-serve abuse bound: sites a single dashboard user may own.
+  # Self-serve abuse bound: sites a single dashboard user may own. The
+  # account's PLAN governs whenever it has an apps limit (start 3 /
+  # standard 10 via `Annotate.Billing.check_site_creation`; team, enterprise
+  # and comp are unlimited via `site_limit_exempt?/1`). This bound only
+  # applies when the account carries no unlimited exemption — it must never
+  # cap a plan that promises unlimited apps.
   @max_owned_sites 25
 
   # Dashboard-editable keys, split by required role (see `update_site_display/2`
@@ -64,9 +69,10 @@ defmodule Annotate.Sites do
   @doc """
   Dashboard site creation: validates origins, creates the site + service key
   AND the creator's owner membership in ONE transaction (a crash can never
-  leave an ownerless, unmanageable site). Enforces the per-user ownership cap
-  and, when billing is enabled (`Annotate.Billing.enabled?/0`), the plan's
-  apps limit (a locked/trial-expired owner answers `:billing_required`).
+  leave an ownerless, unmanageable site). Enforces the per-user ownership
+  abuse bound (skipped for comp / unlimited-apps plans) and, when billing is
+  enabled (`Annotate.Billing.enabled?/0`), the ACCOUNT'S PLAN apps limit (a
+  locked/trial-expired owner answers `:billing_required`).
 
   Returns `{:ok, site, service_key}` (key shown ONCE) · `{:error, :invalid_origin}`
   · `{:error, :site_limit}` · `{:error, :billing_required}` ·
@@ -109,9 +115,13 @@ defmodule Annotate.Sites do
   end
 
   defp check_site_limit(user_id) do
-    if Annotate.SiteMembers.owned_site_count(user_id) >= @max_owned_sites,
-      do: {:error, :site_limit},
-      else: :ok
+    cond do
+      # comp / team / enterprise: the plan (or comp flag) says unlimited —
+      # the abuse bound never overrides the account's plan.
+      Annotate.Billing.site_limit_exempt?(user_id) -> :ok
+      Annotate.SiteMembers.owned_site_count(user_id) >= @max_owned_sites -> {:error, :site_limit}
+      true -> :ok
+    end
   end
 
   @doc """

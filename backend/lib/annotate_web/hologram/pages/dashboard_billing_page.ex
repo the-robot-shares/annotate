@@ -478,8 +478,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         name: plan.name,
         price: format_cents(plan.price_cents) <> "/mo",
         apps: plan_display_value(plan.apps),
-        users: Integer.to_string(plan.users),
-        storage: format_bytes(plan.storage_bytes),
+        users: plan_display_value(plan.users),
+        storage: limit_bytes_display(plan.storage_bytes),
         current: current_plan == key,
         cta: if(current_plan == key, do: "Renew / manage", else: "Choose " <> plan.name),
         full: status != nil and status.full,
@@ -539,6 +539,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
   defp limit_display(v) when is_integer(v), do: Integer.to_string(v)
 
   defp limit_bytes_display(nil), do: "—"
+  defp limit_bytes_display(:unlimited), do: "Unlimited"
   defp limit_bytes_display(v) when is_integer(v), do: format_bytes(v)
 
   defp format_bytes(b) when is_integer(b) and b >= 1_073_741_824,

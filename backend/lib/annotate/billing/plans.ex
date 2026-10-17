@@ -10,6 +10,7 @@ defmodule Annotate.Billing.Plans do
   | standard | $3.99    | 10   | 3     | 1GB     | —                                        |
   | team     | $9.99    | ∞    | 5     | 10GB    | +$0.99/user/mo, +$0.99/GB/mo (quantities)|
   | agent    | $4.95    | —    | —     | —       | NOT purchasable yet ("coming soon")      |
+  | enterprise | — (comp) | ∞  | ∞     | ∞       | NOT purchasable — assigned by ops        |
   """
 
   @mb 1_048_576
@@ -60,6 +61,20 @@ defmodule Annotate.Billing.Plans do
       storage_bytes: nil,
       extras: false,
       purchasable: false
+    },
+    "enterprise" => %{
+      key: "enterprise",
+      name: "Enterprise",
+      # Not purchasable (no Stripe price): assigned by ops via the
+      # `billing_subscriptions` row (plan = "enterprise"). Unlimited on
+      # every axis, no time bound.
+      price_cents: nil,
+      lookup_key: nil,
+      apps: :unlimited,
+      users: :unlimited,
+      storage_bytes: :unlimited,
+      extras: false,
+      purchasable: false
     }
   }
 
@@ -85,17 +100,19 @@ defmodule Annotate.Billing.Plans do
   @doc "Lookup keys that ride a Team subscription as metered quantities."
   def extra_lookup_keys, do: @extra_lookup_keys
 
-  @doc "Effective user limit for a plan (+ purchased extra users)."
+  @doc "Effective user limit for a plan (+ purchased extra users). `:unlimited` on enterprise."
   def users_limit(plan_key, extra_users) do
     case get(plan_key) do
+      %{users: :unlimited} -> :unlimited
       %{users: users} when is_integer(users) -> users + max(extra_users || 0, 0)
       _ -> nil
     end
   end
 
-  @doc "Effective storage bytes for a plan (+ purchased extra GB)."
+  @doc "Effective storage bytes for a plan (+ purchased extra GB). `:unlimited` on enterprise."
   def storage_limit(plan_key, extra_gb) do
     case get(plan_key) do
+      %{storage_bytes: :unlimited} -> :unlimited
       %{storage_bytes: base} when is_integer(base) -> base + max(extra_gb || 0, 0) * @gb
       _ -> nil
     end
