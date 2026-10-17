@@ -34,6 +34,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
     component =
       put_state(component,
         user: user,
+        ga_css: AnnotateWeb.Assets.versioned("/css/ga-consent.css"),
+        ga_js: AnnotateWeb.Assets.versioned("/js/ga-init.js"),
         ga_id: ga_id,
         organizations: organizations || [],
         show_cookie_banner: is_nil(consent) and is_nil(ga_id),
@@ -72,8 +74,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
         <link rel="stylesheet" href="/css/tobor-kit.css" />
         <link rel="stylesheet" href="/css/viewer.css" />
         {%if @ga_id}
-          <link rel="stylesheet" href="/css/ga-consent.css" />
-          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <link rel="stylesheet" href={@ga_css} />
+          <script src={@ga_js} data-ga-id={@ga_id}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>
