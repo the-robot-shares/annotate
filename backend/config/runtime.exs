@@ -311,6 +311,18 @@ if config_env() == :prod do
          :rate_limit_trusted_hops,
          String.to_integer(System.get_env("RATE_LIMIT_TRUSTED_HOPS") || "1")
 
+  # Opt-in: take the client IP from this request header (e.g. cf-connecting-ip)
+  # when it holds a valid IP. ONLY set when every request reaching the pod has
+  # passed a proxy that overwrites the header (chart gates it on the
+  # Cloudflare-only ingress whitelist); otherwise clients can forge it.
+  rate_limit_client_ip_header =
+    case System.get_env("RATE_LIMIT_CLIENT_IP_HEADER") do
+      h when is_binary(h) and h != "" -> String.downcase(h)
+      _ -> nil
+    end
+
+  config :annotate, :rate_limit_client_ip_header, rate_limit_client_ip_header
+
   # ── Annotate embeddable-comments API ────────────────────────────
   config :annotate, Annotate.Auth.ApiToken,
     secret:

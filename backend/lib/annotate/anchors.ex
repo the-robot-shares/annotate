@@ -101,7 +101,13 @@ defmodule Annotate.Anchors do
         [{k, String.slice(v, 0, @max_value)}]
 
       {k, vs} when is_binary(k) and is_list(vs) ->
-        [{k, vs |> Enum.filter(&is_binary/1) |> Enum.map(&String.slice(&1, 0, @max_value)) |> Enum.sort()}]
+        [
+          {k,
+           vs
+           |> Enum.filter(&is_binary/1)
+           |> Enum.map(&String.slice(&1, 0, @max_value))
+           |> Enum.sort()}
+        ]
 
       _ ->
         []
