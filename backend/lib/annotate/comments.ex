@@ -441,7 +441,8 @@ defmodule Annotate.Comments do
     anchor = attrs["anchor"]
     body_md = attrs["body_md"]
 
-    with :ok <- require_author(commenter),
+    with :ok <- billing_write_gate(site.id),
+         :ok <- require_author(commenter),
          :ok <- validate_page_key(page_key),
          :ok <- validate_anchor(anchor),
          :ok <- validate_body(body_md),
@@ -491,7 +492,8 @@ defmodule Annotate.Comments do
   def add_comment(%Thread{} = thread, commenter, attrs) do
     body_md = attrs["body_md"]
 
-    with :ok <- validate_body(body_md),
+    with :ok <- billing_write_gate(thread_site(thread)),
+         :ok <- validate_body(body_md),
          :ok <- require_author(commenter),
          {:ok, parent_id} <- validate_parent(thread, attrs["parent_id"]),
          {:ok, attachments} <-
@@ -702,6 +704,13 @@ defmodule Annotate.Comments do
         bytes: bytes,
         kind: kind
       }) do
+    with :ok <- billing_write_gate(site.id),
+         :ok <- Annotate.Billing.check_storage(site.id, bytes) do
+      create_pending_attachment_locked(site, uploader, filename, content_type, bytes, kind)
+    end
+  end
+
+  defp create_pending_attachment_locked(%Site{} = site, uploader, filename, content_type, bytes, kind) do
     storage_key = storage_key(site, filename)
     upload_url = Annotate.Storage.presigned_upload_url(storage_key, content_type)
 
@@ -896,4 +905,13 @@ defmodule Annotate.Comments do
   defp binary_part_check(name), do: String.slice(name, 0, 200)
 
   defp now_usec, do: DateTime.truncate(DateTime.utc_now(), :microsecond)
+
+  # Billing read-only gate (trial expired, no subscription): visitors keep
+  # seeing every comment; new comments, replies and uploads are rejected.
+  # No-op unless Annotate.Billing.enabled? (no Stripe keys → nothing locks).
+  defp billing_write_gate(%Site{id: site_id}) when is_binary(site_id) do
+    if Annotate.Billing.site_locked?(site_id), do: {:error, :billing_read_only}, else: :ok
+  end
+
+  defp billing_write_gate(_no_site), do: :ok
 end

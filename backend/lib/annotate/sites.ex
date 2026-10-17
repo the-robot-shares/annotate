@@ -63,17 +63,21 @@ defmodule Annotate.Sites do
   @doc """
   Dashboard site creation: validates origins, creates the site + service key
   AND the creator's owner membership in ONE transaction (a crash can never
-  leave an ownerless, unmanageable site). Enforces the per-user ownership cap.
+  leave an ownerless, unmanageable site). Enforces the per-user ownership cap
+  and, when billing is enabled (`Annotate.Billing.enabled?/0`), the plan's
+  apps limit (a locked/trial-expired owner answers `:billing_required`).
 
   Returns `{:ok, site, service_key}` (key shown ONCE) · `{:error, :invalid_origin}`
-  · `{:error, :site_limit}` · `{:error, changeset}`.
+  · `{:error, :site_limit}` · `{:error, :billing_required}` ·
+  `{:error, :plan_site_limit}` · `{:error, changeset}`.
   """
   def create_site_with_owner(attrs, %{id: user_id} = user) when is_binary(user_id) do
     origins = attrs["allowed_origins"] || []
 
     with :ok <- check_dashboard_access(user_id),
          {:ok, origins} <- normalize_origins(origins),
-         :ok <- check_site_limit(user_id) do
+         :ok <- check_site_limit(user_id),
+         :ok <- Annotate.Billing.check_site_creation(user_id) do
       Repo.transaction(fn ->
         case create_site(%{
                "slug" => attrs["slug"],

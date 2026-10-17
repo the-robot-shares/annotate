@@ -97,6 +97,13 @@ defmodule AnnotateWeb.Router do
     get "/health", HealthController, :index
   end
 
+  # Stripe webhook: signature-verified over the RAW body (RawBodyReader);
+  # no auth pipeline, no rate limit (Stripe is the caller; retries answer 200).
+  scope "/api/v1/billing", AnnotateWeb do
+    pipe_through [:api]
+    post "/webhook", BillingWebhookController, :create
+  end
+
   # Deliberately NOT under /api/v1: AnnotateCORS denies any browser Origin that
   # is not a registered site origin there, and the landing form is same-origin.
   scope "/", AnnotateWeb do

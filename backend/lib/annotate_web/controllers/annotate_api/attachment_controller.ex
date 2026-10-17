@@ -25,15 +25,17 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentController do
     with {:ok, kind} <- validate_kind(params["kind"]),
          :ok <- validate_content_type(params["content_type"]),
          :ok <- validate_bytes(site, params["bytes"]),
-         {:ok, filename} <- validate_filename(params["filename"]) do
-      {:ok, attachment, upload_url} =
-        Comments.create_pending_attachment(site, uploader, %{
-          filename: filename,
-          content_type: params["content_type"],
-          bytes: params["bytes"],
-          kind: kind
-        })
-
+         {:ok, filename} <- validate_filename(params["filename"]),
+         # In-chain (not a body match): billing gates return
+         # {:error, :billing_read_only | :plan_storage_limit} — an error tuple
+         # must reach the else clauses, never raise at the body's `=`.
+         {:ok, attachment, upload_url} <-
+           Comments.create_pending_attachment(site, uploader, %{
+             filename: filename,
+             content_type: params["content_type"],
+             bytes: params["bytes"],
+             kind: kind
+           }) do
       conn
       |> put_status(:created)
       |> json(%{
@@ -44,8 +46,25 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentController do
       {:error, "too_large"} ->
         conn |> put_status(413) |> json(%{"error" => "too_large"})
 
+      {:error, :billing_read_only} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{"error" => "billing_read_only", "message" => Annotate.Billing.locked_message()})
+
+      {:error, :plan_storage_limit} ->
+        conn
+        |> put_status(413)
+        |> json(%{
+          "error" => "storage_limit_reached",
+          "message" =>
+            "The site owner's storage plan is full. Upgrades are on the annotate dashboard Billing page."
+        })
+
       {:error, code} when is_binary(code) ->
         conn |> put_status(:bad_request) |> json(%{"error" => code})
+
+      {:error, %Ecto.Changeset{}} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
     end
   end
 

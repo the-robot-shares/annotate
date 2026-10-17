@@ -9,7 +9,7 @@ appDomain: annotate-srv.therobotlives.com
 cookieDomain: ".therobotlives.com"
 
 backend:
-  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-ff9237f
+  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-b4fe773
   port: 4000
   resources:
     requests:
@@ -72,6 +72,14 @@ secrets:
     # secretKeyRef in _helpers.tpl: until it lands in the synced secret the
     # pod boots without it and FleetPush no-ops (logs once).
     fleetIngestKey: ANNOTATE_FLEET_INGEST_KEY
+    # Stripe billing (Annotate.Billing). Optional secretKeyRefs: with no
+    # ANNOTATE_STRIPE_SECRET_KEY billing is DISABLED — trials, plan limits
+    # and read-only locks all no-op (runtime.exs + Annotate.Billing.boot_check
+    # log once at boot). Test-mode first; `mix annotate.stripe.setup` creates
+    # the products/prices once the keys land.
+    stripeSecretKey: ANNOTATE_STRIPE_SECRET_KEY
+    stripeWebhookSecret: ANNOTATE_STRIPE_WEBHOOK_SECRET
+    stripePublishableKey: ANNOTATE_STRIPE_PUBLISHABLE_KEY
     sendgridApiKey: ""
     oidcClientId: ANNOTATE_OIDC_CLIENT_ID
     oidcClientSecret: ANNOTATE_OIDC_CLIENT_SECRET

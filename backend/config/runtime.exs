@@ -32,6 +32,29 @@ config :annotate, :redis,
   uri: System.get_env("REDIS_URL") || "redis://localhost:6379/0",
   key_prefix: System.get_env("REDIS_KEY_PREFIX", "annotate:")
 
+# ── Billing (Stripe) ─────────────────────────────────────────────
+# ANNOTATE_STRIPE_* (Infisical /apps/annotate, synced Secret annotate-secrets).
+# Fails soft by design (user decision 2026-10-17): with no secret key
+# Annotate.Billing.enabled?/0 is false and NOTHING is enforced/locked —
+# trials, plan limits and expiry all no-op. `mix annotate.stripe.setup`
+# creates the products/prices (TEST mode) once the keys exist.
+parse_env = fn name ->
+  case String.trim(System.get_env(name, "")) do
+    "" -> nil
+    value -> value
+  end
+end
+
+stripe_api_key = parse_env.("ANNOTATE_STRIPE_SECRET_KEY")
+billing_frontend = System.get_env("FRONTEND_URL") || "https://annotate.therobotlives.com"
+
+config :annotate, Annotate.Billing.Stripe,
+  enabled: is_binary(stripe_api_key),
+  api_key: stripe_api_key,
+  webhook_secret: parse_env.("ANNOTATE_STRIPE_WEBHOOK_SECRET"),
+  publishable_key: parse_env.("ANNOTATE_STRIPE_PUBLISHABLE_KEY"),
+  portal_return_url: String.trim_trailing(billing_frontend, "/") <> "/dashboard/billing"
+
 # Marketing landing host split — env overrides for per-env domains (staging,
 # previews). Defaults live in config.exs.
 config :annotate, :marketing,

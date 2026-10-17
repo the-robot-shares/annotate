@@ -165,6 +165,16 @@ defmodule Annotate.MixProject do
       {:ecto_psql_extras, "~> 0.8.1"},
       {:pgvector, "~> 0.3.0"},
 
+      # Stripe billing (subscriptions, Checkout, Customer Portal, webhooks).
+      # Fails soft: with no ANNOTATE_STRIPE_SECRET_KEY nothing is enforced.
+      # 3.3 (not 3.2): 3.3 dropped tesla and pins hackney ~> 4.0, matching
+      # ex_aws 2.7 (3.2's tesla 1.18.x needs hackney ~> 1.21 — unsolvable).
+      {:stripity_stripe, "~> 3.3"},
+      # noizu_sendgrid allows tesla ~> 1.2, but the resolver picked 1.18.2,
+      # which drags in hackney ~> 1.21 and collides with stripity/ex_aws's
+      # hackney ~> 4.0. tesla >= 1.18.3 fixed its hackney constraint.
+      {:tesla, ">= 1.18.3", override: true},
+
       # Rate Limiting
       {:hammer, "~> 6.2"},
 

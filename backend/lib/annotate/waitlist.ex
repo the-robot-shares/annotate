@@ -8,8 +8,11 @@ defmodule Annotate.Waitlist do
   alias Annotate.Repo
   alias Annotate.Schema.Annotate.WaitlistSignup
 
-  # The only interests the form offers; anything else is rejected.
-  @interests ~w(mcp robot-plans jira notion clickup asana)
+  # The only interests the form offers; anything else is rejected. `plan-*`
+  # and `agent-addon` power the pricing/dashboard waitlists (full plans and
+  # the coming-soon agent add-on — see Annotate.Billing).
+  @interests ~w(mcp robot-plans jira notion clickup asana agent-addon
+                plan-start plan-standard plan-team)
 
   # Pragmatic address shape check: one @, no spaces, a dotted domain.
   @email_re ~r/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/

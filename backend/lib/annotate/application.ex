@@ -45,6 +45,7 @@ defmodule Annotate.Application do
     with {:ok, _pid} = ok <- Supervisor.start_link(children, opts) do
       warm_sref_handlers()
       warm_assets()
+      Annotate.Billing.boot_check()
       ok
     end
   end
