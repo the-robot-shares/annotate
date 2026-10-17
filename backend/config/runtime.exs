@@ -467,9 +467,12 @@ if config_env() == :prod do
   #     oauth_providers
   #   end
 
-  if oauth_providers != [] do
-    config :ueberauth, Ueberauth, providers: oauth_providers
-  end
+  # Always set (even []): the release's build-time value arrived as "" in prod
+  # (observed 2026-10-17 via rpc: `[providers: ""]`), which made Ueberauth's
+  # plug init crash (`Enum.flat_map("")`) → every /auth/:provider request 500'd
+  # instead of the "github_not_configured" redirect. Runtime config is applied
+  # in memory, so [] stays a list here.
+  config :ueberauth, Ueberauth, providers: oauth_providers
 
   # Fleet dashboard (fleet.noizu.com) daily metrics push. Unset/blank
   # FLEET_INGEST_KEY ⇒ the worker logs once and no-ops; nothing is pushed.
