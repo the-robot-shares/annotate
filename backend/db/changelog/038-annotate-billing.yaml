@@ -1,0 +1,121 @@
+databaseChangeLog:
+  # ── Annotate: billing (invite quota, subscriptions, signup caps) ──
+  # Additive only. Billing owner = the dashboard USER; one subscription row
+  # per user (UNIQUE user_id). Local trial rows are status 'trialing' with
+  # current_period_end NULL and trial_ends_at set; Stripe webhooks overwrite
+  # plan/status/period. Enforcement in the app is gated on
+  # Annotate.Billing.enabled? — with no Stripe keys nothing locks.
+  # ids 0047+ (0046 waitlist, 0041-0045 reserved/used per 035).
+
+  - changeSet:
+      id: annotate-0056-users-invite-quota
+      author: annotate
+      changes:
+        - sql:
+            sql: ALTER TABLE users ADD COLUMN invite_quota integer NOT NULL DEFAULT 0;
+      rollback:
+        - sql:
+            sql: ALTER TABLE users DROP COLUMN IF EXISTS invite_quota;
+
+  - changeSet:
+      id: annotate-0057-create-table-billing-subscriptions
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE billing_subscriptions (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                stripe_customer_id varchar(255),
+                stripe_subscription_id varchar(255),
+                plan varchar(32),
+                status varchar(32) NOT NULL DEFAULT 'trialing',
+                current_period_end timestamptz,
+                extra_users integer NOT NULL DEFAULT 0,
+                extra_gb integer NOT NULL DEFAULT 0,
+                trial_ends_at timestamptz,
+                comp boolean NOT NULL DEFAULT false,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL
+              );
+              CREATE UNIQUE INDEX billing_subscriptions_stripe_sub_id_key
+                ON billing_subscriptions (stripe_subscription_id)
+                WHERE stripe_subscription_id IS NOT NULL;
+              CREATE INDEX billing_subscriptions_stripe_customer_id_idx
+                ON billing_subscriptions (stripe_customer_id);
+              CREATE INDEX billing_subscriptions_plan_status_idx
+                ON billing_subscriptions (plan, status);
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS billing_subscriptions;
+
+  - changeSet:
+      id: annotate-0058-create-table-plan-signup-caps
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE plan_signup_caps (
+                plan varchar(32) PRIMARY KEY,
+                cap integer NOT NULL,
+                taken integer NOT NULL DEFAULT 0,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS plan_signup_caps;
+
+  - changeSet:
+      id: annotate-0059-seed-plan-signup-caps
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO plan_signup_caps (plan, cap, taken, inserted_at, updated_at)
+              VALUES
+                ('start', 25, 0, now(), now()),
+                ('standard', 25, 0, now(), now()),
+                ('agent_addon', 10, 0, now(), now()),
+                ('team', 5, 0, now(), now())
+              ON CONFLICT (plan) DO NOTHING;
+      rollback:
+        - sql:
+            sql: DELETE FROM plan_signup_caps WHERE plan IN ('start','standard','agent_addon','team');
+
+  # 14-day trial for EVERY existing account (Q3); comp = never lock for the
+  # owner's own account. Idempotent (ON CONFLICT (user_id) DO NOTHING); new
+  # accounts get their row lazily at first billing check (Annotate.Billing).
+  - changeSet:
+      id: annotate-0060-backfill-trials
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO billing_subscriptions
+                (user_id, status, trial_ends_at, comp, inserted_at, updated_at)
+              SELECT u.id, 'trialing', now() + interval '14 days',
+                     (u.email::text = 'keith.brings@noizu.com'), now(), now()
+              FROM users u
+              WHERE u.deleted_at IS NULL
+              ON CONFLICT (user_id) DO NOTHING;
+      rollback:
+        - sql:
+            sql: |
+              DELETE FROM billing_subscriptions
+              WHERE stripe_customer_id IS NULL AND stripe_subscription_id IS NULL AND plan IS NULL;
+
+  # Webhook idempotency ledger: one row per processed Stripe event id.
+  - changeSet:
+      id: annotate-0061-create-table-billing-processed-events
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE billing_processed_events (
+                event_id varchar(255) PRIMARY KEY,
+                processed_at timestamptz NOT NULL DEFAULT now()
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS billing_processed_events;

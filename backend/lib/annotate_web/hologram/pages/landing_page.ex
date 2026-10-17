@@ -37,6 +37,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
           <a class="nd-nav__link" href="#how-it-works">How it works</a>
           <a class="nd-nav__link" href="#the-loop">The loop</a>
           <a class="nd-nav__link" href="#features">Features</a>
+          <a class="nd-nav__link" href="/pricing">Pricing</a>
           <a class="nd-nav__link" href="#agents">For agents</a>
           <a class="nd-nav__link" href="/mcp-server">MCP</a>
           <a class="nd-nav__link" href="/privacy">Privacy</a>
@@ -566,6 +567,31 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
           <button type="button" class="nd-btn nd-btn--primary nd-btn--sm" $click="try_it">
             Try it on this page
           </button>
+        </div>
+      </section>
+
+      <section class="nd-section nd-section--canvas" id="pricing">
+        <div class="nd-section__inner">
+          <p class="nd-section__label">Pricing</p>
+          <h2>Unlimited comments, sized to your stack</h2>
+          <div class="nd-bento">
+            <div class="nd-tile nd-tile--third">
+              <h3>Start — $0.99/mo</h3>
+              <p>3 sites, 3 users, 100 MB attachments. Unlimited comments.</p>
+            </div>
+            <div class="nd-tile nd-tile--third">
+              <h3>Standard — $3.99/mo</h3>
+              <p>10 sites, 3 users, 1 GB attachments. Unlimited comments.</p>
+            </div>
+            <div class="nd-tile nd-tile--third">
+              <h3>Team — $9.99/mo</h3>
+              <p>Unlimited sites, 5 users, 10 GB (+$0.99 per extra user or GB).
+              Unlimited comments. Agent add-on coming soon.</p>
+            </div>
+          </div>
+          <p class="nd-footnote">
+            Every account starts with a 14-day trial. <a href="/pricing">Full pricing</a>.
+          </p>
         </div>
       </section>
 

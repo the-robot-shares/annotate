@@ -52,6 +52,7 @@ defmodule AnnotateWeb.SEO do
   @pages [
     %{path: "/", changefreq: "weekly", priority: "1.0", lastmod: nil},
     %{path: "/mcp-server", changefreq: "monthly", priority: "0.7", lastmod: nil},
+    %{path: "/pricing", changefreq: "weekly", priority: "0.8", lastmod: nil},
     %{path: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: "2026-10-17"},
     %{path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: "2026-10-17"}
   ]

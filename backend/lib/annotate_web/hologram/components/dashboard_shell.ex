@@ -36,6 +36,7 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
         <nav class="dsh-nav">
           <a href="/dashboard" class={site_class(@site_slug, nil)} data-cy="dsh-nav-sites">All sites</a>
           <a href="/dashboard/agents" class="dsh-nav__link" data-cy="dsh-nav-agents">Agents</a>
+          <a href="/dashboard/billing" class="dsh-nav__link" data-cy="dsh-nav-billing">Billing</a>
           {%if @user && @user.can_invite}
             <a href="/dashboard/invites" class="dsh-nav__link" data-cy="dsh-nav-invites">Invites</a>
           {/if}

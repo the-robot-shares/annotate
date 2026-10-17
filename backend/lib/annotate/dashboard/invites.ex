@@ -18,6 +18,7 @@ defmodule Annotate.Dashboard.Invites do
 
   alias Annotate.Repo
   alias Annotate.Schema.Organizations.InviteToken
+  alias Annotate.Schema.Users.User, as: UserSchema
 
   @default_days 14
   @max_days 90
@@ -27,6 +28,12 @@ defmodule Annotate.Dashboard.Invites do
   @doc """
   Creates an invite. `opts`: `:email` (bind), `:days` (1..90), `:max_uses`
   (1..100). Returns `{:ok, invite, raw_token}` or `{:error, reason}`.
+
+  Quota (user decision 2026-10-17): minting consumes one of the issuer's
+  `users.invite_quota` — except platform admins and ops (`issuer` nil), who
+  are unlimited. `{:error, :no_quota}` when the balance is 0. The decrement
+  and the insert are one transaction, so a failed insert refunds implicitly;
+  revoking an UNUSED invite refunds its issuer (unless they are unlimited).
   """
   def create(issuer, opts \\ []) do
     email =
@@ -49,17 +56,77 @@ defmodule Annotate.Dashboard.Invites do
         {:error, :invalid_max_uses}
 
       true ->
-        Annotate.Organizations.create_invite_token(%{
-          organization_id: nil,
-          created_by_user_id: issuer_id(issuer),
-          email: email,
-          role: "viewer",
-          max_uses: max_uses,
-          starts_at: DateTime.add(DateTime.utc_now(), -60, :second),
-          expires_at: DateTime.add(DateTime.utc_now(), days * 86_400, :second)
-        })
+        with_quota(issuer, fn ->
+          Annotate.Organizations.create_invite_token(%{
+            organization_id: nil,
+            created_by_user_id: issuer_id(issuer),
+            email: email,
+            role: "viewer",
+            max_uses: max_uses,
+            starts_at: DateTime.add(DateTime.utc_now(), -60, :second),
+            expires_at: DateTime.add(DateTime.utc_now(), days * 86_400, :second)
+          })
+        end)
     end
   end
+
+  @doc "The issuer's remaining mintable invites; nil when unlimited (admins/ops)."
+  def remaining_quota(issuer)
+
+  def remaining_quota(nil), do: nil
+
+  def remaining_quota(%{id: user_id} = issuer) do
+    if unlimited?(issuer) do
+      nil
+    else
+      case Repo.get(UserSchema, user_id) do
+        %{invite_quota: q} when is_integer(q) -> q
+        _ -> 0
+      end
+    end
+  end
+
+  def remaining_quota(_), do: nil
+
+  defp unlimited?(%{admin: true}), do: true
+  defp unlimited?(_), do: false
+
+  # Admins and ops bypass the quota; everyone else spends one inside a
+  # transaction that locks their user row (two concurrent mints cannot both
+  # spend the last invite).
+  defp with_quota(issuer, fun)
+
+  defp with_quota(%{admin: true}, fun), do: fun.()
+  defp with_quota(nil, fun), do: fun.()
+
+  defp with_quota(%{id: user_id}, fun) when is_binary(user_id) do
+    Repo.transaction(fn ->
+      user = Repo.get!(UserSchema, user_id)
+
+      case user.invite_quota do
+        q when is_integer(q) and q > 0 ->
+          from(u in UserSchema, where: u.id == ^user_id)
+          |> Repo.update_all(set: [invite_quota: q - 1, updated_at: DateTime.utc_now()])
+
+          case fun.() do
+            {:ok, _} = ok -> ok
+            {:error, reason} -> Repo.rollback(reason)
+          end
+
+        q when is_integer(q) ->
+          Repo.rollback(:no_quota)
+
+        _ ->
+          Repo.rollback(:no_quota)
+      end
+    end)
+    |> case do
+      {:ok, result} -> result
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp with_quota(_, _fun), do: {:error, :forbidden}
 
   @doc "Dashboard invites, newest first (no hashes, no raw tokens)."
   def list(limit \\ 100) do
@@ -92,16 +159,37 @@ defmodule Annotate.Dashboard.Invites do
 
   defp state(_, _), do: "active"
 
-  @doc "Revokes a dashboard invite by id."
+  @doc """
+  Revokes a dashboard invite by id. Revoking an UNUSED invite refunds its
+  issuer's quota (admins are unlimited; refunds only land on finite-quota
+  users), so a mis-minted invite never burns budget.
+  """
   def revoke(id) when is_binary(id) do
     case Ecto.UUID.cast(id) do
       {:ok, id} ->
-        from(t in InviteToken, where: t.id == ^id and is_nil(t.organization_id))
-        |> Repo.update_all(
-          set: [revoked: true, status: "revoked", updated_at: DateTime.utc_now()]
-        )
+        Repo.transaction(fn ->
+          from(t in InviteToken,
+            where: t.id == ^id and is_nil(t.organization_id) and t.revoked == false,
+            lock: "FOR UPDATE"
+          )
+          |> Repo.one()
+          |> case do
+            nil ->
+              Repo.rollback(:not_found)
+
+            invite ->
+              from(t in InviteToken, where: t.id == ^id)
+              |> Repo.update_all(
+                set: [revoked: true, status: "revoked", updated_at: DateTime.utc_now()]
+              )
+
+              refund_unused(invite)
+              :ok
+          end
+        end)
         |> case do
-          {1, _} -> :ok
+          {:ok, :ok} -> :ok
+          {:error, :not_found} -> {:error, :not_found}
           _ -> {:error, :not_found}
         end
 
@@ -109,6 +197,27 @@ defmodule Annotate.Dashboard.Invites do
         {:error, :not_found}
     end
   end
+
+  # `uses` is read under the row lock, so two concurrent revokes cannot both
+  # refund. Org-bound invites (organization_id set) never enter here.
+  defp refund_unused(%InviteToken{uses: uses, created_by_user_id: creator_id})
+       when uses in [0, nil] and is_binary(creator_id) do
+    case Repo.get(UserSchema, creator_id) do
+      %{admin: true} ->
+        :ok
+
+      %UserSchema{} = issuer ->
+        from(u in UserSchema, where: u.id == ^issuer.id)
+        |> Repo.update_all(inc: [invite_quota: 1])
+
+        :ok
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp refund_unused(_), do: :ok
 
   @doc "The sign-up link for a raw token."
   def link(raw_token) do

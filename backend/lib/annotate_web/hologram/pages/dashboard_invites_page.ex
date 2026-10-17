@@ -39,7 +39,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
       link_modal: nil,
       error: nil,
       flash: nil,
-      busy: false
+      busy: false,
+      remaining_display: if(allowed, do: remaining_display(user), else: nil)
     )
   end
 
@@ -74,6 +75,9 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
                   <input id="inv-uses" type="number" min="1" max="100" value={@max_uses} $change={action: :set, params: %{field: "max_uses"}} />
                 </div>
               </div>
+              {%if @remaining_display}
+                <p class="dsh-hint" data-cy="dsh-invite-quota">Invite quota: {@remaining_display}</p>
+              {/if}
               <div class="dsh-actions">
                 <button type="submit" class="dsh-btn dsh-btn--primary" disabled={@busy} data-cy="dsh-invite-create">Create invite link</button>
               </div>
@@ -186,13 +190,20 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
       put_state(c,
         busy: false,
         invites: params.invites,
+        remaining_display: params.remaining,
         link_modal: params.link,
         email: "",
         flash: nil
       )
 
   def action(:revoked, params, c),
-    do: put_state(c, invites: params.invites, flash: "Invite revoked.")
+    do:
+      put_state(
+        c,
+        invites: params.invites,
+        remaining_display: params.remaining,
+        flash: "Invite revoked."
+      )
 
   def action(:failed, params, c), do: put_state(c, busy: false, error: params.error)
 
@@ -204,10 +215,19 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
          {:ok, max_uses} <- int(params.max_uses),
          {:ok, _invite, raw} <-
            Invites.create(user, email: to_string(params.email), days: days, max_uses: max_uses) do
-      put_action(server, :created, invites: serialize(Invites.list()), link: Invites.link(raw))
+      put_action(server, :created,
+        invites: serialize(Invites.list()),
+        remaining: remaining_display(user),
+        link: Invites.link(raw)
+      )
     else
       {:error, :forbidden} ->
         put_action(server, :failed, error: "Only annotate staff can issue invites.")
+
+      {:error, :no_quota} ->
+        put_action(server, :failed,
+          error: "You're out of invite quota — ask a platform admin for more."
+        )
 
       {:error, :invalid_email} ->
         put_action(server, :failed, error: "That email address doesn't look valid.")
@@ -218,9 +238,12 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
   end
 
   def command(:revoke, params, server) do
-    with {:ok, _user} <- staff(server),
+    with {:ok, user} <- staff(server),
          :ok <- Invites.revoke(to_string(params.id)) do
-      put_action(server, :revoked, invites: serialize(Invites.list()))
+      put_action(server, :revoked,
+        invites: serialize(Invites.list()),
+        remaining: remaining_display(user)
+      )
     else
       {:error, :forbidden} ->
         put_action(server, :failed, error: "Only annotate staff can revoke invites.")
@@ -241,6 +264,16 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardInvitesPage do
     do: Access.can_issue_invites?(Annotate.Repo.get(Annotate.Schema.Users.User, id))
 
   defp staff?(_), do: false
+
+  # nil issuer / admin = unlimited -> nil (the template hides the line).
+  defp remaining_display(user) do
+    case Invites.remaining_quota(user) do
+      nil -> nil
+      0 -> "0 left - ask a platform admin for more"
+      1 -> "1 left"
+      n -> Integer.to_string(n) <> " left"
+    end
+  end
 
   defp int(v) do
     case Integer.parse(to_string(v)) do

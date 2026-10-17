@@ -59,6 +59,27 @@ app.kubernetes.io/instance: {{ .Release.Name }}
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.fleetIngestKey }}
       optional: true
+# Stripe billing (Annotate.Billing). All three refs are optional: until the
+# ANNOTATE_STRIPE_* keys land in the synced secret the pod boots without them
+# and billing is DISABLED (nothing locked/enforced; boot_check logs once).
+- name: ANNOTATE_STRIPE_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripeSecretKey }}
+      optional: true
+- name: ANNOTATE_STRIPE_WEBHOOK_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripeWebhookSecret }}
+      optional: true
+- name: ANNOTATE_STRIPE_PUBLISHABLE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripePublishableKey }}
+      optional: true
 {{- if .Values.secrets.keys.databaseUrl }}
 - name: DATABASE_URL
   valueFrom:

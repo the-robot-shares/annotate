@@ -24,6 +24,7 @@ defmodule Annotate.Schema.Users.User do
     field :flagged, :boolean, default: false
     field :admin, :boolean, default: false
     field :deleted_at, :utc_datetime_usec
+    field :invite_quota, :integer, default: 0
     timestamps(type: :utc_datetime_usec)
   end
 
