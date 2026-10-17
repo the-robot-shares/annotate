@@ -41,6 +41,10 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
       og_image_height: m.og_image_height,
       og_image_alt: m.og_image_alt,
       theme_color: AnnotateWeb.SEO.theme_color(),
+      ga_css: AnnotateWeb.Assets.versioned("/css/ga-consent.css"),
+      ga_js: AnnotateWeb.Assets.versioned("/js/ga-init.js"),
+      landing_css: AnnotateWeb.Assets.versioned("/css/landing.css"),
+      waitlist_js: AnnotateWeb.Assets.versioned("/js/waitlist.js"),
       ga_id: ga_id,
       api_base: cfg.api_base,
       widget_src: cfg.widget_src,
@@ -80,12 +84,12 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <meta name="twitter:image:alt" content={@og_image_alt} />
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
-        <link rel="stylesheet" href="/css/landing.css" />
+        <link rel="stylesheet" href={@landing_css} />
         <script src="/js/keep-location.js"></script>
-        <script src="/js/waitlist.js" defer></script>
+        <script src={@waitlist_js} defer></script>
         {%if @ga_id}
-          <link rel="stylesheet" href="/css/ga-consent.css" />
-          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <link rel="stylesheet" href={@ga_css} />
+          <script src={@ga_js} data-ga-id={@ga_id}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>

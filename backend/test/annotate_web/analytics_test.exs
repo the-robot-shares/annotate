@@ -127,3 +127,29 @@ defmodule AnnotateWeb.AnalyticsTest do
     refute File.read!("priv/static/js/annotate-auth.js") =~ "gtag/js?id="
   end
 end
+
+defmodule AnnotateWeb.LandingLoopListTest do
+  use AnnotateWeb.ConnCase, async: false
+
+  test "loop list: native markers removed, one custom 01-05 counter, versioned css" do
+    css = File.read!("priv/static/css/landing.css")
+    [loop] = Regex.run(~r/\.nd-loop \{[^}]*\}/, css)
+    assert loop =~ "list-style: none"
+    assert loop =~ "counter-reset: nd-step"
+
+    assert css =~
+             ~r/\.nd-step::before \{[^}]*counter-increment: nd-step;[^}]*decimal-leading-zero/
+
+    assert css =~ ".nd-loop > li { list-style: none; }"
+
+    body = html_response(get(conn_for_landing(), "/"), 200)
+    # five steps, no hand-typed numerals in the markup (numbers come from CSS only)
+    [ol] = Regex.run(~r/<ol class="nd-loop">.*?<\/ol>/s, body)
+    assert length(Regex.scan(~r/<li class="nd-step">/, ol)) == 5
+    refute ol =~ ~r/>\s*0?[1-5]\s*</
+    assert body =~ ~r"/css/landing\.css\?v=[0-9a-f]{8}"
+  end
+
+  defp conn_for_landing,
+    do: Phoenix.ConnTest.build_conn() |> Map.put(:host, "annotate.therobotlives.com")
+end
