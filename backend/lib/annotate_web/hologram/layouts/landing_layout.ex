@@ -12,6 +12,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
 
   use Hologram.Component
 
+  alias AnnotateWeb.Hologram.Components.AnalyticsConsent
+
   @default %{
     host: "annotate.therobotlives.com",
     api_base: "https://annotate-srv.therobotlives.com",
@@ -41,7 +43,6 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
       og_image_alt: m.og_image_alt,
       theme_color: AnnotateWeb.SEO.theme_color(),
       ga_id: ga_id,
-      ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
       api_base: cfg.api_base,
       widget_src: cfg.widget_src,
       dogfood_site: cfg.dogfood_site
@@ -84,8 +85,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <script src="/js/keep-location.js"></script>
         <script src="/js/waitlist.js" defer></script>
         {%if @ga_id}
+          <link rel="stylesheet" href="/css/ga-consent.css" />
           <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
-          <script async src={@ga_src}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>
@@ -99,6 +100,9 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
           rail-mode="overlay"
         ></noizu-page-comments>
         <script type="module" src={@widget_src}></script>
+        {%if @ga_id}
+          <AnalyticsConsent />
+        {/if}
       </body>
     </html>
     """

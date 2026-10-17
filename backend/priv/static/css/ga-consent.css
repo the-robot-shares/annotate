@@ -1,0 +1,31 @@
+/* Night Desk analytics consent banner (self-contained: works on landing, legal, sign-in). */
+.ga-consent[hidden] { display: none; }
+.ga-consent {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 2147483000;
+  max-width: 720px; margin: 0 auto;
+  background: #1a1a23; color: #d6d6e4; border: 1px solid #3a3a4f; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  font: 14px/1.5 "Inter", system-ui, -apple-system, sans-serif;
+}
+.ga-consent__inner { display: flex; gap: 16px; align-items: center; padding: 14px 16px; flex-wrap: wrap; }
+.ga-consent__text { margin: 0; flex: 1 1 320px; color: #9a9ab0; }
+.ga-consent__text strong { color: #ededf4; }
+.ga-consent__text a { color: #fb923c; text-decoration: underline; }
+.ga-consent__actions { display: flex; gap: 8px; }
+.ga-consent__btn {
+  font: inherit; font-weight: 600; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #3a3a4f; background: transparent; color: #d6d6e4;
+}
+.ga-consent__btn:hover { background: #23232e; }
+.ga-consent__btn--primary { background: #f97316; border-color: #f97316; color: #0b0b10; }
+.ga-consent__btn--primary:hover { background: #fb923c; }
+.ga-consent__btn:focus-visible, .ga-consent-open:focus-visible { outline: 2px solid #fb923c; outline-offset: 2px; }
+.ga-consent-open {
+  font: inherit; font-size: 14px; background: none; border: 0; padding: 0; cursor: pointer;
+  color: #9a9ab0; text-decoration: none;
+}
+.ga-consent-open:hover { color: #ededf4; }
+.ga-consent-open--float {
+  position: fixed; left: 12px; bottom: 12px; padding: 4px 8px; font-size: 12px;
+  background: rgba(17, 17, 24, 0.85); border-radius: 6px;
+}

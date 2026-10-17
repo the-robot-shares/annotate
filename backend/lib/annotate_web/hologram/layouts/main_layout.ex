@@ -7,6 +7,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
   """
   use Hologram.Component
 
+  alias AnnotateWeb.Hologram.Components.AnalyticsConsent
+
   alias Hologram.UI.Link
   alias Annotate.Hologram.Auth
   alias Annotate.StyleGuide.Catalog
@@ -33,9 +35,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
       put_state(component,
         user: user,
         ga_id: ga_id,
-        ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
         organizations: organizations || [],
-        show_cookie_banner: is_nil(consent),
+        show_cookie_banner: is_nil(consent) and is_nil(ga_id),
         color_mode: color_mode,
         theme_slug: theme.slug,
         theme_css: theme.css,
@@ -71,8 +72,8 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
         <link rel="stylesheet" href="/css/tobor-kit.css" />
         <link rel="stylesheet" href="/css/viewer.css" />
         {%if @ga_id}
+          <link rel="stylesheet" href="/css/ga-consent.css" />
           <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
-          <script async src={@ga_src}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>
@@ -105,6 +106,9 @@ defmodule AnnotateWeb.Hologram.Layouts.MainLayout do
           <slot />
         </main>
         <CookieConsent cid="cookie_consent" visible={@show_cookie_banner} />
+        {%if @ga_id}
+          <AnalyticsConsent />
+        {/if}
       </body>
     </html>
     """

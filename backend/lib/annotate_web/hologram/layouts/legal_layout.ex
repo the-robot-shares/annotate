@@ -10,6 +10,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
 
   use Hologram.Component
 
+  alias AnnotateWeb.Hologram.Components.AnalyticsConsent
+
   alias AnnotateWeb.Hologram.Components.SiteFooter
 
   prop :page_title, :string, default: "annotate"
@@ -21,7 +23,6 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
 
     put_state(component,
       ga_id: ga_id,
-      ga_src: ga_id && AnnotateWeb.Analytics.script_src(ga_id),
       host: marketing_host(),
       theme_color: AnnotateWeb.SEO.theme_color(),
       og_image: AnnotateWeb.SEO.landing_meta().og_image
@@ -61,8 +62,8 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/landing.css" />
         {%if @ga_id}
+          <link rel="stylesheet" href="/css/ga-consent.css" />
           <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
-          <script async src={@ga_src}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>
@@ -82,6 +83,9 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
           <slot />
         </main>
         <SiteFooter />
+        {%if @ga_id}
+          <AnalyticsConsent />
+        {/if}
       </body>
     </html>
     """
