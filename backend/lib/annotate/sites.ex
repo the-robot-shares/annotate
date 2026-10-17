@@ -350,6 +350,29 @@ defmodule Annotate.Sites do
     end
   end
 
+  @doc """
+  The site-scoped **team** commenter row for dashboard user `user_id` (inbox
+  replies). Keyed by `(site_id, user_id)` with NO `external_id`, so a host
+  assertion can never claim it, and NO email, so it never feeds the bridge.
+  Display name/avatar come from the user's GitHub identity.
+  """
+  def team_commenter_for_user(%Site{} = site, user_id) when is_binary(user_id) do
+    gh = Repo.get_by(Annotate.Schema.Annotate.GithubIdentity, user_id: user_id)
+    display = (gh && (gh.name || gh.login)) || "Site team"
+    avatar = gh && gh.avatar_url
+
+    case Repo.get_by(Commenter, site_id: site.id, user_id: user_id) do
+      %Commenter{} = c ->
+        c
+        |> Ecto.Changeset.change(display_name: display, avatar_url: avatar)
+        |> Repo.update()
+
+      nil ->
+        %Commenter{site_id: site.id, user_id: user_id, display_name: display, avatar_url: avatar}
+        |> Repo.insert()
+    end
+  end
+
   @doc "Upserts a host-asserted commenter by `(site_id, external_id)`."
   def upsert_commenter_by_external(site, external_id, claims) do
     case Repo.get_by(Commenter, site_id: site.id, external_id: external_id) do

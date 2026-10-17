@@ -20,6 +20,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
   alias Annotate.SiteMembers
   alias Annotate.Sites
   alias AnnotateWeb.Hologram.Components.DashboardShell
+  alias AnnotateWeb.Hologram.Components.InboxPanel
   alias AnnotateWeb.Hologram.Layouts.DashboardLayout
   alias AnnotateWeb.Hologram.Middleware.RequireAuth
 
@@ -45,11 +46,16 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
 
     case DashboardAuth.authorize_site(server, params.site_slug, :member) do
       {:ok, user, site, role} ->
+        counts = Annotate.Comments.site_thread_counts(site.id)
+
         put_state(
           component,
           base ++
             [
               status: "ok",
+              # Owners land on the inbox when there is something to answer.
+              tab: if(counts.open > 0, do: "inbox", else: "overview"),
+              open_count: counts.open,
               slug: site.slug,
               role: Atom.to_string(role),
               site: serialize_site(site),
@@ -82,9 +88,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         {/if}
 
         <div class="dsh-tabs" role="tablist" aria-label="Site sections">
+          <button type="button" role="tab" class={tab_class(@tab, "inbox")} aria-selected={@tab == "inbox"} $click={action: :tab, params: %{tab: "inbox"}} data-cy="dsh-tab-inbox">Inbox<span class="dsh-tab__count">{@open_count}</span></button>
           <button type="button" role="tab" class={tab_class(@tab, "overview")} aria-selected={@tab == "overview"} $click={action: :tab, params: %{tab: "overview"}} data-cy="dsh-tab-overview">Overview</button>
           <button type="button" role="tab" class={tab_class(@tab, "settings")} aria-selected={@tab == "settings"} $click={action: :tab, params: %{tab: "settings"}} data-cy="dsh-tab-settings">Settings</button>
           <button type="button" role="tab" class={tab_class(@tab, "members")} aria-selected={@tab == "members"} $click={action: :tab, params: %{tab: "members"}} data-cy="dsh-tab-members">Members<span class="dsh-tab__count">{length(@members)}</span></button>
+        </div>
+
+        <div class={pane_class(@tab, "inbox")}>
+          <InboxPanel cid="dsh_inbox" slug={@slug} role={@role} />
         </div>
 
         {%if @tab == "overview"}
@@ -566,6 +577,11 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
   end
 
   # ── helpers ───────────────────────────────────────────────────
+
+  # The inbox stays mounted (its server init owns the realtime subscription);
+  # other tabs just hide it.
+  def pane_class(tab, tab), do: "dsh-pane"
+  def pane_class(_, _), do: "dsh-pane dsh-hidden"
 
   def tab_class(tab, tab), do: "dsh-tab dsh-tab--active"
   def tab_class(_, _), do: "dsh-tab"

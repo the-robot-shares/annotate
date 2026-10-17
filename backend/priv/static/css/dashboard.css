@@ -244,3 +244,5 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dsh-comment__text { margin: 0.25rem 0 0; white-space: pre-wrap; word-break: break-word; }
 .dsh-comment__deleted { font-style: italic; color: var(--nd-text-dim); }
 .dsh-empty { padding: 2rem 1rem; text-align: center; color: var(--nd-text-secondary); }
+
+.dsh-hidden { display: none; }

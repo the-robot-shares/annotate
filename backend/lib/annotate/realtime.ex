@@ -60,6 +60,8 @@ defmodule Annotate.Realtime do
     broadcast!(page_topic(site, page_key), "thread_created", %{
       "thread" => Renderer.thread(thread)
     })
+
+    notify_inbox(site.slug)
   end
 
   @doc """
@@ -74,6 +76,8 @@ defmodule Annotate.Realtime do
         "comment_created",
         %{"comment" => Renderer.comment(comment)}
       )
+
+      notify_inbox(slug)
     end
   end
 
@@ -90,6 +94,8 @@ defmodule Annotate.Realtime do
       broadcast!(page_topic(slug, page_key), Atom.to_string(event), %{
         "thread" => Renderer.thread(thread)
       })
+
+      notify_inbox(slug)
     end
   end
 
@@ -107,8 +113,27 @@ defmodule Annotate.Realtime do
         Atom.to_string(event),
         %{"comment" => Renderer.comment(comment)}
       )
+
+      notify_inbox(slug)
     end
   end
+
+  @doc """
+  Pings the owner-dashboard inbox of `slug` (Hologram realtime channel
+  `{:annotate_inbox, slug}`). Carries NO data: subscribed dashboard pages
+  re-fetch through their own authorized command, so nothing leaks to a
+  subscriber that lost access. Best-effort: never fails a comment write.
+  """
+  def inbox_channel(slug) when is_binary(slug), do: {:annotate_inbox, slug}
+
+  def notify_inbox(slug) when is_binary(slug) do
+    Hologram.Realtime.broadcast_action(inbox_channel(slug), :inbox_changed, %{})
+    :ok
+  rescue
+    _ -> :ok
+  end
+
+  def notify_inbox(_), do: :ok
 
   # ── Internals ─────────────────────────────────────────────────
 
