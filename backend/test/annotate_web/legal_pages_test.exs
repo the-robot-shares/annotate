@@ -55,3 +55,20 @@ defmodule AnnotateWeb.LegalPagesTest do
     assert body =~ ~s(href="/privacy")
   end
 end
+
+defmodule AnnotateWeb.SiteFooterTest do
+  use AnnotateWeb.ConnCase, async: false
+
+  for path <- ["/", "/privacy", "/terms"] do
+    test "#{path} carries the shared tobor-kit footer, no sitemap link, no AI disclosure", %{conn: conn} do
+      body = conn |> get(unquote(path)) |> html_response(200)
+
+      assert body =~ "<noizu-footer-brand"
+      assert body =~ "components/footer-brand/noizu-footer-brand.js"
+      assert body =~ ~s(data-cy="footer-privacy")
+      assert body =~ ~s(data-cy="footer-terms")
+      refute body =~ ~s(href="/sitemap")
+      refute body =~ ~r/AI[- ]generated/i
+    end
+  end
+end

@@ -100,8 +100,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dsh-nav__link:hover { background: var(--nd-surface); color: var(--nd-text-primary); }
 .dsh-nav__link--active { background: var(--nd-raised); color: var(--nd-text-bright); }
 
-.dsh-sidebar__legal { margin: 0; font-size: 0.8125rem; color: var(--nd-text-dim); }
-.dsh-sidebar__legal a { color: var(--nd-text-secondary); }
 .dsh-sidebar__foot { margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem; }
 .dsh-sidebar__user { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--nd-text-secondary); word-break: break-all; }
 .dsh-avatar { width: 24px; height: 24px; border-radius: 50%; }
@@ -110,6 +108,34 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dsh-main__header { padding: 1.5rem 2rem 0; }
 .dsh-main__title { margin: 0; font-family: var(--dsh-display); font-size: 1.6rem; font-weight: 650; color: var(--nd-text-bright); }
 .dsh-main__sub { margin: 0.25rem 0 0; color: var(--nd-text-secondary); font-size: 0.9rem; }
+/* ── Footer (SiteFooter component) ── */
+.nd-site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--nd-mist);
+  padding: var(--nd-space-4, 32px) 0 var(--nd-space-6, 48px);
+  /* tobor-kit <noizu-footer-brand> theming (Night Desk) */
+  --noizu-footer-brand-fg: var(--nd-text-secondary);
+  --noizu-footer-brand-brand-color: var(--nd-ember-bright, #fb923c);
+  --noizu-footer-brand-font: var(--nd-font-body, "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-brand-font: var(--nd-font-display, "Geist", "Inter", system-ui, sans-serif);
+  --noizu-footer-brand-size: 14px;
+}
+.nd-site-footer__inner {
+  max-width: var(--nd-max, 1160px);
+  margin: 0 auto;
+  padding: 0 var(--nd-space-3, 24px);
+  display: flex;
+  gap: var(--nd-space-3, 24px);
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.nd-site-footer__links { display: flex; gap: var(--nd-space-3, 24px); }
+.nd-site-footer__links a { color: var(--nd-text-secondary); font-size: 14px; text-decoration: none; }
+.nd-site-footer__links a:hover { color: var(--nd-text-bright); }
+.nd-site-footer__links a:focus-visible { outline: 2px solid var(--nd-ember-bright, #fb923c); outline-offset: 2px; }
+.nd-site-footer__brand { display: inline-block; }
+
 .dsh-main__body { padding: 1.25rem 2rem 3rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 1100px; }
 
 @media (max-width: 820px) {

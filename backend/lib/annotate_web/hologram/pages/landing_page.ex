@@ -4,14 +4,14 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
 
   Dogfoods the product: the page runs the live page-comments widget (embedded
   by LandingLayout), and the hero CTA drives the real widget into pick mode.
-  Copy: `design/landing/COPY.md`. IA: `design/landing/IA.md`. Images are
-  AI-generated and carry a disclosure caption.
+  Copy: `design/landing/COPY.md`. IA: `design/landing/IA.md`.
   """
 
   use Hologram.Page
 
   alias AnnotateWeb.Hologram.Components.GithubAuth
 
+  alias AnnotateWeb.Hologram.Components.SiteFooter
   alias AnnotateWeb.Hologram.Layouts.LandingLayout
 
   route "/"
@@ -78,7 +78,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
               />
             </picture>
             <figcaption>
-              Product mockup (AI-generated). The rail on this page is the real widget.
+              The rail on this page is the real widget.
             </figcaption>
           </figure>
         </div>
@@ -155,9 +155,6 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
                     loading="lazy"
                   />
                 </picture>
-                <figcaption class="nd-tile__caption">
-                  Illustration: AI-generated.
-                </figcaption>
               </figure>
               <h3>Screenshot + annotate</h3>
               <p>
@@ -275,23 +272,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
       </section>
     </main>
 
-    <footer class="nd-footer">
-      <div class="nd-footer__inner">
-        <span class="nd-footer__brand">annotate</span>
-        <nav class="nd-footer__links" aria-label="Footer">
-          <a href="https://therobotlives.com">The Robot Lives</a>
-          <a href="https://tobor.dev">tobor-kit docs</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-          <a href="https://status.noizu.com">Status</a>
-          <a href="/sitemap">Sitemap</a>
-        </nav>
-        <p class="nd-footer__disclosure">
-          Hero and feature illustrations on this page are AI-generated. © 2026
-          The Robot Lives.
-        </p>
-      </div>
-    </footer>
+    <SiteFooter />
 
     <window $click={action: :reset_copied, delay: 2000} />
     """
