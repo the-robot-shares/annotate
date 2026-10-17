@@ -24,11 +24,21 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
 
   def init(_props, component, _server) do
     cfg = marketing_cfg()
-    host = cfg.host
+    m = AnnotateWeb.SEO.landing_meta()
 
+    # All <head> metadata comes from AnnotateWeb.SEO (copy lives there). The
+    # `page_title` prop is kept for the page declaration but SEO owns <title>.
     put_state(component,
-      page_url: "https://#{host}/",
-      og_image: "https://#{host}/images/landing/og.png",
+      meta_title: m.title,
+      meta_description: m.description,
+      canonical: m.canonical,
+      og_title: m.og_title,
+      og_description: m.og_description,
+      og_image: m.og_image,
+      og_image_width: m.og_image_width,
+      og_image_height: m.og_image_height,
+      og_image_alt: m.og_image_alt,
+      theme_color: AnnotateWeb.SEO.theme_color(),
       api_base: cfg.api_base,
       widget_src: cfg.widget_src,
       dogfood_site: cfg.dogfood_site
@@ -42,31 +52,29 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0B0B10" />
-        <title>{@page_title}</title>
-        <meta
-          name="description"
-          content="annotate adds a comment rail to any webpage. Visitors select an element or some text, and the thread attaches to exactly that spot."
-        />
+        <meta name="theme-color" content={@theme_color} />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <title>{@meta_title}</title>
+        <meta name="description" content={@meta_description} />
+        <link rel="canonical" href={@canonical} />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="annotate" />
-        <meta property="og:title" content="annotate — Feedback that points at the thing" />
-        <meta
-          property="og:description"
-          content="One script tag adds element-level comment threads, screenshots, and replies to any webpage."
-        />
-        <meta property="og:url" content={@page_url} />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:title" content={@og_title} />
+        <meta property="og:description" content={@og_description} />
+        <meta property="og:url" content={@canonical} />
         <meta property="og:image" content={@og_image} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="A webpage with a glowing ring around a commented element and a floating comment rail" />
+        <meta property="og:image:width" content={@og_image_width} />
+        <meta property="og:image:height" content={@og_image_height} />
+        <meta property="og:image:alt" content={@og_image_alt} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="annotate — Feedback that points at the thing" />
-        <meta
-          name="twitter:description"
-          content="One script tag adds element-level comment threads, screenshots, and replies to any webpage."
-        />
+        <meta name="twitter:title" content={@og_title} />
+        <meta name="twitter:description" content={@og_description} />
         <meta name="twitter:image" content={@og_image} />
+        <meta name="twitter:image:alt" content={@og_image_alt} />
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/landing.css" />

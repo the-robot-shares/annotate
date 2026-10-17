@@ -17,7 +17,11 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
   prop :path, :string, default: "/"
 
   def init(_props, component, _server) do
-    put_state(component, host: marketing_host())
+    put_state(component,
+      host: marketing_host(),
+      theme_color: AnnotateWeb.SEO.theme_color(),
+      og_image: AnnotateWeb.SEO.landing_meta().og_image
+    )
   end
 
   def template do
@@ -27,7 +31,11 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0B0B10" />
+        <meta name="theme-color" content={@theme_color} />
+        <meta name="robots" content="index, follow" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <title>{@page_title}</title>
         <meta name="description" content={@description} />
         <link rel="canonical" href={"https://" <> @host <> @path} />
@@ -36,7 +44,13 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
         <meta property="og:title" content={@page_title} />
         <meta property="og:description" content={@description} />
         <meta property="og:url" content={"https://" <> @host <> @path} />
-        <meta name="twitter:card" content="summary" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:image" content={@og_image} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="annotate" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={@og_image} />
         <meta name="twitter:title" content={@page_title} />
         <meta name="twitter:description" content={@description} />
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />

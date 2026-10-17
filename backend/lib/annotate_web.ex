@@ -1,7 +1,7 @@
 defmodule AnnotateWeb do
   # <REMOVED UUID HERE> static_paths :: auto-generated pointer for public function static_paths
   def static_paths,
-    do: ~w(themes css hologram favicon.ico robots.txt sitemap.xml site.xml llms.txt llm.txt)
+    do: ~w(themes css hologram favicon.ico favicon.svg apple-touch-icon.png)
 
   # <REMOVED UUID HERE> router :: auto-generated pointer for public function router
   def router do
