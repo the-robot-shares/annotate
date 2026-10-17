@@ -32,8 +32,18 @@ defmodule Annotate.Storage do
   end
 
   # <REMOVED UUID HERE> presigned_download_url :: auto-generated pointer for public function presigned_download_url
-  def presigned_download_url(key, expires_in \\ @default_expiry) do
+  # `:disposition` (a filename) forces a download: it rides the signed query as
+  # `response-content-disposition` so the browser offers `filename` instead of
+  # rendering inline. Only ever feed it the sanitized storage-key basename
+  # ([A-Za-z0-9._-]) — it is embedded in a header value verbatim.
+  def presigned_download_url(key, expires_in \\ @default_expiry, opts \\ []) do
     config = presign_config()
+
+    query_params =
+      case Keyword.get(opts, :disposition) do
+        nil -> []
+        filename -> [{"response-content-disposition", ~s(attachment; filename="#{filename}")}]
+      end
 
     {:ok, url} =
       ExAws.S3.presigned_url(
@@ -41,7 +51,8 @@ defmodule Annotate.Storage do
         :get,
         config[:bucket],
         key,
-        expires_in: expires_in
+        expires_in: expires_in,
+        query_params: query_params
       )
 
     url
