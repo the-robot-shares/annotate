@@ -34,7 +34,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
         <nav class="nd-nav__links" aria-label="Sections">
           <a class="nd-nav__link" href="#how-it-works">How it works</a>
           <a class="nd-nav__link" href="#features">Features</a>
-          <a class="nd-nav__link" href="#privacy">Privacy</a>
+          <a class="nd-nav__link" href="/privacy">Privacy</a>
+          <a class="nd-nav__link" href="/terms">Terms</a>
           <a class="nd-nav__link" href="#faq">FAQ</a>
         </nav>
         <button type="button" class="nd-btn nd-btn--primary nd-btn--sm nd-nav__cta" $click="try_it">
@@ -280,6 +281,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
         <nav class="nd-footer__links" aria-label="Footer">
           <a href="https://therobotlives.com">The Robot Lives</a>
           <a href="https://tobor.dev">tobor-kit docs</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
           <a href="https://status.noizu.com">Status</a>
           <a href="/sitemap">Sitemap</a>
         </nav>

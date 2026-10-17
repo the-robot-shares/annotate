@@ -53,6 +53,7 @@ defmodule AnnotateWeb.Hologram.Components.DashboardShell do
             </span>
           {/if}
           <SignOutButton cid="dsh_sign_out" />
+          <p class="dsh-sidebar__legal"><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></p>
         </div>
       </aside>
       <div class="dsh-main">

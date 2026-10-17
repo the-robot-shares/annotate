@@ -100,6 +100,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .dsh-nav__link:hover { background: var(--nd-surface); color: var(--nd-text-primary); }
 .dsh-nav__link--active { background: var(--nd-raised); color: var(--nd-text-bright); }
 
+.dsh-sidebar__legal { margin: 0; font-size: 0.8125rem; color: var(--nd-text-dim); }
+.dsh-sidebar__legal a { color: var(--nd-text-secondary); }
 .dsh-sidebar__foot { margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem; }
 .dsh-sidebar__user { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--nd-text-secondary); word-break: break-all; }
 .dsh-avatar { width: 24px; height: 24px; border-radius: 50%; }

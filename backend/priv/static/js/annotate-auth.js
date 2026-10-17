@@ -6,7 +6,7 @@
 const TEXT = {
   loginTitle: 'Sign in to annotate',
   signupTitle: 'Create your annotate account',
-  description: 'GitHub is the only sign-in. Your first sign-in creates the account; we use your GitHub account’s verified email.',
+  description: 'GitHub is the only sign-in. Your first sign-in creates the account; we use your GitHub account’s verified email. By continuing you agree to the Terms of Service and Privacy Policy (annotate.therobotlives.com/terms and /privacy).',
   close: 'Close sign-in dialog',
   login: 'Sign in',
   signup: 'Sign up',

@@ -11,10 +11,12 @@ defmodule AnnotateWeb.Hologram.Pages.SitemapPage do
     ForgotPasswordPage,
     LandingPage,
     LoginPage,
+    PrivacyPage,
     ProfilePage,
     SignupPage,
     StyleGuidePage,
-    TailwindPlusPage
+    TailwindPlusPage,
+    TermsPage
   }
 
   route "/sitemap"
@@ -35,6 +37,8 @@ defmodule AnnotateWeb.Hologram.Pages.SitemapPage do
         <li><Link to={ForgotPasswordPage}>Forgot Password</Link></li>
         <li><Link to={StyleGuidePage}>Style Guide</Link></li>
         <li><Link to={TailwindPlusPage}>Tailwind Plus</Link></li>
+        <li><Link to={PrivacyPage}>Privacy Policy</Link></li>
+        <li><Link to={TermsPage}>Terms of Service</Link></li>
         <li><Link to={AppHomePage}>App Home</Link></li>
         <li><Link to={ProfilePage}>Profile</Link></li>
         <li><Link to={AdminUsersPage}>Admin · Users</Link></li>
