@@ -249,7 +249,8 @@ defmodule AnnotateWeb.AnnotateAPI.TeamRoleTest do
         |> json_response(200)
 
       assert Map.keys(body) |> Enum.sort() ==
-               ~w(allow_anonymous default_visibility max_upload_mb page_key_strategy public_read site team)
+               ~w(allow_anonymous authenticated can_moderate can_post can_read_all default_visibility
+                  max_upload_mb page_key_strategy public_read read_visibility role site staff team)
 
       assert body["team"] == false and body["default_visibility"] == "public"
 

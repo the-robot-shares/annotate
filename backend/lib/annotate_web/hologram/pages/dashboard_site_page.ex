@@ -172,6 +172,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
                     <textarea id="s-origins" rows="3" $change={action: :set_form, params: %{field: "origins"}}>{@form.origins}</textarea>
                     <p class="dsh-hint">Exact <code>https://host[:port]</code> only. The widget and sign-in popup work only on these origins.</p>
                   </div>
+                  <div class="dsh-field" data-cy="dsh-read-visibility">
+                    <label for="s-readvis">Who can read comments</label>
+                    <select id="s-readvis" data-cy="dsh-read-visibility-select" $change={action: :set_form, params: %{field: "read_visibility"}}>
+                      <option value="public" selected={@form.read_visibility == "public"}>Everyone who can open the widget</option>
+                      <option value="staff_only" selected={@form.read_visibility == "staff_only"}>Staff only (others see just their own threads)</option>
+                    </select>
+                    <p class="dsh-hint">Staff only: your team (owners, admins and members, plus host-asserted team roles when "Trust host-asserted team roles" is on) sees every thread. Everyone else sees only the threads they started and every reply in them, including yours. Anonymous visitors see none. Enforced by the server on every read and live update, not just in the widget.</p>
+                  </div>
                   <div class="dsh-grid-2">
                     <div class="dsh-field">
                       <label for="s-anon">Anonymous threads</label>
@@ -347,6 +355,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
     |> put_command(:save_security,
       slug: c.state.slug,
       origins: f.origins,
+      read_visibility: f.read_visibility,
       allow_anonymous: f.allow_anonymous,
       trust_host_roles: f.trust_host_roles,
       required_groups: f.required_groups,
@@ -460,12 +469,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
     with_site(server, params.slug, :owner, fn _user, site ->
       attrs = %{
         "allowed_origins" => split_lines(params.origins),
-        "comment_policy" => %{
-          "allow_anonymous" => params.allow_anonymous == "true",
-          "trust_host_roles" => params.trust_host_roles == "true",
-          "required_groups" => split_list(params.required_groups),
-          "allowed_email_domains" => split_list(params.allowed_email_domains)
-        }
+        "comment_policy" =>
+          %{
+            "allow_anonymous" => params.allow_anonymous == "true",
+            "trust_host_roles" => params.trust_host_roles == "true",
+            "required_groups" => split_list(params.required_groups),
+            "allowed_email_domains" => split_list(params.allowed_email_domains)
+          }
+          |> put_read_visibility(Map.get(params, :read_visibility))
       }
 
       case Sites.update_site_security(site, attrs) do
@@ -605,6 +616,13 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
     }
   end
 
+  # Only an explicit, known value is written: a command without the key (a
+  # page loaded before this field shipped) must never reset staff_only.
+  defp put_read_visibility(policy, v) when v in ["public", "staff_only"],
+    do: Map.put(policy, "read_visibility", v)
+
+  defp put_read_visibility(policy, _), do: policy
+
   defp form_from_site(site) do
     policy = site.comment_policy || %{}
 
@@ -615,6 +633,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
       default_visibility: Atom.to_string(Sites.default_visibility(site)),
       # Single-line join: multi-line strings must not ride in page state.
       origins: Enum.join(site.allowed_origins || [], " "),
+      read_visibility: Atom.to_string(Sites.read_visibility(site)),
       allow_anonymous: to_string(Sites.allow_anonymous?(site)),
       trust_host_roles: to_string(Sites.trust_host_roles?(site)),
       required_groups: Enum.join(List.wrap(policy["required_groups"]), ", "),
@@ -643,7 +662,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         Keyword.get(
           cfg,
           :widget_src,
-          "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
+          "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js"
         ),
       api_base: Keyword.get(cfg, :api_base, "https://annotate-srv.therobotlives.com")
     }

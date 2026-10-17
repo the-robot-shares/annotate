@@ -47,9 +47,14 @@ defmodule Annotate.Comments do
   `opts[:query]` (raw query string or params map) narrows to threads whose
   stored query params match, using the site's significance config
   (`Annotate.Anchors`); without it every thread on the page is returned.
+
+  `opts[:viewer]` (`%Annotate.Embed.Visibility{}`) narrows IN SQL to the
+  threads the viewer may read (`comment_policy.read_visibility`); foreign
+  threads are never loaded, so they cannot be rendered, counted or presigned.
+  Callers serving embed viewers MUST pass it.
   """
   def list_threads_with_comments(site_id, page_key, opts \\ []) do
-    threads = do_list_threads(site_id, page_key)
+    threads = do_list_threads(site_id, page_key, Keyword.get(opts, :viewer))
 
     case Keyword.get(opts, :query) do
       nil ->
@@ -111,7 +116,7 @@ defmodule Annotate.Comments do
     %{open: Map.get(counts, :open, 0), resolved: Map.get(counts, :resolved, 0)}
   end
 
-  defp do_list_threads(site_id, page_key) do
+  defp do_list_threads(site_id, page_key, viewer) do
     from(t in Thread,
       join: p in assoc(t, :page),
       where: p.site_id == ^site_id and p.page_key == ^page_key,
@@ -125,7 +130,48 @@ defmodule Annotate.Comments do
           )
       ]
     )
+    |> scope_to_viewer(viewer)
     |> Repo.all()
+  end
+
+  defp scope_to_viewer(query, nil), do: query
+
+  defp scope_to_viewer(query, %Annotate.Embed.Visibility{} = viewer),
+    do: Annotate.Embed.Visibility.scope_threads(query, viewer)
+
+  @doc """
+  Like `get_thread_for_site/2`, but nil when `viewer` may not read the thread
+  (staff_only site, not staff, not the creator) — callers answer 404, exactly
+  like a foreign-site id, so existence never leaks.
+  """
+  def get_visible_thread_for_site(thread_id, site_id, %Annotate.Embed.Visibility{} = viewer) do
+    case get_thread_for_site(thread_id, site_id) do
+      %Thread{} = thread ->
+        if Annotate.Embed.Visibility.can_read_thread?(viewer, thread), do: thread, else: nil
+
+      nil ->
+        nil
+    end
+  end
+
+  @doc "Like `get_comment_for_site/2`, gated by the comment's thread visibility."
+  def get_visible_comment_for_site(comment_id, site_id, %Annotate.Embed.Visibility{} = viewer) do
+    from(c in Comment,
+      join: t in assoc(c, :thread),
+      join: p in assoc(t, :page),
+      where: c.id == ^comment_id and p.site_id == ^site_id,
+      select: {c, t.created_by}
+    )
+    |> Repo.one()
+    |> case do
+      {%Comment{} = comment, creator_id} ->
+        if Annotate.Embed.Visibility.can_read_creator?(viewer, creator_id),
+          do: comment,
+          else: nil
+
+      nil ->
+        nil
+    end
   end
 
   @doc """

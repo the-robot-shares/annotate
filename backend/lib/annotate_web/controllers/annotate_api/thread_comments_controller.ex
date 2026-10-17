@@ -79,8 +79,19 @@ defmodule AnnotateWeb.AnnotateAPI.ThreadCommentsController do
 
   # ── Helpers ─────────────────────────────────────────────────
 
+  # Visibility-gated (staff_only: a non-staff viewer may act only on threads
+  # they started) — an unreadable thread is 404 exactly like a foreign one.
   defp thread_for(conn, params) do
-    case Comments.get_thread_for_site(params["id"], conn.assigns.annotate_site.id) do
+    site = conn.assigns.annotate_site
+
+    viewer =
+      Annotate.Embed.Visibility.viewer(
+        site,
+        conn.assigns[:annotate_commenter],
+        conn.assigns[:annotate_claims]
+      )
+
+    case Comments.get_visible_thread_for_site(params["id"], site.id, viewer) do
       %Annotate.Schema.Annotate.Thread{} = thread -> {:ok, thread}
       nil -> {:error, not_found(conn)}
     end

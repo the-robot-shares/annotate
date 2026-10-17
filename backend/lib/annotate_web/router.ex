@@ -265,6 +265,7 @@ defmodule AnnotateWeb.Router do
     pipe_through [:api, :annotate_rate_limited, :annotate_auth_optional]
 
     get "/config", SiteConfigController, :show
+    get "/me", SiteConfigController, :me
     get "/threads", SiteThreadsController, :index
     post "/threads", SiteThreadsController, :create
   end

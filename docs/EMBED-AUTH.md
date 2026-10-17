@@ -90,6 +90,66 @@ Authorization never trusts the claim alone: moderation (owner/admin may
 delete others' comments) and `GET /config` `team` re-check membership and
 site policy on every request, so removal takes effect immediately.
 
+### Team roles and read visibility
+
+On a `comment_policy.read_visibility = "staff_only"` site every team role
+(owner, admin, **member**) counts as **staff** and reads every thread;
+everyone else reads only their own threads (API.md "Read visibility").
+
+- **IN (host → annotate).** A host that wants its own admins treated as
+  staff turns on `trust_host_roles` and adds `team_role` to the assertion:
+
+  ```js
+  // host backend, Node — never ship the service key to the browser
+  const jwt = await new SignJWT({ sub: user.id, name: user.name, team_role: user.isAdmin ? "member" : undefined })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("120s")
+    .sign(createHash("sha256").update(SERVICE_KEY).digest());
+  // POST https://annotate-srv.therobotlives.com/api/v1/sites/acme/token/assert {"token": jwt}
+  ```
+
+  The source is persisted on the refresh token (`team_src=host`,
+  `host_team_role`) and re-honoured at every rotation with the T-01 origin
+  binding kept; turning `trust_host_roles` off revokes staff on the very next
+  request, even with a still-valid access token. Host-asserted staff is only
+  as trustworthy as the holder of the service key (T-17, T-25).
+
+- **OUT (annotate → host).** See below.
+
+## Learning the viewer's permissions
+
+`GET /api/v1/sites/:site/me` (and the same keys on `/config`) returns
+`{authenticated, role, staff, can_read_all, can_moderate, can_post,
+read_visibility}`, computed live (API.md). Three ways to consume it:
+
+1. **Widget JS API** (tobor-kit `<page-comments>`):
+
+   ```js
+   const el = document.querySelector("page-comments");
+   el.addEventListener("page-comments-permissions", (e) => {
+     const p = e.detail;          // same shape as GET /me
+     adminTools.hidden = !p.can_moderate;
+     banner.hidden = p.can_read_all;
+   });
+   console.log(el.permissions);   // last known value (null before bootstrap)
+   ```
+
+   The event bubbles (composed) and fires after bootstrap and on every auth
+   change (sign-in, sign-out, token refresh that changes the role).
+
+2. **Browser fetch** with the widget's access token (`Authorization:
+   Bearer`, `?site=<slug>` for the CORS preflight).
+
+3. **Host backend**: call `/me` server-to-server with the viewer's annotate
+   access token and no `Origin` header. UI hints only — annotate enforces
+   visibility itself; never treat the host's copy as the gate.
+
+Not provided: a service-key-authenticated `POST
+/api/v1/sites/:site/permissions/check` taking only an external user id. It
+would let any service-key holder probe membership without a user token and
+adds a second authenticated read surface for no capability `/me` lacks
+(follow-up if a host needs offline checks).
+
 ## Anonymous posting (opt-in)
 
 Guest thread creation is disabled by default. A site may opt in via
