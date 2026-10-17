@@ -39,6 +39,7 @@ defmodule AnnotateWeb.Hologram.Pages.SignInPage do
           <p class="sg-auth__note" role="status" data-cy="sign-in-unconfigured">GitHub sign-in is not configured yet.</p>
         {/if}
       {/if}
+      <p class="sg-auth__note" data-cy="sign-in-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
       <p class="sg-auth__note">GitHub is the only sign-in method. We use your GitHub account's verified email.</p>
     </div>
     """

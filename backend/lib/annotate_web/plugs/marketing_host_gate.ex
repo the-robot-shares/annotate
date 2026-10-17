@@ -40,6 +40,18 @@ defmodule AnnotateWeb.Plugs.MarketingHostGate do
     end
   end
 
+  # Legal pages share the landing's hardening headers (no redirect: they are
+  # reachable on either host).
+  def call(%Plug.Conn{path_info: [page]} = conn, _opts) when page in ["privacy", "terms"] do
+    marketing = Application.get_env(:annotate, :marketing, [])
+
+    conn
+    |> put_resp_header("content-security-policy", csp(marketing))
+    |> put_resp_header("x-content-type-options", "nosniff")
+    |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
+    |> put_resp_header("x-frame-options", "DENY")
+  end
+
   def call(conn, _opts), do: conn
 
   # 'unsafe-inline' in script-src is required: Hologram's hydration bootstraps
