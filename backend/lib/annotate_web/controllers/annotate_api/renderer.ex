@@ -11,6 +11,8 @@ defmodule AnnotateWeb.AnnotateAPI.Renderer do
     %{
       "id" => t.id,
       "status" => to_string(t.status),
+      # Boolean convenience for widgets (tobor-kit reads `resolved`).
+      "resolved" => t.status == :resolved,
       "anchor" => t.anchor,
       "anchor_version" => t.anchor_version,
       "url" => t.url,

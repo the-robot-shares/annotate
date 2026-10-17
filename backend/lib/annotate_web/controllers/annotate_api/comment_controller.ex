@@ -3,6 +3,8 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
   Comment-level annotate endpoints (site-bound, token required):
 
   - `PATCH /api/v1/comments/:id` — author or site owner; sets `edited_at`.
+    Optional `attachment_ids` binds new (own, ready, unbound) attachments and
+    `remove_attachment_ids` detaches ones bound to this comment.
   - `DELETE /api/v1/comments/:id` — soft delete; author or site owner.
   """
   use AnnotateWeb, :controller
@@ -16,7 +18,13 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
 
     with {:ok, comment} <- comment_for(conn, params),
          :ok <- authorize(comment, site, commenter) do
-      case Comments.update_comment_body(comment, params["body_md"]) do
+      opts = [
+        attachment_ids: params["attachment_ids"],
+        remove_attachment_ids: params["remove_attachment_ids"],
+        commenter: commenter
+      ]
+
+      case Comments.update_comment_body(comment, params["body_md"], opts) do
         {:ok, comment} ->
           json(conn, %{
             "comment" => Renderer.comment(Annotate.Repo.preload(comment, [:author, :attachments]))
@@ -24,6 +32,9 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
 
         {:error, :invalid_body} ->
           conn |> put_status(:bad_request) |> json(%{"error" => "invalid_body"})
+
+        {:error, :attachment_mismatch} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{"error" => "attachment_mismatch"})
 
         {:error, _} ->
           conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
