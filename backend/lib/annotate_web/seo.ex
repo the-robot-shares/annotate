@@ -18,20 +18,19 @@ defmodule AnnotateWeb.SEO do
   @default_api_host "annotate-srv.therobotlives.com"
 
   # ── Copy: landing (swap strings here when the copy overhaul lands) ──────
-  # TODO(hero): og.png currently reuses the hero art; regenerate when the new
-  # hero image lands and update width/height/alt if they change.
+  # og.png is a 1200x630 crop of the loop hero (hero-loop-1600).
   @landing %{
-    title: "annotate — Feedback that points at the thing",
+    title: "annotate — site feedback that points at the thing",
     description:
-      "annotate adds a comment rail to any webpage. Visitors select an element or some text, and the thread attaches to exactly that spot.",
-    og_title: "annotate — Feedback that points at the thing",
+      "One script tag pins threaded comments to the exact element on any page. Triage in the dashboard or read it over the REST API; agent tools are in development.",
+    og_title: "annotate — site feedback that points at the thing",
     og_description:
-      "One script tag adds element-level comment threads, screenshots, and replies to any webpage.",
+      "One script tag pins threaded comments to the exact element on any page. Triage in the dashboard or read it over the REST API; agent tools are in development.",
     og_image: "/images/landing/og.png",
     og_image_width: 1200,
     og_image_height: 630,
     og_image_alt:
-      "A webpage with a glowing ring around a commented element and a floating comment rail"
+      "A comment pinned to a page's Export button becomes a ticket, then an agent reports a patch ready."
   }
 
   @org %{
@@ -157,11 +156,11 @@ defmodule AnnotateWeb.SEO do
     """
     # annotate
 
-    > annotate adds a comment layer to any webpage. A site owner pastes one script tag; visitors then select an element or some text on the page and leave a comment thread attached to that spot. It is early software built by The Robot Lives.
+    > annotate adds a comment layer to any webpage. A site owner pastes one script tag; visitors then select an element or some text on the page and leave a comment thread attached to that spot. The aim is a loop from a comment on the page to a fix in the repo: comments land in a dashboard inbox and a REST API today; ticket integrations are planned and agent (MCP) tools are in development. It is early software built by The Robot Lives.
 
     What works today: element- and text-anchored comment threads, replies, resolve and reopen, file and image attachments, screenshots with box/arrow/pen/text/blur markup, live updates, per-site origin allow-lists, and sign-in through GitHub (dashboard) or through your own identity provider or your own site (embedded widget). Comments are publicly readable by default; this can be changed per site.
 
-    Not shipped yet: ticket push to GitHub Issues, Linear or Jira; MCP or other agent hooks. These are planned, not available.
+    Not shipped yet: ticket push to Jira, Notion, ClickUp, Asana or The Robot Plans (planned); MCP tools for coding agents (in development). A waitlist on the home page takes an email for each.
 
     ## Key pages
 
@@ -180,7 +179,7 @@ defmodule AnnotateWeb.SEO do
 
     - Reading: every page above is server-rendered HTML; no JavaScript is needed to read it.
     - Site owners sign in with GitHub at #{origin()}/sign-in to create a site and get its embed snippet. This is a human sign-in; there is no agent token flow.
-    - There is no MCP server and no agent-facing API today.
+    - There is no MCP server yet; MCP tools are in development. The JSON REST API (threads, comments, anchors, resolve state) is the programmatic surface today.
 
     ## Optional
 
@@ -195,6 +194,8 @@ defmodule AnnotateWeb.SEO do
     annotate adds a comment layer to any webpage. This file is the long form of #{origin()}/llms.txt. Last built: #{@built_on}. Where this file and the website disagree, the website is right.
 
     ## What it is
+
+    The pitch: from a comment on the page to a fix in the repo. Shipped today: the comment widget, the owner dashboard with an inbox, and a JSON REST API with live events. Planned: ticket creation in Jira, Notion, ClickUp, Asana and The Robot Plans. In development: MCP tools so coding agents can triage and patch. A waitlist on the home page takes an email for each.
 
     A site owner adds one script tag and one `noizu-page-comments` element to a page. Visitors select an element or some text, and the comment thread attaches to exactly that spot. The thread is shown in a comment rail beside the element, and opening a comment rings the element it refers to on the page.
 
@@ -237,7 +238,7 @@ defmodule AnnotateWeb.SEO do
     ## Status and roadmap
 
     - Shipped: everything under "What the widget does", the dashboard for site owners, per-site origin rules, GitHub sign-in for owners.
-    - Planned, not shipped: ticket push (GitHub Issues first, then Linear and Jira); per-thread internal-only or public-only visibility; MCP and other agent hooks.
+    - Planned, not shipped: ticket push (Jira, Notion, ClickUp, Asana, The Robot Plans); per-thread internal-only or public-only visibility. In development: MCP tools for coding agents.
     - Pricing: none published. annotate is free to try while it is early software, with no uptime guarantee; see #{origin()}/terms.
 
     ## Publisher

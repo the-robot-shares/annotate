@@ -53,6 +53,11 @@ defmodule AnnotateWeb.Router do
     plug AnnotateWeb.Plugs.RateLimit, action: :annotate_write
   end
 
+  # Landing waitlist signups: tight per-IP budget (no site scoping).
+  pipeline :waitlist_rate_limited do
+    plug AnnotateWeb.Plugs.RateLimit, action: :waitlist
+  end
+
   pipeline :org_viewer do
     plug AnnotateWeb.Plugs.RequireRole, role: "viewer"
   end
@@ -90,6 +95,13 @@ defmodule AnnotateWeb.Router do
   scope "/", AnnotateWeb do
     pipe_through :api
     get "/health", HealthController, :index
+  end
+
+  # Deliberately NOT under /api/v1: AnnotateCORS denies any browser Origin that
+  # is not a registered site origin there, and the landing form is same-origin.
+  scope "/", AnnotateWeb do
+    pipe_through [:waitlist_rate_limited]
+    post "/waitlist", WaitlistController, :create
   end
 
   scope "/api/v1", AnnotateWeb do

@@ -18,7 +18,7 @@ defmodule AnnotateWeb.MarketingLandingTest do
 
     assert conn.status == 200
     body = html_response(conn, 200)
-    assert body =~ "Feedback that points at the thing."
+    assert body =~ "From a comment on the page to a fix in the repo."
     assert body =~ "noizu-page-comments"
     assert body =~ "cdn.derobot.is"
 
@@ -58,7 +58,7 @@ defmodule AnnotateWeb.MarketingLandingTest do
     conn = get(conn, "/")
 
     assert conn.status == 200
-    assert html_response(conn, 200) =~ "Feedback that points at the thing."
+    assert html_response(conn, 200) =~ "From a comment on the page to a fix in the repo."
   end
 
   test "landing stylesheet is served", %{conn: conn} do
