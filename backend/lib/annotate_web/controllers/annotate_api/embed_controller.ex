@@ -13,12 +13,18 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
   """
   use AnnotateWeb, :controller
 
+  require Logger
+
   alias Annotate.Auth.ApiToken
   alias Annotate.Embed.OIDC
   alias Annotate.Embed.Policy
   alias Annotate.Sites
 
   @state_session_key "embed_state"
+
+  # IdP error redirects (user denied consent at Authentik etc.) postMessage one
+  # of these stable reasons; anything unmapped collapses to "auth_failed".
+  @idp_error_reasons ["access_denied"]
 
   def login(conn, %{"site" => slug, "origin" => origin}) do
     site = Sites.get_site_by_slug(slug)
@@ -37,7 +43,7 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
         state = random_token()
         nonce = random_token()
 
-        case OIDC.authorization_uri(%{"state" => state, "nonce" => nonce}) do
+        case OIDC.authorization_uri(%{state: state, nonce: nonce}) do
           {:ok, uri} ->
             conn
             |> put_session(@state_session_key, %{
@@ -58,14 +64,59 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
     conn |> put_status(:bad_request) |> json(%{"error" => "site_and_origin_required"})
   end
 
+  # IdP error redirect (no code): verify state first so an attacker cannot use
+  # this leg to probe, then surface the (allowlisted) reason to the widget.
+  def callback(conn, %{"error" => idp_error} = params) do
+    st = get_session(conn, @state_session_key) || %{}
+    conn = put_session(conn, @state_session_key, nil)
+
+    with :ok <- verify_state(st["state"], params["state"]) do
+      reason = if idp_error in @idp_error_reasons, do: idp_error, else: "auth_failed"
+      Logger.warning("[embed] callback IdP error, reason=#{inspect(reason)}")
+      render_error(conn, reason, st["origin"])
+    else
+      {:error, :state_mismatch} ->
+        render_error(conn, "state_mismatch", st["origin"])
+    end
+  end
+
   def callback(conn, %{"code" => code} = params) do
     st = get_session(conn, @state_session_key) || %{}
     conn = put_session(conn, @state_session_key, nil)
 
+    with :ok <- verify_state(st["state"], params["state"]) do
+      # Defense-in-depth: any unexpected raise below (library crash, DB error)
+      # must surface as the widget error postMessage — never an opaque 500.
+      # The prod incident this guards: OpenIDConnect.fetch_tokens/2 raised
+      # BadMapError mid-exchange (2026-10-16).
+      try do
+        exchange(conn, code, st)
+      rescue
+        e ->
+          Logger.warning(
+            "[embed] callback exchange failed, rendering auth_failed: " <>
+              redact(Exception.format(:error, e, __STACKTRACE__))
+          )
+
+          render_error(conn, "auth_failed", st["origin"])
+      end
+    else
+      {:error, :state_mismatch} ->
+        render_error(conn, "state_mismatch", st["origin"])
+    end
+  end
+
+  def callback(conn, _params) do
+    render_error(conn, "auth_failed", nil)
+  end
+
+  # Runs after the state check: code exchange → claim verification → policy →
+  # token mint → postMessage page. Error tuples render the widget error page
+  # with a stable reason; nothing here should ever escape as a 500.
+  defp exchange(conn, code, st) do
     site = st["site_id"] && Sites.get_site(st["site_id"])
 
-    with :ok <- verify_state(st["state"], params["state"]),
-         %{} = site <- site,
+    with %{} = site <- site,
          {:ok, tokens} <-
            OIDC.fetch_tokens(%{"code" => code, "redirect_uri" => OIDC.config().redirect_uri}),
          {:ok, claims} <- OIDC.verify(tokens["id_token"]),
@@ -86,9 +137,6 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
         st["origin"]
       )
     else
-      {:error, :state_mismatch} ->
-        render_error(conn, "state_mismatch", st["origin"])
-
       {:error, :nonce_mismatch} ->
         render_error(conn, "nonce_mismatch", st["origin"])
 
@@ -107,10 +155,6 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
       _ ->
         render_error(conn, "auth_failed", st["origin"])
     end
-  end
-
-  def callback(conn, _params) do
-    render_error(conn, "auth_failed", nil)
   end
 
   # ── Helpers ──────────────────────────────────────────────────
@@ -149,16 +193,32 @@ defmodule AnnotateWeb.AnnotateAPI.EmbedController do
   end
 
   defp postmessage_body(encoded_payload, origin) do
+    # Visible fallback text: the popup is transient, but when the postMessage/
+    # close dance cannot run (no opener, JS disabled, popup blocked from
+    # closing) the user must not be left staring at a blank page.
     """
-    <!doctype html><html><body><script>
+    <!doctype html><html><body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center">
+    <p id="msg">Signing you in&hellip;</p>
+    <script>
     (function(){
       var payload = #{encoded_payload};
       var origin = #{Jason.encode!(origin || "")};
-      if (window.opener && origin) { window.opener.postMessage(payload, origin); }
+      var sent = false;
+      if (window.opener && origin) { window.opener.postMessage(payload, origin); sent = true; }
+      var msg = document.getElementById("msg");
+      if (msg) { msg.textContent = sent ? "Signed in — you can close this window." : "Sign-in could not complete. Please close this window and try again."; }
       window.close();
     })();
     </script></body></html>
     """
+  end
+
+  # Token-shaped strings (one-time codes, states, nonces, JWTs) must never
+  # reach the logs: library exceptions interpolate request params — the
+  # BadMapError behind the 2026-10-16 prod 500 printed the authorization code
+  # verbatim. Collapse any long urlsafe token to a marker before logging.
+  defp redact(text) do
+    String.replace(text, ~r/[A-Za-z0-9_\-]{20,}/, "[redacted]")
   end
 
   # Plain Plug send (Phoenix's html/2 macro cannot be composed here).
