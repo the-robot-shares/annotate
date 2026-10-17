@@ -1,0 +1,72 @@
+{{- if .Values.files.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "annotate.fullname" . }}-files
+  labels:
+    {{- include "annotate.labels" . | nindent 4 }}
+    app.kubernetes.io/component: files
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # single RWO volume
+  selector:
+    matchLabels:
+      {{- include "annotate.filesSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "annotate.filesSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.files.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: minio
+        image: {{ .Values.files.image }}
+        args: ["server", "/data"]
+        ports:
+        - name: api
+          containerPort: 9000
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.files.secretName }}
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.files.secretName }}
+              key: MINIO_ROOT_PASSWORD
+        # Console never exposed: no ingress for it, and the embedded web UI
+        # is switched off entirely.
+        - name: MINIO_BROWSER
+          value: "off"
+        - name: MINIO_API_CORS_ALLOW_ORIGIN
+          value: {{ .Values.files.corsAllowOrigin | quote }}
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: api
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: api
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        resources:
+          {{- toYaml .Values.files.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ include "annotate.fullname" . }}-files-data
+{{- end }}

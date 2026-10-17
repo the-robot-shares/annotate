@@ -1,0 +1,278 @@
+#!/usr/bin/env bash
+# annotate devbox — Phoenix + Hologram on the host with code reload.
+#
+#   scripts/devbox up [--local|--cluster]  start (default data source: CLUSTER, see below)
+#   scripts/devbox down                    stop the app, port-forwards and local containers
+#   scripts/devbox status                  what is running + URLs
+#   scripts/devbox logs [N|-f|infra]       app log (default 80 lines)
+#   scripts/devbox restart [--local|--cluster]  bounce the app (and switch data source)
+#   scripts/devbox reset                   down + wipe LOCAL volumes/keys, then up --local
+#   scripts/devbox shell                   iex attached to the running app (--remsh)
+#   scripts/devbox test [mix test args]    mix test against LOCAL docker Postgres only
+#
+# DATA SOURCES
+#   cluster (default)  kubectl port-forward (context `noizu` only) to the REAL annotate backing
+#                      services: Postgres app-timescaledb/annotate, Valkey db 16, MinIO bucket
+#                      `annotate`. THIS IS PROD DATA. Guardrails: dev server only; Repo is
+#                      READ-ONLY (default_transaction_read_only) unless DEVBOX_CLUSTER_WRITES=1;
+#                      Oban queues/plugins are off (no sweepers/cron against prod); no migrations,
+#                      Liquibase, seeds, or tests ever run against it; credentials are read from the
+#                      k8s Secret into the process environment only (never printed or written).
+#   local              docker compose (project annotate-devbox): Postgres/Redis/MinIO on loopback,
+#                      Liquibase applied, dev sites seeded. Also what `scripts/devbox test` uses.
+#
+# Run from the MAIN checkout. State (generated local secrets, site keys, pids) lives outside the
+# repo in $DEVBOX_HOME (default ~/.local/state/annotate-devbox). Two hosts are served by the one
+# process: http://annotate.localhost:PORT (landing) and http://annotate-srv.localhost:PORT (API).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKEND="$ROOT/backend"
+COMPOSE=(docker compose -p annotate-devbox -f "$ROOT/docker-compose.devbox.yaml")
+STATE="${DEVBOX_HOME:-$HOME/.local/state/annotate-devbox}"
+ENVF="$STATE/env"
+LOG="${DEVBOX_LOG:-/tmp/annotate-devbox.log}"
+PIDF="$STATE/app.pid"
+NODE="annotate_devbox"
+KCTX="noizu"                                   # the ONLY kube context this script will use
+KCFG="${KUBECONFIG_NOIZU:-$HOME/.kube/noizu/config}"
+CL_NS=apps; CL_INFRA=infra
+CL_PG_PORT=54392; CL_REDIS_PORT=56380; CL_MINIO_PORT=59010   # cluster forwards (local side)
+
+say() { printf '[devbox] %s\n' "$*"; }
+die() { printf '[devbox] ERROR: %s\n' "$*" >&2; exit 1; }
+banner() {
+  printf '\n'
+  printf '################################################################\n'
+  printf '##  PROD DATA  --  this dev server is wired to the REAL annotate ##\n'
+  printf '##  Postgres / Valkey / MinIO through kubectl port-forward.      ##\n'
+  printf '##  Repo is %-12s Oban is OFF. Do not run mix test,          ##\n' "$([ "${DEVBOX_CLUSTER_WRITES:-0}" = 1 ] && echo WRITABLE || echo READ-ONLY)."
+  printf '##  ecto.*, liquibase or seeds against it. Tests: devbox test.   ##\n'
+  printf '################################################################\n\n'
+}
+
+mode_file() { echo "$STATE/mode"; }
+get_mode() { [ -f "$(mode_file)" ] && cat "$(mode_file)" || echo cluster; }
+
+gen_env() {
+  mkdir -p "$STATE"; chmod 700 "$STATE"
+  [ -f "$ENVF" ] && return 0
+  say "generating local dev secrets -> $ENVF (never printed)"
+  rnd() { openssl rand -base64 "$1" | tr -d '\n=/+' | cut -c1-"$2"; }
+  ( umask 077; cat >"$ENVF" <<ENV
+DEVBOX_PG_PORT=54391
+DEVBOX_REDIS_PORT=56379
+DEVBOX_MINIO_PORT=59000
+DEVBOX_MINIO_CONSOLE_PORT=59001
+DEVBOX_S3_KEY=devbox$(rnd 12 12)
+DEVBOX_S3_SECRET=$(rnd 36 40)
+PORT=4100
+SECRET_KEY_BASE=$(rnd 64 64)
+SESSION_SIGNING_SALT=$(rnd 24 32)
+GUARDIAN_SECRET_KEY=$(rnd 48 64)
+ANNOTATE_JWT_SECRET=$(rnd 48 64)
+ANNOTATE_KEY_ENC_SECRET=$(rnd 48 64)
+ENV
+  )
+}
+
+kc() { KUBECONFIG="$KCFG" kubectl --context "$KCTX" "$@"; }
+
+# Read one key of the annotate-secrets Secret into stdout (decoded). Never log the result.
+sec() { kc -n "$CL_NS" get secret annotate-secrets -o "jsonpath={.data.$1}" | base64 -d; }
+
+base_env() {
+  gen_env
+  set -a; . "$ENVF"; set +a
+  export PHX_IP=127.0.0.1 HOLOGRAM_START=1 PHX_SERVER=true MIX_ENV=dev
+  export MARKETING_HOST="annotate.localhost" MARKETING_API_HOST="annotate-srv.localhost"
+  export FRONTEND_URL="http://annotate-srv.localhost:$PORT"
+  export ANNOTATE_PUBLIC_API_BASE="http://annotate-srv.localhost:$PORT"
+  [ -n "${TOBOR_KIT_HOLOGRAM_PATH:-}" ] && export TOBOR_KIT_HOLOGRAM_PATH
+  return 0
+}
+
+local_env() {
+  export DB_HOST=localhost DB_PORT="$DEVBOX_PG_PORT" DB_USER=annotate DB_PASS=annotate_dev DB_NAME=annotate_dev
+  export REDIS_URL="redis://localhost:$DEVBOX_REDIS_PORT/0" REDIS_KEY_PREFIX="annotate-devbox:"
+  export S3_BUCKET=annotate S3_REGION=us-east-1 S3_SCHEME="http://" S3_ENDPOINT="localhost:$DEVBOX_MINIO_PORT"
+  export AWS_ACCESS_KEY_ID="$DEVBOX_S3_KEY" AWS_SECRET_ACCESS_KEY="$DEVBOX_S3_SECRET"
+  unset DEVBOX_DATA DEVBOX_CLUSTER_WRITES || true
+}
+
+cluster_env() {
+  [ "$(KUBECONFIG="$KCFG" kubectl config current-context 2>/dev/null)" != "" ] || die "kubeconfig $KCFG unreadable"
+  export DEVBOX_DATA=cluster
+  export DB_HOST=localhost DB_PORT="$CL_PG_PORT" DB_NAME=annotate
+  DB_USER="$(sec ANNOTATE_DB_USER)"; export DB_USER
+  DB_PASS="$(sec ANNOTATE_DB_PASSWORD)"; export DB_PASS
+  # Same Valkey db/ACL user as prod; only the host:port is swapped. Distinct key prefix.
+  REDIS_URL="$(sec ANNOTATE_REDIS_URL | sed -E "s#@[^/]+#@localhost:$CL_REDIS_PORT#")"; export REDIS_URL
+  export REDIS_KEY_PREFIX="annotate:devbox:"
+  export S3_BUCKET=annotate S3_REGION=us-east-1 S3_SCHEME="http://" S3_ENDPOINT="localhost:$CL_MINIO_PORT"
+  AWS_ACCESS_KEY_ID="$(sec AWS_ACCESS_KEY_ID)"; export AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY="$(sec AWS_SECRET_ACCESS_KEY)"; export AWS_SECRET_ACCESS_KEY
+  # Local-only token secrets: dev must not be able to mint tokens valid against prod.
+}
+
+app_listening() { lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1 || true; }
+
+# ── port-forwards with auto-reconnect (cluster mode) ─────────────────────────
+pf_start() { # name ns svc lport rport
+  local name="$1" ns="$2" svc="$3" lport="$4" rport="$5" pidf="$STATE/pf-$1.pid"
+  if [ -f "$pidf" ] && kill -0 "$(cat "$pidf")" 2>/dev/null; then return 0; fi
+  ( while true; do
+      KUBECONFIG="$KCFG" kubectl --context "$KCTX" -n "$ns" port-forward --address 127.0.0.1 "svc/$svc" "$lport:$rport" >>"$STATE/pf-$name.log" 2>&1 || true
+      sleep 2
+    done ) >/dev/null 2>&1 &
+  echo $! >"$pidf"; disown || true
+  say "port-forward $name: localhost:$lport -> $ns/svc/$svc:$rport"
+}
+pf_stop() {
+  local f
+  for f in "$STATE"/pf-*.pid; do
+    [ -f "$f" ] || continue
+    pkill -P "$(cat "$f")" 2>/dev/null || true
+    kill "$(cat "$f")" 2>/dev/null || true
+    rm -f "$f"
+  done
+}
+wait_port() { local i; for i in $(seq 1 30); do nc -z localhost "$1" 2>/dev/null && return 0; sleep 1; done; die "port $1 not reachable"; }
+
+# ── local docker stack ───────────────────────────────────────────────────────
+infra_up() {
+  say "starting local postgres/redis/minio (compose project annotate-devbox)"
+  "${COMPOSE[@]}" up -d --wait >/dev/null 2>&1
+  say "creating MinIO bucket 'annotate' (local)"
+  "${COMPOSE[@]}" exec -T minio sh -c \
+    "mc alias set local http://localhost:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null && mc mb --ignore-existing local/annotate >/dev/null && mc anonymous set none local/annotate >/dev/null" \
+    || die "bucket setup failed"
+}
+
+psql_local() { "${COMPOSE[@]}" exec -T db psql -U annotate -d annotate_dev -Atc "$1"; }
+
+schema_up_local() { # LOCAL DB only — caller must have sourced local_env
+  cd "$BACKEND"
+  [ -d deps ] && [ -n "$(ls deps 2>/dev/null)" ] || { say "mix deps.get"; mix deps.get >/dev/null; }
+  say "liquibase update (local DB annotate_dev@localhost:$DB_PORT)"
+  mix liquibase.update --quiet
+  mix ecto.migrate --quiet
+  say "databasechangelog rows (local): $(psql_local 'select count(*) from databasechangelog')"
+}
+
+ensure_site_local() { # slug name origins
+  local slug="$1" name="$2" origins="$3" keyf="$STATE/site-$1.key"
+  [ "$(psql_local "select count(*) from sites where slug='$slug'")" != "0" ] && return 0
+  say "creating local dev site '$slug' (service key -> $keyf)"
+  ( cd "$BACKEND" && mix annotate.site.create --slug "$slug" --name "$name" --origins "$origins" ) \
+    | awk 'f{print; exit} /Service key/{f=1}' >"$keyf"
+  chmod 600 "$keyf"
+  psql_local "update sites set comment_policy = comment_policy || '{\"allow_anonymous\":true,\"public_read\":true}'::jsonb where slug='$slug'" >/dev/null
+}
+
+app_start() {
+  if [ -n "$(app_listening)" ]; then say "app already listening on :$PORT"; return 0; fi
+  cd "$BACKEND"
+  [ -d deps ] && [ -n "$(ls deps 2>/dev/null)" ] || { say "mix deps.get"; mix deps.get >/dev/null; }
+  say "compiling + starting phx.server on :$PORT (log: $LOG)"
+  : >"$LOG"
+  nohup elixir --sname "$NODE" --cookie "$NODE" -S mix phx.server >>"$LOG" 2>&1 &
+  echo $! >"$PIDF"; disown || true
+  local i
+  for i in $(seq 1 180); do
+    if curl -sf -o /dev/null -H "Host: annotate.localhost:$PORT" "http://127.0.0.1:$PORT/"; then say "app is up"; return 0; fi
+    kill -0 "$(cat "$PIDF")" 2>/dev/null || { tail -30 "$LOG"; die "app exited during boot"; }
+    sleep 2
+  done
+  tail -30 "$LOG"; die "app did not become ready in 6 min"
+}
+
+app_stop() {
+  local pid
+  pid="$(app_listening)"
+  if [ -f "$PIDF" ]; then kill "$(cat "$PIDF")" 2>/dev/null || true; rm -f "$PIDF"; fi
+  if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
+  say "app stopped"
+}
+
+cmd_up() {
+  local want=""
+  while [ $# -gt 0 ]; do case "$1" in --local) want=local ;; --cluster) want=cluster ;; *) die "unknown arg $1" ;; esac; shift; done
+  [ -n "$want" ] || want="${DEVBOX_DATA_SOURCE:-cluster}"
+  base_env
+  command -v docker >/dev/null || die "docker required"
+  echo "$want" >"$(mode_file)"
+  # Local stack is always brought up: it is the test database (and the whole stack in --local).
+  infra_up
+  ( local_env; schema_up_local
+    ensure_site_local annotate-landing "Annotate landing (dogfood)" "http://annotate.localhost:$PORT,http://localhost:$PORT"
+    ensure_site_local devsite "Dev site" "http://localhost:$PORT,http://localhost:3000,http://localhost:5173" )
+  if [ "$want" = cluster ]; then
+    banner
+    pf_start pg "$CL_NS" app-timescaledb "$CL_PG_PORT" 5432
+    pf_start valkey "$CL_NS" app-valkey "$CL_REDIS_PORT" 6379
+    pf_start minio "$CL_INFRA" minio-service "$CL_MINIO_PORT" 9000
+    wait_port "$CL_PG_PORT"; wait_port "$CL_REDIS_PORT"; wait_port "$CL_MINIO_PORT"
+    cluster_env
+  else
+    local_env
+  fi
+  app_start
+  cmd_status
+}
+
+cmd_down() { base_env; app_stop; pf_stop; "${COMPOSE[@]}" down >/dev/null 2>&1; say "app, port-forwards and containers stopped (volumes kept)"; }
+
+cmd_reset() {
+  base_env; app_stop; pf_stop
+  "${COMPOSE[@]}" down -v >/dev/null 2>&1
+  rm -f "$STATE"/site-*.key
+  say "LOCAL volumes + site keys wiped (cluster data untouched); secrets kept"
+  cmd_up --local
+}
+
+cmd_status() {
+  base_env
+  local m; m="$(get_mode)"
+  [ "$m" = cluster ] && banner
+  echo "data       $m"
+  echo "landing    http://annotate.localhost:$PORT/    $( [ -n "$(app_listening)" ] && echo UP || echo down )"
+  echo "api        http://annotate-srv.localhost:$PORT/api/v1/   (socket /socket/annotate)"
+  echo "local pg   localhost:$DEVBOX_PG_PORT db=annotate_dev   redis localhost:$DEVBOX_REDIS_PORT   minio localhost:$DEVBOX_MINIO_PORT (console $DEVBOX_MINIO_CONSOLE_PORT)"
+  if [ "$m" = cluster ]; then
+    local f; for f in pg valkey minio; do
+      printf 'forward    %-7s %s\n' "$f" "$([ -f "$STATE/pf-$f.pid" ] && kill -0 "$(cat "$STATE/pf-$f.pid")" 2>/dev/null && echo up || echo down)"
+    done
+    echo "forwards   pg localhost:$CL_PG_PORT  valkey localhost:$CL_REDIS_PORT  minio localhost:$CL_MINIO_PORT"
+  fi
+  echo "log        $LOG      state $STATE"
+  "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Status}}' 2>/dev/null || true
+}
+
+cmd_logs() {
+  case "${1:-}" in
+    infra) base_env; shift; "${COMPOSE[@]}" logs "${@:---tail=50}" ;;
+    -f) tail -f "$LOG" ;;
+    *) tail -n "${1:-80}" "$LOG" ;;
+  esac
+}
+
+cmd_shell() { base_env; exec iex --sname "dbg_$$" --cookie "$NODE" --remsh "$NODE@$(hostname -s)"; }
+
+cmd_test() { # ALWAYS local docker PG — never the forwarded cluster DB
+  base_env; infra_up; local_env
+  export MIX_ENV=test
+  cd "$BACKEND"; exec mix test "$@"
+}
+
+case "${1:-status}" in
+  up) shift; cmd_up "$@" ;;
+  down) cmd_down ;;
+  status) cmd_status ;;
+  logs) shift || true; cmd_logs "$@" ;;
+  reset) cmd_reset ;;
+  restart) shift; base_env; app_stop; sleep 1; cmd_up "$@" ;;
+  shell) cmd_shell ;;
+  test) shift; cmd_test "$@" ;;
+  *) sed -n "2,26p" "${BASH_SOURCE[0]}"; exit 2 ;;
+esac

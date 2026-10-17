@@ -88,10 +88,10 @@ secret and key-encryption secret are **required in prod** (`ANNOTATE_JWT_SECRET`
 If the host site ships a strict CSP, it must allow:
 
 - `script-src https://cdn.derobot.is` (widget bundle)
-- `connect-src https://annotate-srv.therobotlives.com wss://annotate-srv.therobotlives.com https://minio.noizu.com` (API + polling/WS, and attachment uploads: the widget PUTs files straight to a presigned MinIO URL)
-- `img-src https://minio.noizu.com` (attachment previews/downloads are presigned MinIO URLs)
+- `connect-src https://annotate-srv.therobotlives.com wss://annotate-srv.therobotlives.com https://annotate-files.therobotlives.com` (API + polling/WS, and attachment uploads: the widget PUTs files straight to a presigned URL on annotate's dedicated MinIO)
+- `img-src https://annotate-files.therobotlives.com` (attachment previews/downloads are presigned URLs on annotate's dedicated MinIO)
 
-`https://minio.noizu.com` is the chart's `storage.publicEndpoint` (`S3_PUBLIC_ENDPOINT`); if that changes, the host CSP must follow. Without it in `connect-src`, attachments fail with "Upload failed".
+`https://annotate-files.therobotlives.com` is the chart's `storage.publicEndpoint` (`S3_PUBLIC_ENDPOINT`); if that changes, the host CSP must follow. Without it in `connect-src`, attachments fail with "Upload failed".
 - `frame-src` / popup: none needed — the broker is `window.open`, allowed by default unless `popup` sandboxing is in play.
 
 ## Environment variables (backend)
