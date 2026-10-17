@@ -662,7 +662,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         Keyword.get(
           cfg,
           :widget_src,
-          "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
+          "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js"
         ),
       api_base: Keyword.get(cfg, :api_base, "https://annotate-srv.therobotlives.com")
     }
