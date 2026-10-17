@@ -155,6 +155,41 @@ else
   config :opentelemetry_experimental, sdk_disabled: true
 end
 
+# ── Devbox cluster-data guardrails (scripts/devbox, DEVBOX_DATA=cluster) ──
+# The dev server is pointed (via kubectl port-forward) at the REAL annotate DB.
+# Keep it safe: no Oban queues/plugins (no cron sweepers/pruner against prod) and a
+# read-only Repo session unless DEVBOX_CLUSTER_WRITES=1 is set explicitly.
+if config_env() == :dev and System.get_env("DEVBOX_DATA") == "cluster" do
+  config :annotate, Oban, queues: false, plugins: false
+
+  if System.get_env("DEVBOX_CLUSTER_WRITES") != "1" do
+    config :annotate, Annotate.Repo, parameters: [default_transaction_read_only: "on"]
+  end
+end
+
+# ── Local devbox storage (scripts/devbox) ───────────────────────
+# Dev has no Annotate.Storage config by default; the devbox points it at its
+# local MinIO via S3_* env. Unset S3_BUCKET ⇒ dev behaves as before.
+if config_env() == :dev and System.get_env("S3_BUCKET") do
+  config :annotate, Annotate.Storage,
+    bucket: System.fetch_env!("S3_BUCKET"),
+    region: System.get_env("S3_REGION", "us-east-1"),
+    host: System.get_env("S3_ENDPOINT"),
+    scheme: System.get_env("S3_SCHEME", "http://"),
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY")
+
+  config :ex_aws,
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+    region: System.get_env("S3_REGION", "us-east-1"),
+    s3: [
+      scheme: System.get_env("S3_SCHEME", "http://"),
+      host: System.get_env("S3_ENDPOINT"),
+      region: System.get_env("S3_REGION", "us-east-1")
+    ]
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

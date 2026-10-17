@@ -36,6 +36,31 @@ Docs: [`docs/API.md`](docs/API.md) · [`docs/EMBED-AUTH.md`](docs/EMBED-AUTH.md)
 | Proxy | Nginx → single backend; host-based routing (Phase 1b wiring) |
 | Data | Postgres (pgvector image), Redis, Oban queues |
 
+## Local devbox
+
+`scripts/devbox up` runs Phoenix + Hologram on the host (code reload, log `/tmp/annotate-devbox.log`)
+and serves **both hosts** from one process: `http://annotate.localhost:4100/` (landing) and
+`http://annotate-srv.localhost:4100/` (API + `/socket/annotate`). Run it from the main checkout.
+
+```bash
+scripts/devbox up [--local|--cluster]   # default data source: cluster (see warning)
+scripts/devbox status | logs [-f|N|infra] | shell | restart | down
+scripts/devbox reset                    # wipe LOCAL volumes + site keys, back to --local
+scripts/devbox test [args]              # mix test, always against the local docker Postgres
+```
+
+- **`--local`**: docker compose project `annotate-devbox` (pgvector Postgres :54391, Redis :56379,
+  MinIO :59000/:59001, bucket `annotate`). Liquibase 000-030 + Ecto migrate are applied and dev sites
+  `annotate-landing` and `devsite` are seeded (service keys under `~/.local/state/annotate-devbox/`).
+- **`--cluster` (default): PROD DATA.** `kubectl port-forward` (context `noizu` only, auto-reconnecting) to
+  the real `annotate` Postgres (app-timescaledb), Valkey db 16 and MinIO. Credentials are read from the
+  `annotate-secrets` Secret into the process environment only. Guardrails: the Repo session is
+  read-only (`DEVBOX_CLUSTER_WRITES=1` to lift), Oban queues/cron/pruner are off, and no migration, Liquibase,
+  seed or test ever runs against it. Browser use against cluster data additionally needs the page origin in the
+  site's `allowed_origins` (per-site exact-origin CORS).
+- The landing widget loads from the CDN (`ANNOTATE_PUBLIC_WIDGET_SRC` overrides); its `api-base` points at the local API host.
+- Generated dev secrets live in `~/.local/state/annotate-devbox/env` (outside the repo, mode 600).
+
 ## Development
 
 ```bash
