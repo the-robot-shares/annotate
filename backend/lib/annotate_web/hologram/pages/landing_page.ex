@@ -62,23 +62,19 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
           <figure class="nd-hero__art">
             <picture>
               <source
-                type="image/avif"
-                srcset="/images/landing/hero-1280.avif 1x, /images/landing/hero-1344.avif 2x"
-              />
-              <source
                 type="image/webp"
-                srcset="/images/landing/hero-1280.webp 1x, /images/landing/hero-1344.webp 2x"
+                srcset="/images/landing/hero-1600.webp"
               />
               <img
-                src="/images/landing/hero-1344.png"
-                alt="Illustration of a webpage where a glowing ember ring marks a selected element, connected to a floating comment rail"
-                width="1344"
-                height="768"
+                src="/images/landing/hero-1600.png"
+                alt="Mockup of a dark pricing page where a glowing ember ring marks the words per seat, connected to a comment card asking whether the pricing wording is right"
+                width="1600"
+                height="914"
                 fetchpriority="high"
               />
             </picture>
             <figcaption>
-              Illustration: AI-generated. The rail on this page is the real widget.
+              Product mockup (AI-generated). The rail on this page is the real widget.
             </figcaption>
           </figure>
         </div>
