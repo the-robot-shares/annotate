@@ -108,9 +108,35 @@ defmodule AnnotateWeb.SSOController do
   # "<provider>_not_configured" instead.
   defp ueberauth(conn, _opts) do
     case Application.get_env(:ueberauth, Ueberauth, [])[:providers] do
-      [_ | _] -> Ueberauth.call(conn, Ueberauth.init([]))
+      [_ | _] -> run_ueberauth(conn)
       _ -> conn
     end
+  end
+
+  # A crash inside a strategy (token exchange / profile fetch: TLS, network,
+  # provider API errors) must reach the visitor as the friendly
+  # "<provider>_failed" page, never a 500. Logged WITHOUT the exception
+  # message or conn: OAuth errors can carry the code, token or client secret.
+  defp run_ueberauth(conn) do
+    Ueberauth.call(conn, Ueberauth.init([]))
+  rescue
+    e ->
+      require Logger
+
+      Logger.error(
+        "[sso] oauth strategy crashed: #{inspect(e.__struct__)} provider=#{inspect(conn.path_params["provider"])}"
+      )
+
+      conn
+      |> Plug.Conn.assign(:ueberauth_failure, %Ueberauth.Failure{
+        provider: conn.path_params["provider"],
+        errors: [
+          %Ueberauth.Failure.Error{
+            message_key: "strategy_crash",
+            message: "provider request failed"
+          }
+        ]
+      })
   end
 
   def oauth_request(conn, %{"provider" => "github"}),

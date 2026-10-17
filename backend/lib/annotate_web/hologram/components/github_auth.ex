@@ -55,7 +55,11 @@ defmodule AnnotateWeb.Hologram.Components.GithubAuth do
         "https://cdn.derobot.is/tobor-kit/sha-0e5a20e04fefcb400f9f395795c438a7312f27ec/components/page-comments/page-comments.js"
       )
 
-    String.replace(widget, "components/page-comments/page-comments.js", "components/auth/noizu-auth.js")
+    String.replace(
+      widget,
+      "components/page-comments/page-comments.js",
+      "components/auth/noizu-auth.js"
+    )
   end
 
   defp trigger_class("nd", "primary"), do: "nd-btn nd-btn--primary nd-btn--sm"
