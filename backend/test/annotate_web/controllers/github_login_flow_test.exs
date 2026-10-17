@@ -29,6 +29,36 @@ defmodule AnnotateWeb.GithubLoginFlowTest do
     assert %User{verified: true} = Repo.get_by(User, email: "octo@example.com")
   end
 
+  test "prod 2026-10-17: a crash inside the token exchange is a friendly page, not a 500" do
+    {conn, location} =
+      start_flow(%{stub_id: "91", stub_email: "tls@example.com", stub_crash: "tls"})
+
+    conn = finish(conn, location)
+    assert redirected_to(conn) == "/auth/sso-callback?error=github_failed"
+    refute Repo.get_by(User, email: "tls@example.com")
+  end
+
+  test "GitHub's callback with iss + a primary verified email (prod shape) signs in" do
+    {conn, location} =
+      start_flow(%{
+        stub_id: "92",
+        stub_login: "keith",
+        stub_emails: "noreply@users.noreply.github.com:true,owner@example.com:true:primary"
+      })
+
+    conn =
+      finish(conn, location <> "&iss=" <> URI.encode_www_form("https://github.com/login/oauth"))
+
+    assert redirected_to(conn) =~ ~r{^/auth/sso-callback\?code=}
+    assert %User{verified: true} = Repo.get_by(User, email: "owner@example.com")
+  end
+
+  test "production image installs a CA bundle (outbound TLS for the GitHub token exchange)" do
+    dockerfile = File.read!(Path.expand("../../../Dockerfile", __DIR__))
+    [_, production] = String.split(dockerfile, "AS production", parts: 2)
+    assert production =~ "ca-certificates"
+  end
+
   test "unverified GitHub email is refused (no account)" do
     {conn, location} =
       start_flow(%{stub_id: "78", stub_email: "victim@example.com", stub_verified: "false"})
