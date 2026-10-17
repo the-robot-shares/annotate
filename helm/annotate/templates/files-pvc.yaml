@@ -1,0 +1,23 @@
+{{- if .Values.files.enabled }}
+# Object data for the dedicated annotate MinIO. Never pruned or deleted by
+# ArgoCD/Helm (longhorn reclaimPolicy is Delete): removing it is a manual,
+# deliberate act.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "annotate.fullname" . }}-files-data
+  labels:
+    {{- include "annotate.labels" . | nindent 4 }}
+    app.kubernetes.io/component: files
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.files.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.files.persistence.size }}
+{{- end }}

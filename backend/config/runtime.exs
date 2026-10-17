@@ -250,7 +250,7 @@ if config_env() == :prod do
   # through as :host produced "http://http:%3A//minio…" presigned URLs.
   #
   # S3_PUBLIC_ENDPOINT is the browser-reachable endpoint (e.g.
-  # "https://minio.noizu.com"). Presigned PUT/GET urls are handed to the
+  # "https://annotate-files.therobotlives.com"). Presigned PUT/GET urls are handed to the
   # browser, so they must be signed for that host — the in-cluster service
   # name never resolves outside the cluster. Server-side calls keep using
   # S3_ENDPOINT.
