@@ -50,11 +50,43 @@ defmodule AnnotateWeb.PageChannel do
   # Outbound relay: `use Phoenix.Channel` ships no default handle_out in
   # Phoenix 1.8, so broadcasts on the topic are pushed to the client here.
   # Server → client only; no client input flows through it.
+  #
+  # Per-viewer visibility (comment_policy.read_visibility): every
+  # Annotate.Realtime payload carries an internal "__vis" key that is ALWAYS
+  # stripped here. For a staff_only site the subscriber's viewer is
+  # re-derived LIVE (current site policy + team membership, never the
+  # connect-time snapshot) and events for threads it may not read are
+  # dropped — the broadcast fan-out is shared, so this is the only place a
+  # per-viewer leak can be stopped.
   @impl true
+  def handle_out(event, %{"__vis" => vis} = payload, socket) do
+    if visible?(vis, socket), do: push(socket, event, Map.delete(payload, "__vis"))
+    {:noreply, socket}
+  end
+
   def handle_out(event, payload, socket) do
     push(socket, event, payload)
     {:noreply, socket}
   end
+
+  defp visible?(%{"read_visibility" => "public"}, _socket), do: true
+
+  defp visible?(%{"site_id" => site_id, "creator_id" => creator_id}, socket) do
+    claims = socket.assigns[:claims]
+    commenter = claims && Annotate.Sites.get_commenter(claims["sub"])
+
+    case Sites.get_site(site_id) do
+      %Site{} = site ->
+        site
+        |> Annotate.Embed.Visibility.viewer(commenter, claims)
+        |> Annotate.Embed.Visibility.can_read_creator?(creator_id)
+
+      nil ->
+        false
+    end
+  end
+
+  defp visible?(_, _), do: false
 
   # ── Internals ─────────────────────────────────────────────────
 

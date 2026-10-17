@@ -59,8 +59,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
       })
 
     payload = %{"thread" => Renderer.thread(thread)}
-    assert_broadcast "thread_created", ^payload
-    refute_broadcast "thread_created", %{}, 0
+    assert_push "thread_created", ^payload
+    refute_push "thread_created", %{}, 0
   end
 
   test "thread_resolved fires exactly once with the rendered thread" do
@@ -73,8 +73,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, thread} = Comments.resolve_thread(thread, commenter)
 
     payload = %{"thread" => rendered_thread(thread)}
-    assert_broadcast "thread_resolved", ^payload
-    refute_broadcast "thread_resolved", %{}, 0
+    assert_push "thread_resolved", ^payload
+    refute_push "thread_resolved", %{}, 0
   end
 
   test "thread_reopened fires exactly once with the rendered thread" do
@@ -88,8 +88,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, thread} = Comments.reopen_thread(thread)
 
     payload = %{"thread" => rendered_thread(thread)}
-    assert_broadcast "thread_reopened", ^payload
-    refute_broadcast "thread_reopened", %{}, 0
+    assert_push "thread_reopened", ^payload
+    refute_push "thread_reopened", %{}, 0
   end
 
   test "thread_anchor_updated fires exactly once with the rendered thread" do
@@ -102,8 +102,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, thread} = Comments.set_thread_anchor(thread, %{"css" => "#new-anchor"})
 
     payload = %{"thread" => rendered_thread(thread)}
-    assert_broadcast "thread_anchor_updated", ^payload
-    refute_broadcast "thread_anchor_updated", %{}, 0
+    assert_push "thread_anchor_updated", ^payload
+    refute_push "thread_anchor_updated", %{}, 0
   end
 
   # ── comments ──────────────────────────────────────────────────
@@ -118,8 +118,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, comment} = Comments.add_comment(thread, commenter, %{"body_md" => "a reply"})
 
     payload = %{"comment" => Renderer.comment(comment)}
-    assert_broadcast "comment_created", ^payload
-    refute_broadcast "comment_created", %{}, 0
+    assert_push "comment_created", ^payload
+    refute_push "comment_created", %{}, 0
   end
 
   test "comment_updated fires exactly once with the rendered comment" do
@@ -133,8 +133,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, comment} = Comments.update_comment_body(root, "edited body")
 
     payload = %{"comment" => Renderer.comment(Repo.preload(comment, [:author, :attachments]))}
-    assert_broadcast "comment_updated", ^payload
-    refute_broadcast "comment_updated", %{}, 0
+    assert_push "comment_updated", ^payload
+    refute_push "comment_updated", %{}, 0
   end
 
   test "comment_deleted fires exactly once with the rendered comment" do
@@ -148,8 +148,8 @@ defmodule AnnotateWeb.PageChannelEventTest do
     {:ok, comment} = Comments.soft_delete_comment(root)
 
     payload = %{"comment" => Renderer.comment(Repo.preload(comment, [:author, :attachments]))}
-    assert_broadcast "comment_deleted", ^payload
-    refute_broadcast "comment_deleted", %{}, 0
+    assert_push "comment_deleted", ^payload
+    refute_push "comment_deleted", %{}, 0
   end
 
   test "thread_created payload carries attachment presigned GET urls" do
@@ -176,7 +176,7 @@ defmodule AnnotateWeb.PageChannelEventTest do
         "attachment_ids" => [attachment.id]
       })
 
-    assert_broadcast "thread_created", %{"thread" => rendered}
+    assert_push "thread_created", %{"thread" => rendered}
 
     broadcast_attachment = rendered["comments"] |> hd() |> Map.fetch!("attachments") |> hd()
     assert is_binary(broadcast_attachment["url"]) and byte_size(broadcast_attachment["url"]) > 0
@@ -216,6 +216,6 @@ defmodule AnnotateWeb.PageChannelEventTest do
       "body_md" => "elsewhere"
     })
 
-    refute_broadcast "thread_created", %{}, 0
+    refute_push "thread_created", %{}, 0
   end
 end

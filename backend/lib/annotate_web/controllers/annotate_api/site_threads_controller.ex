@@ -1,7 +1,9 @@
 defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
   @moduledoc """
   `GET /api/v1/sites/:site/threads?page_key=` — thread listing (respects
-  `settings.public_read`).
+  `settings.public_read`, and `comment_policy.read_visibility`: under
+  `staff_only` non-staff get only their own threads, anonymous get none —
+  `Annotate.Embed.Visibility`).
   `POST /api/v1/sites/:site/threads` — create page (upsert) + thread + root
   comment, binding attachments. A valid token attributes the comment; a
   token-less create is rejected (401) unless the site opts in via
@@ -24,6 +26,12 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
       threads =
         Comments.list_threads_with_comments(site.id, page_key,
           query: current_query(params),
+          viewer:
+            Annotate.Embed.Visibility.viewer(
+              site,
+              conn.assigns[:annotate_commenter],
+              conn.assigns[:annotate_claims]
+            ),
           anchor_config: Annotate.Anchors.config(site, csv(params["ignore_params"]))
         )
 

@@ -44,6 +44,64 @@ other reads) → `{"site", "default_visibility", "public_read",
 "allow_anonymous", "max_upload_mb", "page_key_strategy", "team"}`. No PII.
 `team` is true when the presented token's commenter is on the site's team
 **right now** (re-derived per request, not read off the claim).
+The response also carries the viewer's permission keys (below).
+
+## Read visibility (`comment_policy.read_visibility`)
+
+Owner-only security setting (dashboard → Security settings → "Who can read
+comments"; `Sites.update_site_security/2`):
+
+| Value | Who sees what |
+|---|---|
+| `public` (default) | every reader sees every thread (still gated by `public_read`) |
+| `staff_only` | **staff** see every thread; any other signed-in commenter sees only the threads **they started**, with every comment in them (staff replies included); anonymous readers see **none** |
+
+**Staff** = a live team role on the site, re-derived on every request and
+every realtime event: `owner`, `admin` **or `member`** in `site_members`
+(Authentik bridge), the legacy `sites.owner_commenter_id`, or a host-asserted
+`team_role` while `comment_policy.trust_host_roles` is on (see EMBED-AUTH.md).
+There is no "moderators only" split yet — `member` counts as staff.
+
+Anonymous guests: guest commenter rows are shared by display name (T-11) and
+hold no credential, so a guest cannot be recognised later — under
+`staff_only` a guest sees their thread in the create response only.
+
+Enforced server-side on every read path (`Annotate.Embed.Visibility`):
+
+- `GET /sites/:site/threads` — filtered in SQL; foreign threads are never
+  loaded, so they are not rendered, counted, presigned or deep-linkable.
+- `/threads/:id/{comments,resolve,reopen,anchor}` and `/comments/:id`
+  (PATCH/DELETE) on a thread the viewer may not read → `404 not_found`
+  (identical to a foreign-site id; never `403`).
+- Attachment presigned GET urls are minted only inside rendered comments of
+  readable threads.
+- Realtime: events are filtered per subscriber (see Realtime → Events).
+- There is no search or count endpoint; deep links resolve client-side
+  against the filtered list.
+
+## Viewer permissions (`GET /api/v1/sites/:site/me`)
+
+Token optional (same `public_read` gate as other reads). Computed live; no
+PII (no ids, names or emails). The same keys are merged into `/config`.
+
+```json
+{
+  "authenticated": true,          // a valid token was presented
+  "role": "member",               // "owner" | "admin" | "member" | null (live)
+  "staff": true,                  // role != null
+  "can_read_all": true,           // public site, or staff on a staff_only site
+  "can_moderate": false,          // owner/admin: may delete others' comments
+  "can_post": true,               // authenticated, or anonymous on an allow_anonymous site
+  "read_visibility": "staff_only" // "public" | "staff_only"
+}
+```
+
+Browser: `fetch(`${api}/api/v1/sites/acme/me?site=acme`, {headers: {Authorization: `Bearer ${token}`}})`.
+Host backend (server-to-server): call the same route with the viewer's
+annotate access token and **no** `Origin` header (origin-less reads are
+tolerated); the answer reflects current membership and site policy. A
+service-key `POST /permissions/check` (no user token) is not provided — see
+EMBED-AUTH.md "Learning the viewer's permissions".
 
 ## Threads
 
@@ -215,6 +273,13 @@ urls included):
 | `thread_resolved` | `{"thread": <thread>}` | resolve |
 | `thread_reopened` | `{"thread": <thread>}` | reopen |
 | `thread_anchor_updated` | `{"thread": <thread>}` | anchor move |
+
+**Per-viewer filtering.** Broadcasts carry an internal `__vis` key (site,
+thread creator, `read_visibility` at send time) that `PageChannel` always
+strips. On a `staff_only` site each subscriber's viewer is re-derived live
+(current policy + membership) and events for threads it may not read are
+dropped, so a non-staff or anonymous socket never receives another user's
+thread, comment, attachment url or count change.
 
 The channel is **broadcast-only**: any client `push` is answered with
 `{"error": "read_only"}` — there are no write handlers over the socket.

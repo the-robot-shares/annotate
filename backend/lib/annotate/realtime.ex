@@ -20,6 +20,14 @@ defmodule Annotate.Realtime do
   Events: `thread_created`, `comment_created`, `comment_updated`,
   `comment_deleted`, `thread_resolved`, `thread_reopened`,
   `thread_anchor_updated`.
+
+  **Per-viewer visibility.** Every broadcast carries an internal
+  `"__vis" => %{"site_id", "creator_id", "read_visibility"}` key (the thread's
+  creator and the site's `read_visibility` at send time).
+  `AnnotateWeb.PageChannel.handle_out/3` strips it before pushing and, for a
+  `staff_only` site, re-derives each subscriber's viewer LIVE
+  (`Annotate.Embed.Visibility`) and drops events for threads that subscriber
+  may not read. `"__vis"` never reaches a client.
   """
 
   import Ecto.Query
@@ -58,7 +66,8 @@ defmodule Annotate.Realtime do
   """
   def thread_created(%Site{} = site, page_key, %Thread{} = thread) do
     broadcast!(page_topic(site, page_key), "thread_created", %{
-      "thread" => Renderer.thread(thread)
+      "thread" => Renderer.thread(thread),
+      "__vis" => vis(site.id, site.comment_policy, thread.created_by)
     })
 
     notify_inbox(site.slug)
@@ -69,12 +78,12 @@ defmodule Annotate.Realtime do
   `:author` + `:attachments` preloaded; the topic is resolved from the
   thread's page.
   """
-  def comment_created(page_id, %Comment{} = comment) do
-    with {slug, page_key} <- page_identity(page_id) do
+  def comment_created(_page_id, %Comment{} = comment) do
+    with {slug, page_key, vis} <- identity_by_thread(comment.thread_id) do
       broadcast!(
         page_topic(slug, page_key),
         "comment_created",
-        %{"comment" => Renderer.comment(comment)}
+        %{"comment" => Renderer.comment(comment), "__vis" => vis}
       )
 
       notify_inbox(slug)
@@ -90,9 +99,10 @@ defmodule Annotate.Realtime do
   def thread_event(%Thread{} = thread, event) when event in @thread_events do
     thread = preload_thread(thread)
 
-    with {slug, page_key} <- page_identity(thread.page_id) do
+    with {slug, page_key, vis} <- identity_by_thread(thread.id) do
       broadcast!(page_topic(slug, page_key), Atom.to_string(event), %{
-        "thread" => Renderer.thread(thread)
+        "thread" => Renderer.thread(thread),
+        "__vis" => vis
       })
 
       notify_inbox(slug)
@@ -107,11 +117,11 @@ defmodule Annotate.Realtime do
   def comment_event(%Comment{} = comment, event) when event in @comment_events do
     comment = Repo.preload(comment, [:author, :attachments])
 
-    with {slug, page_key} <- page_identity_by_comment(comment) do
+    with {slug, page_key, vis} <- identity_by_thread(comment.thread_id) do
       broadcast!(
         page_topic(slug, page_key),
         Atom.to_string(event),
-        %{"comment" => Renderer.comment(comment)}
+        %{"comment" => Renderer.comment(comment), "__vis" => vis}
       )
 
       notify_inbox(slug)
@@ -150,24 +160,33 @@ defmodule Annotate.Realtime do
     ])
   end
 
-  defp page_identity(page_id) do
+  # {site_slug, page_key, __vis meta} for the thread's page — one query
+  # resolving topic + visibility facts (site, read_visibility, creator).
+  defp identity_by_thread(thread_id) do
     Repo.one(
-      from p in Page,
-        join: s in assoc(p, :site),
-        where: p.id == ^page_id,
-        select: {s.slug, p.page_key}
-    )
-  end
-
-  defp page_identity_by_comment(%Comment{thread_id: thread_id}) do
-    Repo.one(
-      from p in Page,
-        join: t in Thread,
+      from t in Thread,
+        join: p in Page,
         on: t.page_id == p.id,
         join: s in assoc(p, :site),
         where: t.id == ^thread_id,
-        select: {s.slug, p.page_key}
+        select: {s.slug, p.page_key, s.id, s.comment_policy, t.created_by}
     )
+    |> case do
+      {slug, page_key, site_id, policy, creator_id} ->
+        {slug, page_key, vis(site_id, policy, creator_id)}
+
+      nil ->
+        nil
+    end
+  end
+
+  defp vis(site_id, policy, creator_id) do
+    %{
+      "site_id" => site_id,
+      "creator_id" => creator_id,
+      "read_visibility" =>
+        Atom.to_string(Annotate.Sites.read_visibility(%Site{comment_policy: policy}))
+    }
   end
 
   defp broadcast!(topic, event, payload) when is_binary(topic) and is_binary(event) do
