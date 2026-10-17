@@ -25,6 +25,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
     # Visitors copy the always-newest loader; this page itself runs the pin.
     |> put_state(:snippet_src, AnnotateWeb.WidgetCdn.latest_src())
     |> put_state(:snippet_api, cfg.api_base)
+    |> put_state(:mcp_url, AnnotateWeb.SEO.origin() <> "/mcp")
   end
 
   def template do
@@ -33,9 +34,11 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
       <div class="nd-nav__inner">
         <a class="nd-nav__brand" href="/"><span class="nd-nav__dot" aria-hidden="true"></span>annotate</a>
         <nav class="nd-nav__links" aria-label="Sections">
+          <a class="nd-nav__link" href="#how-it-works">How it works</a>
           <a class="nd-nav__link" href="#the-loop">The loop</a>
           <a class="nd-nav__link" href="#features">Features</a>
           <a class="nd-nav__link" href="#agents">For agents</a>
+          <a class="nd-nav__link" href="/mcp-server">MCP</a>
           <a class="nd-nav__link" href="/privacy">Privacy</a>
           <a class="nd-nav__link" href="/terms">Terms</a>
           <a class="nd-nav__link" href="#faq">FAQ</a>
@@ -81,6 +84,152 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
               The rail on this page is the real widget.
             </figcaption>
           </figure>
+        </div>
+      </section>
+
+      <section class="nd-section nd-section--canvas" id="how-it-works">
+        <div class="nd-section__inner">
+          <p class="nd-section__label">How it works</p>
+          <h2>Seven steps, on the real widget.</h2>
+          <p class="nd-section__intro">
+            Frames from a demo dashboard running the embed — a visitor leaves feedback,
+            the site's team answers, the thread closes where it started. Everything
+            shown ships in the script today.
+          </p>
+          <ol class="nd-flow">
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-1-pick.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-1-pick.png?v=1"
+                    alt="Comment rail in pick mode: a dashed target ring highlights the churn KPI's 1.8% value on a dark analytics dashboard."
+                    width="1280"
+                    height="800"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">1</span> Pick the element</h3>
+                <p>Arm the comment pill and click anything on the page — a KPI, a row, a sentence. A dashed ring shows the target while you aim; text selections work too.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-2-compose.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-2-compose.png?v=1"
+                    alt="Composer anchored to the churn KPI, quoting its 1.8% value, with comment text typed and Attach, Capture and Screen capture buttons."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">2</span> Write the comment</h3>
+                <p>The composer opens anchored to your pick and quotes it. Post under your sign-in, or as a guest name if the site allows it.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-3-snip.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-3-snip.png?v=1"
+                    alt="Crop screenshot dialog: a crop rectangle with drag handles around the churn KPI, zoom controls, and keyboard hints for move, resize, zoom and pan."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">3</span> Crop the page</h3>
+                <p>Capture the page and keep just the region that matters — zoom, pan, and nudge the rectangle with the keyboard.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-4-attach.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-4-attach.png?v=1"
+                    alt="Composer with the cropped screenshot and a churn-definition.txt file attached, ready to post."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">4</span> Mark it up, attach the rest</h3>
+                <p>Draw on the crop, then attach files — uploads run while you keep typing, and retry on their own if they fail.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-5-reply.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-5-reply.png?v=1"
+                    alt="Thread view: the visitor's comment with the marked-up crop and attached file, the site team's reply naming the churn window and a ticket, and the element ringed on the page."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">5</span> The team answers</h3>
+                <p>Opening a thread rings the element on the page. The site's team sees the marked-up crop and files, and replies as the site team.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-6-rail.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-6-rail.png?v=1"
+                    alt="Comment rail listing two open threads, with Open, Resolved and All tabs."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">6</span> Triage in the rail</h3>
+                <p>The rail is the page's inbox — open, resolved, all. Replies and resolutions arrive live, no refresh.</p>
+              </div>
+            </li>
+            <li class="nd-flow__step">
+              <figure class="nd-flow__media">
+                <picture>
+                  <source type="image/webp" srcset="/images/landing/flow-7-resolved.webp?v=1" />
+                  <img
+                    src="/images/landing/flow-7-resolved.png?v=1"
+                    alt="Resolved tab of the comment rail showing the settled timezone thread with Reply and Reopen buttons."
+                    width="1280"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </figure>
+              <div class="nd-flow__copy">
+                <h3><span class="nd-flow__num" aria-hidden="true">7</span> Resolve where it started</h3>
+                <p>Resolve closes the thread on the page where it was pinned — and reopen brings it back if it wasn't really done.</p>
+              </div>
+            </li>
+          </ol>
         </div>
       </section>
 
@@ -192,34 +341,97 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
       <section class="nd-section" id="agents">
         <div class="nd-section__inner">
           <p class="nd-section__label">For agents</p>
-          <h2>Built to be read by software.</h2>
-          <div class="nd-agents">
-            <div class="nd-agents__copy">
-              <p>
-                <span class="nd-chip nd-chip--live">Today</span>
-                annotate is API-first. Threads, comments, anchors, and resolve state are
-                served as JSON over REST, with live events over a websocket. Reads are
-                public unless you restrict them; writes take a 15-minute access token
-                bound to your site and its origins, refreshed with single-use tokens.
-                The API reference isn't public yet.
-              </p>
-              <p>
-                <span class="nd-chip nd-chip--live">Today</span>
-                An MCP server for Claude and other agents: list open threads, read one with
-                its anchored element and page context, reply as your site team, resolve —
-                so the loop from "someone complained here" to "merged" closes without a
-                human carrying the context. Agents sign in as you and see only your sites;
-                replying and deleting are separate permissions you opt into.
-              </p>
-              <p>
-                <a class="nd-btn nd-btn--secondary" href="/dashboard/agents">Connect an agent</a>
+          <h2>Your agents read the feedback too.</h2>
+          <p class="nd-section__intro">
+            annotate ships a remote MCP server. Connect Claude Code, Claude Desktop or
+            claude.ai, Cursor, VS Code or Codex, and an agent can take a thread from
+            "someone complained here" to "fixed" without a human carrying the context.
+          </p>
+          <div class="nd-mcp">
+            <div class="nd-mcp__workflow">
+              <h3 class="nd-mcp__title">The agent loop</h3>
+              <ol class="nd-mcp__steps">
+                <li>Query open issues — <code>list_threads</code></li>
+                <li>Pull one with its anchor, page context and attachments — <code>get_thread</code></li>
+                <li>Triage: reproduce what the visitor saw, then find the element in your repo — the anchor names the id, CSS, XPath and text quote</li>
+                <li>Patch</li>
+                <li>Reply as the site team — <code>reply_to_thread</code></li>
+                <li>Resolve — <code>resolve_thread</code></li>
+              </ol>
+              <p class="nd-mcp__note">
+                Also exposed: <code>list_sites</code>, <code>get_site_config</code>,
+                <code>reopen_thread</code>, <code>delete_comment</code>, resources for
+                sites and threads, and two prompts — <code>triage_open_threads</code> and
+                <code>investigate_thread</code>. Full reference at
+                <a href="/mcp-server">/mcp-server</a>.
               </p>
             </div>
-            <ul class="nd-agents__status" aria-label="Agent surface status">
-              <li><span>REST API</span><span class="nd-chip nd-chip--live">Available today</span></li>
-              <li><span>Realtime events</span><span class="nd-chip nd-chip--live">Available today</span></li>
-              <li><span>MCP tools</span><span class="nd-chip nd-chip--live">Available today</span></li>
-            </ul>
+            <div class="nd-mcp__tablewrap">
+              <h3 class="nd-mcp__title">What each tool does</h3>
+              <table class="nd-mcp__tools">
+                <thead>
+                  <tr><th scope="col">Tool</th><th scope="col">Does</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>list_sites</code></td><td>Your member sites, your role on each, open/resolved counts.</td></tr>
+                  <tr><td><code>get_site_config</code></td><td>A site's allowed origins and read/comment policy.</td></tr>
+                  <tr><td><code>list_threads</code></td><td>Filter by status, page path, origin, date, text, author.</td></tr>
+                  <tr><td><code>get_thread</code></td><td>Live comments, the anchor, page context; attachment links (short-lived).</td></tr>
+                  <tr><td><code>reply_to_thread</code></td><td>Post as the site team; visitors see it live.</td></tr>
+                  <tr><td><code>resolve_thread</code> / <code>reopen_thread</code></td><td>Close a thread, or open it again.</td></tr>
+                  <tr><td><code>delete_comment</code></td><td>Soft-delete a comment (moderators).</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="nd-mcp__connect">
+              <h3 class="nd-mcp__title">Connect a client</h3>
+              <div class="nd-mcp__snippet">
+                <label for="nd-mcp-claude-code">Claude Code</label>
+                <pre class="nd-snippet__code" tabindex="0"><code id="nd-mcp-claude-code">claude mcp add --transport http annotate {@mcp_url}</code></pre>
+                <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={action: :copy_mcp, params: %{id: "nd-mcp-claude-code"}}>Copy</button>
+              </div>
+              <div class="nd-mcp__snippet">
+                <label for="nd-mcp-claude-ai">Claude.ai / Claude Desktop</label>
+                <pre class="nd-snippet__code" tabindex="0"><code id="nd-mcp-claude-ai">Settings → Connectors → Add custom connector
+    Name: annotate
+    URL:  {@mcp_url}</code></pre>
+                <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={action: :copy_mcp, params: %{id: "nd-mcp-claude-ai"}}>Copy</button>
+              </div>
+              <div class="nd-mcp__snippet">
+                <label for="nd-mcp-cursor">Cursor (~/.cursor/mcp.json)</label>
+                <pre class="nd-snippet__code" tabindex="0"><code id="nd-mcp-cursor">\{"mcpServers": \{"annotate": \{"url": "{@mcp_url}"}}}</code></pre>
+                <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={action: :copy_mcp, params: %{id: "nd-mcp-cursor"}}>Copy</button>
+              </div>
+              <div class="nd-mcp__snippet">
+                <label for="nd-mcp-vscode">VS Code (.vscode/mcp.json)</label>
+                <pre class="nd-snippet__code" tabindex="0"><code id="nd-mcp-vscode">\{"servers": \{"annotate": \{"type": "http", "url": "{@mcp_url}"}}}</code></pre>
+                <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={action: :copy_mcp, params: %{id: "nd-mcp-vscode"}}>Copy</button>
+              </div>
+              <div class="nd-mcp__snippet">
+                <label for="nd-mcp-codex">OpenAI Codex CLI</label>
+                <pre class="nd-snippet__code" tabindex="0"><code id="nd-mcp-codex">codex mcp add annotate --url {@mcp_url}
+    codex mcp login annotate</code></pre>
+                <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={action: :copy_mcp, params: %{id: "nd-mcp-codex"}}>Copy</button>
+              </div>
+            </div>
+            <div class="nd-mcp__trust">
+              <h3 class="nd-mcp__title">How the keys stay yours</h3>
+              <ul>
+                <li>OAuth 2.1: the agent's client opens a browser and signs in as you — GitHub or Google. No API keys to paste.</li>
+                <li><code>comments:read</code> is granted by default; replying, resolving and deleting are opt-in on the consent screen.</li>
+                <li>Revoke any connected client at <a href="/dashboard/agents">/dashboard/agents</a> — its next request is refused.</li>
+                <li>Every write and every refusal is audited; reads are never logged.</li>
+                <li>Comment text is visitor-written: it's labelled <code>untrusted</code> so the agent treats it as data, never as instructions.</li>
+              </ul>
+              <p class="nd-mcp__note">
+                Prefer plain HTTP? The same data is served as JSON over the REST API with
+                live websocket events; reads are public unless you restrict them.
+              </p>
+              <p class="nd-mcp__ctas">
+                <a class="nd-btn nd-btn--secondary" href="/dashboard/agents">Connect an agent</a>
+                <a class="nd-btn nd-btn--ghost" href="/mcp-server">Full MCP reference</a>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -285,7 +497,6 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
               <fieldset>
                 <legend class="nd-waitlist__legend">Tell me about</legend>
                 <div class="nd-waitlist__opts">
-                  <label><input type="checkbox" name="interests" value="mcp" checked /> MCP agent tools</label>
                   <label><input type="checkbox" name="interests" value="robot-plans" /> The Robot Plans</label>
                   <label><input type="checkbox" name="interests" value="jira" /> Jira</label>
                   <label><input type="checkbox" name="interests" value="notion" /> Notion</label>
@@ -471,6 +682,18 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
     )
 
     put_state(component, :copied, true)
+  end
+
+  # MCP connect snippets: same DOM-read pattern as copy_snippet — ids are this
+  # template's fixed literals, the code never travels through page state.
+  def action(:copy_mcp, params, component) do
+    Hologram.JS.exec(
+      "var e=document.getElementById('" <>
+        params.id <>
+        "');if(e){navigator.clipboard.writeText(e.textContent).catch(function(){});}"
+    )
+
+    component
   end
 
   def action(:reset_copied, _params, component) do
