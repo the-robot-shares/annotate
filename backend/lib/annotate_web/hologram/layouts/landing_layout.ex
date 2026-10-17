@@ -20,7 +20,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
     dogfood_site: "annotate-landing"
   }
 
-  prop :page_title, :string, default: "annotate — Feedback that points at the thing"
+  prop :page_title, :string, default: "annotate — site feedback that points at the thing"
 
   def init(_props, component, _server) do
     cfg = marketing_cfg()
@@ -79,6 +79,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/landing.css" />
         <script src="/js/keep-location.js"></script>
+        <script src="/js/waitlist.js" defer></script>
         <Hologram.UI.Runtime />
       </head>
       <body>

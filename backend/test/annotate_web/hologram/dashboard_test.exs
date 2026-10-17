@@ -243,7 +243,8 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
     test "GitHub sign-in → /dashboard → add site → site page with snippet + site code" do
       conn = signed_in_conn(1)
       html = conn |> recycle() |> get("/dashboard") |> html_response(200)
-      assert html =~ "Add your first site"
+      assert html =~ "No sites yet"
+      assert html =~ "Create your first site"
       assert html =~ "<noizu-footer-brand"
       assert html =~ ~s(data-cy="footer-terms")
 

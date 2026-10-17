@@ -74,8 +74,16 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
           <p class="dsh-empty" role="status">Loading comments…</p>
         {/if}
 
-        {%if !@loading && @threads == []}
-          <p class="dsh-empty" data-cy="dsh-inbox-empty">No {empty_label(@status)} threads yet. Comments posted through the widget on your pages land here.</p>
+        {%if !@loading && @threads == [] && @counts.open == 0 && @counts.resolved == 0}
+          <div class="dsh-empty" data-cy="dsh-inbox-empty">
+            <p><strong>Nothing to triage</strong></p>
+            <p>Once the widget is live, threads land here in real time — anchored to the element they're about.</p>
+            <button type="button" class="dsh-btn dsh-btn--ghost dsh-btn--sm" $click={action: :tab, params: %{tab: "overview"}, target: "page"} data-cy="dsh-inbox-snippet">Grab the snippet</button>
+          </div>
+        {/if}
+
+        {%if !@loading && @threads == [] && (@counts.open > 0 || @counts.resolved > 0)}
+          <p class="dsh-empty" data-cy="dsh-inbox-empty">No {empty_label(@status)} threads here. Try another filter.</p>
         {/if}
 
         {%for t <- @threads}

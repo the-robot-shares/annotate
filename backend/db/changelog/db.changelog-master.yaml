@@ -101,3 +101,6 @@ databaseChangeLog:
   - include:
       file: 034-annotate-dashboard-identity.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 035-annotate-waitlist.yaml
+      relativeToChangelogFile: true
