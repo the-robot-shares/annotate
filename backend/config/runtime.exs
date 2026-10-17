@@ -41,7 +41,7 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-eb1ebf97b6f0a058f15aea55b50e29cfd4c34e09/components/page-comments/page-comments.js"
+      "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
