@@ -16,7 +16,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
     host: "annotate.therobotlives.com",
     api_base: "https://annotate-srv.therobotlives.com",
     widget_src:
-      "https://cdn.derobot.is/tobor-kit/sha-74079d06395a6b961b784067ee02f2e054456853/components/page-comments/page-comments.js",
+      "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js",
     dogfood_site: "annotate-landing"
   }
 
@@ -70,6 +70,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href="/css/landing.css" />
+        <script src="/js/keep-location.js"></script>
         <Hologram.UI.Runtime />
       </head>
       <body>
