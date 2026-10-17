@@ -147,14 +147,15 @@ defmodule AnnotateWeb.Hologram.InboxTest do
                m.server
              )
 
-    assert {:loaded, %{threads: [t]}} =
+    # Deleting the thread's last live comment leaves nothing to show: the
+    # thread drops out of the inbox (hidden, not deleted).
+    assert {:loaded, %{threads: []}} =
              cmd(
                :delete_comment,
                %{slug: "inbox-site", status: "open", comment_id: visitor_comment.id},
                a.server
              )
 
-    assert t.comments == []
     assert Repo.reload!(visitor_comment).deleted_at
   end
 
