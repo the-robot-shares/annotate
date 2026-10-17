@@ -51,6 +51,6 @@ defmodule Annotate.Schema.Annotate.Site do
     ])
     |> validate_required([:slug, :name])
     |> validate_format(:slug, ~r/^[a-z0-9][a-z0-9-]*$/)
-    |> unique_constraint(:slug)
+    |> unique_constraint(:slug, name: :sites_slug_key)
   end
 end

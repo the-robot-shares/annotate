@@ -27,7 +27,10 @@ defmodule AnnotateWeb.Plugs.Session do
       store: :cookie,
       key: "_annotate_key",
       signing_salt: signing_salt,
-      same_site: "Lax"
+      same_site: "Lax",
+      # Host-only (no `domain:`), so the dashboard session never rides to
+      # sibling hosts; Secure in prod (`:secure_cookies`, runtime.exs).
+      secure: Application.get_env(:annotate, :secure_cookies, false)
     )
   end
 

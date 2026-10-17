@@ -100,9 +100,31 @@ defmodule AnnotateWeb.SSOController do
   # redirect strategies, so in practice Ueberauth halts before this runs; the
   # invite was already stashed by `prepare_oauth`. A 404 keeps a future
   # pass-through strategy from silently rendering nothing.
+  def oauth_request(conn, %{"provider" => "github"}),
+    do: redirect_with_error(conn, "github_not_configured")
+
   def oauth_request(conn, _params), do: send_resp(conn, :not_found, "")
 
   # <REMOVED UUID HERE> oauth_callback :: auto-generated pointer for public function oauth_callback
+  # GitHub = the dashboard's ONLY sign-in (Annotate.Auth.LoginMethods): a
+  # dedicated path that keys on the GitHub numeric id and accepts only a
+  # GitHub-VERIFIED email (Annotate.Dashboard.GithubLogin). It deliberately
+  # bypasses the scaffold's email-linking SSO path below.
+  def oauth_callback(%{assigns: %{ueberauth_auth: %{provider: :github} = auth}} = conn, _params) do
+    conn = clear_sso_session(conn)
+
+    with {:ok, profile} <- Annotate.Dashboard.GithubLogin.profile_from_auth(auth),
+         {:ok, %{session: session}} <- Annotate.Dashboard.GithubLogin.sign_in(profile) do
+      {:ok, code} = Annotate.Auth.SSOCode.create(session.id)
+      redirect(conn, to: "/auth/sso-callback?code=#{URI.encode_www_form(code)}&provider=github")
+    else
+      {:error, :no_verified_email} -> redirect_with_error(conn, "github_email_unverified")
+      {:error, :account_disabled} -> redirect_with_error(conn, "account_disabled")
+      {:error, :email_linked_to_other_github} -> redirect_with_error(conn, "github_email_in_use")
+      _ -> redirect_with_error(conn, "github_failed")
+    end
+  end
+
   def oauth_callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
     provider_type = auth.provider |> to_string() |> String.to_existing_atom()
 
@@ -288,6 +310,8 @@ defmodule AnnotateWeb.SSOController do
   end
 
   defp maybe_add(list, flag, name) do
-    if Application.get_env(:annotate, flag), do: [name | list], else: list
+    if Application.get_env(:annotate, flag) and Annotate.Auth.LoginMethods.enabled?(name),
+      do: [name | list],
+      else: list
   end
 end

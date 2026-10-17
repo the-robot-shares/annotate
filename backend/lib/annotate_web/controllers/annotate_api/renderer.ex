@@ -52,7 +52,9 @@ defmodule AnnotateWeb.AnnotateAPI.Renderer do
       "display_name" => a.display_name,
       "avatar_url" => a.avatar_url,
       "authentik" => not is_nil(a.authentik_sub),
-      "external" => not is_nil(a.external_id)
+      "external" => not is_nil(a.external_id),
+      # Replies written from the owner dashboard (site team identity).
+      "team" => not is_nil(Map.get(a, :user_id))
     }
   end
 

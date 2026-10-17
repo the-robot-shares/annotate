@@ -53,6 +53,11 @@ config :annotate, Annotate.Guardian,
 # SSO feature flags (all disabled by default, enabled via runtime env vars)
 config :ueberauth, Ueberauth, providers: []
 
+# annotate dashboard sign-in is GitHub-only (Annotate.Auth.LoginMethods):
+# the scaffold's password/magic-link/OTP, OIDC and SAML sign-in routes 404.
+config :annotate, :login_methods, ["github"]
+config :annotate, :post_auth_path, "/dashboard"
+
 config :annotate, :oidc_enabled, false
 config :annotate, :saml_enabled, false
 config :annotate, :google_enabled, false

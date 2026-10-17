@@ -62,6 +62,55 @@ defmodule Annotate.Comments do
     end
   end
 
+  @doc """
+  Site-wide inbox for the owner dashboard: threads across every page of
+  `site_id`, newest first, with page, creator and non-deleted comments
+  (authors) preloaded. `status`: `:open | :resolved | :all`. Bounded by
+  `:limit` (default 50, max 200).
+  """
+  def list_site_inbox(site_id, opts \\ []) do
+    status = Keyword.get(opts, :status, :open)
+    limit = opts |> Keyword.get(:limit, 50) |> min(200) |> max(1)
+
+    from(t in Thread,
+      join: p in assoc(t, :page),
+      where: p.site_id == ^site_id,
+      order_by: [desc: t.inserted_at],
+      limit: ^limit,
+      preload: [
+        :page,
+        :creator,
+        comments:
+          ^from(c in Comment,
+            where: is_nil(c.deleted_at),
+            order_by: [asc: c.inserted_at],
+            preload: [:author]
+          )
+      ]
+    )
+    |> filter_status(status)
+    |> Repo.all()
+  end
+
+  defp filter_status(query, :open), do: where(query, [t], t.status == :open)
+  defp filter_status(query, :resolved), do: where(query, [t], t.status == :resolved)
+  defp filter_status(query, _), do: query
+
+  @doc "`%{open: n, resolved: n}` thread counts for a site (inbox tabs)."
+  def site_thread_counts(site_id) do
+    counts =
+      from(t in Thread,
+        join: p in assoc(t, :page),
+        where: p.site_id == ^site_id,
+        group_by: t.status,
+        select: {t.status, count(t.id)}
+      )
+      |> Repo.all()
+      |> Map.new()
+
+    %{open: Map.get(counts, :open, 0), resolved: Map.get(counts, :resolved, 0)}
+  end
+
   defp do_list_threads(site_id, page_key) do
     from(t in Thread,
       join: p in assoc(t, :page),
@@ -252,6 +301,22 @@ defmodule Annotate.Comments do
   end
 
   def comment_manageable_by?(_, _, _), do: false
+
+  @doc """
+  True when the commenter may DELETE (moderate) the comment: its author, the
+  legacy `sites.owner_commenter_id`, or a team **owner/admin**. The team role
+  is re-derived from current membership / site policy on this request
+  (`Annotate.Embed.Team.moderator?/3`), never trusted from the token alone.
+  Editing someone else's text stays author/owner-only
+  (`comment_manageable_by?/3`).
+  """
+  def comment_moderatable_by?(%Comment{} = comment, site, commenter, claims)
+      when commenter != nil do
+    comment_manageable_by?(comment, site, commenter) or
+      Annotate.Embed.Team.moderator?(site, commenter, claims)
+  end
+
+  def comment_moderatable_by?(_, _, _, _), do: false
 
   # ── Attachments ───────────────────────────────────────────────
 

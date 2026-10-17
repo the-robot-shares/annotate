@@ -531,6 +531,12 @@ html.dark body {
   color: var(--text-secondary, #444);
 }
 
+.sg-auth__note {
+  margin: var(--space-1, 0.5rem) 0 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #666);
+}
+
 .sg-auth__close {
   position: absolute;
   top: var(--space-1, 0.5rem);

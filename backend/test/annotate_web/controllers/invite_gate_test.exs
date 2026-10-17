@@ -203,12 +203,12 @@ defmodule AnnotateWeb.InviteGateTest do
                "/auth/invite-required"
 
       assert Annotate.Hologram.Auth.post_auth_path(%{invite_required: false, status: :pending}) ==
-               "/app"
+               "/dashboard"
 
       assert Annotate.Hologram.Auth.post_auth_path(%{status: "waitlist"}) ==
                "/auth/invite-required"
 
-      assert Annotate.Hologram.Auth.post_auth_path(%{status: :active}) == "/app"
+      assert Annotate.Hologram.Auth.post_auth_path(%{status: :active}) == "/dashboard"
     end
   end
 

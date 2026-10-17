@@ -199,6 +199,10 @@ defmodule Annotate.Auth.SSO do
     end
   end
 
+  @doc "Opens a scaffold user session for an already-authenticated identity (GitHub dashboard login)."
+  def create_session(user, provider_type),
+    do: create_sso_session(user, provider_type, Noizu.Context.system())
+
   defp create_sso_session(user, provider_type, context) do
     user_ref = {:ref, Annotate.Users.User, user.id}
 

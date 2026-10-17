@@ -34,16 +34,20 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
   end
 
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
+  # Hologram ignores a redirect set in page init/3 (only middleware redirects
+  # are terminal), so the hand-off to the post-auth path is a meta refresh;
+  # the "Continue" link is the no-refresh fallback.
   def template do
     ~HOLO"""
     <div class="content">
       <h1 class="sg-page-title">Signing in…</h1>
       {%if @status == "error"}
         <p class="sg-error" role="alert">{@message}</p>
-        <p><a href="/login" class="btn btn-outline">Back to log in</a></p>
+        <p><a href="/sign-in" class="btn btn-outline">Back to sign in</a></p>
       {%else}
+        <meta http-equiv="refresh" content={"0;url=" <> (@redirect_path || "/dashboard")} />
         <p class="app-muted">Completing sign-in and opening your dashboard…</p>
-        <p><a href="/app" class="btn btn-black btn-sm">Continue to dashboard</a></p>
+        <p><a href={@redirect_path || "/dashboard"} class="btn btn-black btn-sm">Continue to dashboard</a></p>
       {/if}
     </div>
     """
@@ -95,5 +99,16 @@ defmodule AnnotateWeb.Hologram.Pages.AuthSsoCallbackPage do
   defp human_error("sso_unavailable"), do: "SSO is not available for this email domain."
   defp human_error("sso_failed"), do: "SSO failed. Try again or contact support."
   defp human_error("oidc_failed"), do: "Authentik sign-in failed. Try again."
+
+  defp human_error("github_email_unverified"),
+    do:
+      "Your GitHub account has no verified email. Verify an email at github.com/settings/emails, then sign in again."
+
+  defp human_error("github_email_in_use"),
+    do: "That email is already linked to a different GitHub account."
+
+  defp human_error("github_not_configured"), do: "GitHub sign-in is not configured yet."
+  defp human_error("github_failed"), do: "GitHub sign-in failed. Try again."
+  defp human_error("account_disabled"), do: "This account is disabled."
   defp human_error(other), do: "SSO error: #{other}"
 end

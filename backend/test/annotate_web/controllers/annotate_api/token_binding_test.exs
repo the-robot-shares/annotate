@@ -105,7 +105,7 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
     commenter: commenter
   } do
     {:ok, %{access_token: _access, refresh_token: refresh1}} =
-      Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+      Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, nil, :none)
 
     conn1 =
       conn
@@ -144,10 +144,16 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       commenter: commenter
     } do
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
-          "email" => commenter.email,
-          "groups" => ["annotate-users"]
-        })
+        Annotate.Auth.ApiToken.issue_pair(
+          commenter,
+          site,
+          @good_origin,
+          %{
+            "email" => commenter.email,
+            "groups" => ["annotate-users"]
+          },
+          :none
+        )
 
       # site tightens policy to a group the identity does not have
       Annotate.Repo.update!(
@@ -182,10 +188,16 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       )
 
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
-          "email" => commenter.email,
-          "groups" => ["annotate-users"]
-        })
+        Annotate.Auth.ApiToken.issue_pair(
+          commenter,
+          site,
+          @good_origin,
+          %{
+            "email" => commenter.email,
+            "groups" => ["annotate-users"]
+          },
+          :none
+        )
 
       ok =
         build_conn()
@@ -259,10 +271,16 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       commenter: commenter
     } do
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, %{
-          "email" => "someone@freemail.example",
-          "groups" => []
-        })
+        Annotate.Auth.ApiToken.issue_pair(
+          commenter,
+          site,
+          @good_origin,
+          %{
+            "email" => "someone@freemail.example",
+            "groups" => []
+          },
+          :none
+        )
 
       Annotate.Repo.update!(
         Ecto.Changeset.change(site,
@@ -292,7 +310,7 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       commenter: commenter
     } do
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, nil, :none)
 
       # CORS layer: evil origin addressing the victim site is refused outright.
       assert json_response(refresh_from(@evil_origin, refresh, site.slug), 403)
@@ -322,7 +340,7 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       )
 
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, nil, :none)
 
       assert %{"error" => "origin_mismatch"} =
                json_response(refresh_from("https://other.example", refresh, site.slug), 401)
@@ -330,7 +348,7 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
 
     test "missing Origin → 401", %{site: site, commenter: commenter} do
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, nil, :none)
 
       assert %{"error" => "origin_mismatch"} =
                json_response(refresh_from(nil, refresh, site.slug), 401)
@@ -344,7 +362,7 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       )
 
       {:ok, %{refresh_token: refresh}} =
-        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin, nil, :none)
 
       assert %{"refresh_token" => refresh2} =
                json_response(refresh_from(@good_origin, refresh, site.slug), 200)
