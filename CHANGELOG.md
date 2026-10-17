@@ -4,6 +4,8 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- legal: drop the placeholder "Governing law" section from `/terms` (no jurisdiction specified); test asserts no TODO text on the legal pages. (PR pending)
+
 - feat(seo): `/llm.txt` served as a byte-identical alias of `/llms.txt` (fleet checklist C8).
 - feat(seo): SEO/GEO plumbing — `AnnotateWeb.SEO` (single source for copy/constants) + `Plugs.SEO` generate `/robots.txt` (AI crawlers allowed, app/auth/dashboard/api/embed/dev disallowed, Sitemap line; annotate-srv = `Disallow: /`), `/sitemap.xml` (from the public marketing routes with lastmod), `/llms.txt` + `/llms-full.txt`; `X-Robots-Tag: noindex` on the whole API host and on app/auth/sign-in/dashboard paths; landing `<head>` now data-driven (canonical, og/twitter, icons, robots) and legal/main/dashboard layouts gain icons + robots; JSON-LD (Organization, WebSite, SoftwareApplication, FAQPage read from the rendered FAQ) injected at send time, never via Hologram state; favicon.svg/.ico + apple-touch-icon. Replaces the scaffold's static robots/sitemap/llms (which pointed at example.com). OG image still the hero art (TODO when the new hero lands).
 - footer: one shared `SiteFooter` (Privacy / Terms + tobor-kit `<noizu-footer-brand>` "A The Robot Lives Joint", CDN-pinned to the live kit sha, themed via `--noizu-footer-brand-*`) on the landing, legal pages and owner dashboard; sitemap link and every "AI-generated" disclosure removed from the site (hero caption now "The rail on this page is the real widget."). legal pages #107 → stage (#108) → main (#109).

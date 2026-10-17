@@ -37,6 +37,12 @@ defmodule AnnotateWeb.LegalPagesTest do
     assert body =~ ~s(rel="canonical" href="https://annotate.therobotlives.com/terms")
   end
 
+  test "no TODO placeholders are visible on the legal pages", %{conn: conn} do
+    for path <- ["/terms", "/privacy"] do
+      refute conn |> get(path) |> html_response(200) =~ "TODO"
+    end
+  end
+
   test "legal pages are served on localhost too", %{conn: conn} do
     assert conn |> get("/privacy") |> html_response(200) =~ "Privacy Policy"
     assert build_conn() |> get("/terms") |> html_response(200) =~ "Terms of Service"
