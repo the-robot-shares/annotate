@@ -2,7 +2,7 @@ defmodule AnnotateWeb.Hologram.Pages.TermsPage do
   @moduledoc """
   `/terms` — Terms of Service. As-is, no SLA, no data guarantees. Operator and
   contact follow house prior art (Noizu Labs, Inc.; keith.brings@noizu.com).
-  Governing law is a TODO: no jurisdiction exists in any prior art.
+  No governing-law clause: no jurisdiction has been specified.
   """
 
   use Hologram.Page
@@ -111,12 +111,6 @@ defmodule AnnotateWeb.Hologram.Pages.TermsPage do
         You will defend and indemnify Noizu Labs, Inc. against claims, damages and costs (including
         reasonable legal fees) arising from your content, your site, your visitors' content, your use of
         the service, or your breach of these terms.
-      </p>
-
-      <h2>Governing law</h2>
-      <p>
-        These terms are governed by the laws of [TODO: confirm jurisdiction], and disputes will be
-        handled in the courts of [TODO: confirm venue].
       </p>
 
       <h2>Changes to these terms</h2>
