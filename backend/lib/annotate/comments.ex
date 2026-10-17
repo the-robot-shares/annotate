@@ -41,8 +41,28 @@ defmodule Annotate.Comments do
     |> Repo.one()
   end
 
-  @doc "Threads (with comments, authors, attachments) for a site page_key."
-  def list_threads_with_comments(site_id, page_key) do
+  @doc """
+  Threads (with comments, authors, attachments) for a site page_key.
+
+  `opts[:query]` (raw query string or params map) narrows to threads whose
+  stored query params match, using the site's significance config
+  (`Annotate.Anchors`); without it every thread on the page is returned.
+  """
+  def list_threads_with_comments(site_id, page_key, opts \\ []) do
+    threads = do_list_threads(site_id, page_key)
+
+    case Keyword.get(opts, :query) do
+      nil ->
+        threads
+
+      query ->
+        current = if is_map(query), do: query, else: Annotate.Anchors.parse_query(query)
+        cfg = Keyword.get(opts, :anchor_config, %{})
+        Enum.filter(threads, &Annotate.Anchors.query_match?(&1.query_params, current, cfg))
+    end
+  end
+
+  defp do_list_threads(site_id, page_key) do
     from(t in Thread,
       join: p in assoc(t, :page),
       where: p.site_id == ^site_id and p.page_key == ^page_key,
@@ -81,11 +101,14 @@ defmodule Annotate.Comments do
 
              thread =
                %Thread{}
-               |> Thread.changeset(%{
-                 page_id: page.id,
-                 anchor: anchor,
-                 created_by: commenter.id
-               })
+               |> Thread.changeset(
+                 Map.merge(Annotate.Anchors.context_from_params(attrs), %{
+                   "page_id" => page.id,
+                   "anchor" => anchor,
+                   "created_by" => commenter.id,
+                   "anchor_version" => anchor_version(anchor)
+                 })
+               )
                |> Repo.insert!()
 
              comment =
@@ -309,6 +332,9 @@ defmodule Annotate.Comments do
   defp require_author(%Annotate.Schema.Annotate.Commenter{}), do: :ok
   defp require_author(nil), do: {:error, :invalid_author}
   defp require_author(_), do: {:error, :invalid_author}
+
+  defp anchor_version(%{"v" => v}) when is_integer(v) and v in 1..32_767, do: v
+  defp anchor_version(_), do: 1
 
   defp validate_anchor(a) when is_map(a), do: :ok
   defp validate_anchor(_), do: {:error, :invalid_anchor}
