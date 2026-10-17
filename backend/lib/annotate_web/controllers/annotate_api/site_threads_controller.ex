@@ -50,7 +50,9 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsController do
 
   defp current_query(_), do: nil
 
-  defp csv(v) when is_binary(v), do: v |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+  defp csv(v) when is_binary(v),
+    do: v |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+
   defp csv(_), do: []
 
   def create(conn, params) do
