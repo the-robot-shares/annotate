@@ -100,6 +100,12 @@ defmodule AnnotateWeb.SEOTest do
       assert body =~ "no MCP server"
     end
 
+    test "llm.txt alias is byte-identical to llms.txt", %{conn: conn} do
+      a = conn |> marketing() |> get("/llms.txt") |> response(200)
+      b = build_conn() |> marketing() |> get("/llm.txt") |> response(200)
+      assert a == b
+    end
+
     test "llms-full.txt is served", %{conn: conn} do
       conn = conn |> marketing() |> get("/llms-full.txt")
       body = response(conn, 200)

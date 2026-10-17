@@ -48,10 +48,11 @@ defmodule AnnotateWeb.Plugs.SEO do
   end
 
   defp serve(%Plug.Conn{method: m, path_info: [file]} = conn, false)
-       when m in ~w(GET HEAD) and file in ~w(sitemap.xml llms.txt llms-full.txt) do
+       when m in ~w(GET HEAD) and file in ~w(sitemap.xml llms.txt llm.txt llms-full.txt) do
     case file do
       "sitemap.xml" -> send_file_like(conn, @xml, SEO.sitemap_xml())
-      "llms.txt" -> send_file_like(conn, @txt, SEO.llms_txt())
+      # llm.txt: legacy alias some fleet tooling checks (byte-identical to llms.txt).
+      f when f in ~w(llms.txt llm.txt) -> send_file_like(conn, @txt, SEO.llms_txt())
       "llms-full.txt" -> send_file_like(conn, @txt, SEO.llms_full_txt())
     end
   end
