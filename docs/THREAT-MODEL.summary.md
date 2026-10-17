@@ -4,9 +4,9 @@ Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/em
 
 | ID | Sev | Finding | Status |
 |----|-----|---------|--------|
-| T-01 | High | Refresh token not origin-bound; new token's `origin` copied from request header, no allowlist check | Open |
+| T-01 | High | Refresh token not origin-bound; new token's `origin` copied from request header, no allowlist check | Fixed 2026-10-17 |
 | T-02 | Med | No refresh reuse detection; rotate not atomic | Partial |
-| T-03 | High | Rate limit trusts first `X-Forwarded-For`; per-pod ETS | Open (edge unknown) |
+| T-03 | High | Rate limit trusts first `X-Forwarded-For`; per-pod ETS | Fixed 2026-10-17 (spoofing); per-pod ETS remains |
 | T-04 | Med | Upload size/type unverified at storage; `complete` never checks object | Open |
 | T-05 | Med | One global JWT secret for all tenants, no `kid` | Partial |
 | T-06 | Med | Resolve/reopen/re-anchor lack authorship check; default policy admits any Authentik user | Open |

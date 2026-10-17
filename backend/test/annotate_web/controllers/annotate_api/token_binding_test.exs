@@ -109,7 +109,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
 
     conn1 =
       conn
-      |> post("/api/v1/token/refresh", %{"refresh_token" => refresh1})
+      |> put_req_header("origin", @good_origin)
+      |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh1})
 
     assert %{"access_token" => access2, "refresh_token" => refresh2, "commenter" => _} =
              json_response(conn1, 200)
@@ -130,7 +131,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
     reuse =
       build_conn()
       |> Map.put(:host, @site_host)
-      |> post("/api/v1/token/refresh", %{"refresh_token" => refresh1})
+      |> put_req_header("origin", @good_origin)
+      |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh1})
 
     assert %{"error" => "invalid_refresh_token"} = json_response(reuse, 401)
   end
@@ -155,7 +157,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       denied =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh})
 
       assert %{"error" => "policy_violation"} = json_response(denied, 403)
 
@@ -163,7 +166,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       reuse =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh})
 
       assert %{"error" => "invalid_refresh_token"} = json_response(reuse, 401)
     end
@@ -186,7 +190,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       ok =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh})
 
       assert %{"access_token" => _, "refresh_token" => refresh2} = json_response(ok, 200)
 
@@ -194,7 +199,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       ok2 =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh2})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh2})
 
       assert %{"refresh_token" => _} = json_response(ok2, 200)
     end
@@ -228,7 +234,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       legacy =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => raw})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => raw})
 
       assert %{"access_token" => _, "refresh_token" => fresh} = json_response(legacy, 200)
 
@@ -240,7 +247,8 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       denied =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => fresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => fresh})
 
       assert %{"error" => "policy_violation"} = json_response(denied, 403)
     end
@@ -265,9 +273,116 @@ defmodule AnnotateWeb.AnnotateAPI.TokenBindingTest do
       denied =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh})
 
       assert %{"error" => "policy_violation"} = json_response(denied, 403)
+    end
+  end
+
+  describe "POST /api/v1/token/refresh (origin binding)" do
+    defp refresh_from(origin, refresh, slug) do
+      conn = build_conn() |> Map.put(:host, @site_host)
+      conn = if origin, do: put_req_header(conn, "origin", origin), else: conn
+      post(conn, "/api/v1/token/refresh?site=#{slug}", %{"refresh_token" => refresh})
+    end
+
+    test "forged Origin (not on the allowlist) → 401, token NOT burned", %{
+      site: site,
+      commenter: commenter
+    } do
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+
+      # CORS layer: evil origin addressing the victim site is refused outright.
+      assert json_response(refresh_from(@evil_origin, refresh, site.slug), 403)
+
+      # Realistic attack: the attacker registers their OWN site allowlisting
+      # their origin and addresses it, presenting the victim site's token.
+      {attacker, _} = create_site(origins: [@evil_origin])
+
+      assert %{"error" => "origin_mismatch"} =
+               json_response(refresh_from(@evil_origin, refresh, attacker.slug), 401)
+
+      # the legitimate holder can still rotate
+      assert %{"access_token" => access} =
+               json_response(refresh_from(@good_origin, refresh, site.slug), 200)
+
+      assert Annotate.Auth.ApiToken.verify(access) |> elem(1) |> Map.get("origin") == @good_origin
+    end
+
+    test "allowed but different origin than the token was issued for → 401", %{
+      site: site,
+      commenter: commenter
+    } do
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site,
+          allowed_origins: ["https://good.example", "https://other.example"]
+        )
+      )
+
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+
+      assert %{"error" => "origin_mismatch"} =
+               json_response(refresh_from("https://other.example", refresh, site.slug), 401)
+    end
+
+    test "missing Origin → 401", %{site: site, commenter: commenter} do
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+
+      assert %{"error" => "origin_mismatch"} =
+               json_response(refresh_from(nil, refresh, site.slug), 401)
+    end
+
+    test "origin binding survives rotation", %{site: site, commenter: commenter} do
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site,
+          allowed_origins: ["https://good.example", "https://other.example"]
+        )
+      )
+
+      {:ok, %{refresh_token: refresh}} =
+        Annotate.Auth.ApiToken.issue_pair(commenter, site, @good_origin)
+
+      assert %{"refresh_token" => refresh2} =
+               json_response(refresh_from(@good_origin, refresh, site.slug), 200)
+
+      assert json_response(refresh_from("https://other.example", refresh2, site.slug), 401)
+    end
+
+    test "legacy token without recorded origin: allowlisted Origin ok, then re-bound", %{
+      site: site,
+      commenter: commenter
+    } do
+      Annotate.Repo.update!(
+        Ecto.Changeset.change(site,
+          allowed_origins: ["https://good.example", "https://other.example"]
+        )
+      )
+
+      raw = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+
+      %Annotate.Schema.Annotate.RefreshToken{}
+      |> Ecto.Changeset.change(%{
+        commenter_id: commenter.id,
+        site_id: site.id,
+        token_hash: Annotate.Auth.RefreshTokens.hash(raw),
+        identity_claims: %{"email" => nil, "groups" => nil},
+        expires_at: DateTime.add(DateTime.utc_now(), 1, :day)
+      })
+      |> Annotate.Repo.insert!()
+
+      {attacker, _} = create_site(origins: [@evil_origin])
+
+      assert %{"error" => "origin_mismatch"} =
+               json_response(refresh_from(@evil_origin, raw, attacker.slug), 401)
+
+      assert %{"refresh_token" => raw2} =
+               json_response(refresh_from(@good_origin, raw, site.slug), 200)
+
+      assert json_response(refresh_from("https://other.example", raw2, site.slug), 401)
     end
   end
 end

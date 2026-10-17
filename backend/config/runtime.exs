@@ -41,7 +41,7 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-eb1ebf97b6f0a058f15aea55b50e29cfd4c34e09/components/page-comments/page-comments.js"
+      "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
@@ -153,6 +153,41 @@ else
   # disabled too, so no meter provider/reader ever comes up.
   config :opentelemetry, sdk_disabled: true
   config :opentelemetry_experimental, sdk_disabled: true
+end
+
+# ── Devbox cluster-data guardrails (scripts/devbox, DEVBOX_DATA=cluster) ──
+# The dev server is pointed (via kubectl port-forward) at the REAL annotate DB.
+# Keep it safe: no Oban queues/plugins (no cron sweepers/pruner against prod) and a
+# read-only Repo session unless DEVBOX_CLUSTER_WRITES=1 is set explicitly.
+if config_env() == :dev and System.get_env("DEVBOX_DATA") == "cluster" do
+  config :annotate, Oban, queues: false, plugins: false
+
+  if System.get_env("DEVBOX_CLUSTER_WRITES") != "1" do
+    config :annotate, Annotate.Repo, parameters: [default_transaction_read_only: "on"]
+  end
+end
+
+# ── Local devbox storage (scripts/devbox) ───────────────────────
+# Dev has no Annotate.Storage config by default; the devbox points it at its
+# local MinIO via S3_* env. Unset S3_BUCKET ⇒ dev behaves as before.
+if config_env() == :dev and System.get_env("S3_BUCKET") do
+  config :annotate, Annotate.Storage,
+    bucket: System.fetch_env!("S3_BUCKET"),
+    region: System.get_env("S3_REGION", "us-east-1"),
+    host: System.get_env("S3_ENDPOINT"),
+    scheme: System.get_env("S3_SCHEME", "http://"),
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY")
+
+  config :ex_aws,
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+    region: System.get_env("S3_REGION", "us-east-1"),
+    s3: [
+      scheme: System.get_env("S3_SCHEME", "http://"),
+      host: System.get_env("S3_ENDPOINT"),
+      region: System.get_env("S3_REGION", "us-east-1")
+    ]
 end
 
 if config_env() == :prod do
@@ -268,6 +303,13 @@ if config_env() == :prod do
 
     config :annotate, :oidc_enabled, true
   end
+
+  # Trusted reverse-proxy hops in front of the app for rate-limit client-IP
+  # derivation (rightmost-Nth X-Forwarded-For entry). 1 = ingress-nginx, which
+  # overwrites/appends the peer address. 0 = ignore XFF, use the socket peer.
+  config :annotate,
+         :rate_limit_trusted_hops,
+         String.to_integer(System.get_env("RATE_LIMIT_TRUSTED_HOPS") || "1")
 
   # ── Annotate embeddable-comments API ────────────────────────────
   config :annotate, Annotate.Auth.ApiToken,

@@ -112,3 +112,15 @@ defmodule Annotate.Storage.EndpointTest do
            )
   end
 end
+
+defmodule Annotate.Storage.HttpClientTest do
+  use ExUnit.Case, async: true
+
+  # Regression: ExAws's default client is hackney, which is not a dependency.
+  test "ExAws is configured with an HTTP client that is actually loaded" do
+    client = Application.get_env(:ex_aws, :http_client, ExAws.Request.Hackney)
+    assert client == ExAws.Request.Req
+    assert Code.ensure_loaded?(client)
+    assert function_exported?(client, :request, 5)
+  end
+end
