@@ -28,6 +28,8 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentTest do
       assert %{"attachment" => a, "upload_url" => url} = json_response(conn, 201)
       assert a["status"] == "pending"
       assert a["kind"] == "screenshot"
+      # sanitized basename — tobor-kit parseAttachment rejects a payload without it
+      assert a["filename"] == "screenshot_2026.png"
       assert url =~ "annotate-test-bucket"
       assert url =~ "X-Amz-Signature"
       # sanitized key path
@@ -99,7 +101,13 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentTest do
           "height" => 50
         })
 
-      assert %{"attachment" => %{"status" => "ready", "width" => 100}} = json_response(conn, 200)
+      # Regression (semtext snip "Upload failed"): the widget's parseAttachment
+      # requires id + string filename, else it treats a 200 as a failed upload.
+      assert %{"attachment" => %{"status" => "ready", "width" => 100} = done} =
+               json_response(conn, 200)
+
+      assert is_binary(done["id"])
+      assert done["filename"] == "a.png"
 
       again =
         build_conn()

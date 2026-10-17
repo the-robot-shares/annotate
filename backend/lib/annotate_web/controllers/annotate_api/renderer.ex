@@ -61,6 +61,9 @@ defmodule AnnotateWeb.AnnotateAPI.Renderer do
   def attachment(%{} = a) do
     %{
       "id" => a.id,
+      # Widgets (tobor-kit parseAttachment) require a string filename; the
+      # sanitized upload name is the last segment of the storage key.
+      "filename" => filename(a),
       "kind" => to_string(a.kind),
       "content_type" => a.content_type,
       "bytes" => a.bytes,
@@ -83,6 +86,9 @@ defmodule AnnotateWeb.AnnotateAPI.Renderer do
   end
 
   defp email_present?(c), do: not is_nil(c.email)
+
+  defp filename(%{storage_key: key}) when is_binary(key) and key != "", do: Path.basename(key)
+  defp filename(_), do: "attachment"
 
   defp download_url(a), do: Comments.presign_downloads([a]) |> Map.get(a.id)
   defp safe_list(list) when is_list(list), do: list
