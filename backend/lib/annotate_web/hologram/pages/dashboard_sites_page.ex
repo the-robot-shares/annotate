@@ -97,7 +97,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
             </table>
             {%if !@show_form}
               <div class="dsh-actions">
-                <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Create your first site</button>
+                <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Add site</button>
               </div>
             {/if}
           </div>

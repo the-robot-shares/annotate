@@ -585,33 +585,7 @@ a:hover {
   max-width: 64ch;
 }
 
-/* ── Footer (SiteFooter component) ───────────────────────────── */
-.nd-site-footer {
-  margin-top: auto;
-  border-top: 1px solid var(--nd-mist);
-  padding: var(--nd-space-4, 32px) 0 var(--nd-space-6, 48px);
-  /* tobor-kit <noizu-footer-brand> theming (Night Desk) */
-  --noizu-footer-brand-fg: var(--nd-text-secondary);
-  --noizu-footer-brand-brand-color: var(--nd-ember-bright);
-  --noizu-footer-brand-font: var(--nd-font-body, "Inter", system-ui, sans-serif);
-  --noizu-footer-brand-brand-font: var(--nd-font-display, "Geist", "Inter", system-ui, sans-serif);
-  --noizu-footer-brand-size: 14px;
-}
-.nd-site-footer__inner {
-  max-width: var(--nd-max, 1160px);
-  margin: 0 auto;
-  padding: 0 var(--nd-space-3, 24px);
-  display: flex;
-  gap: var(--nd-space-3, 24px);
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.nd-site-footer__links { display: flex; gap: var(--nd-space-3, 24px); }
-.nd-site-footer__links a { color: var(--nd-text-secondary); font-size: 14px; text-decoration: none; }
-.nd-site-footer__links a:hover { color: var(--nd-text-bright); }
-.nd-site-footer__links a:focus-visible { outline: 2px solid var(--nd-ember-bright, #fb923c); outline-offset: 2px; }
-.nd-site-footer__brand { display: inline-block; }
+/* Footer styles live in /css/site-footer.css (loaded by SiteFooter). */
 
 /* ── Legal pages (/privacy, /terms) ──────────────────────────── */
 .nd-legal { padding: var(--nd-space-8) 0 var(--nd-space-12); }
