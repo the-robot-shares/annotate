@@ -44,6 +44,7 @@ defmodule Annotate.Application do
 
     with {:ok, _pid} = ok <- Supervisor.start_link(children, opts) do
       warm_sref_handlers()
+      warm_assets()
       ok
     end
   end
@@ -66,6 +67,12 @@ defmodule Annotate.Application do
     AnnotateWeb.Endpoint.config_change(changed, removed)
     :ok
   end
+
+  # Digest priv/static css/js once so `AnnotateWeb.Assets.versioned/1` never
+  # touches the filesystem at request/hydration time (the Hologram client runs
+  # it too, and has no filesystem). `Assets.warm/0` swallows its own errors, so
+  # a missing/empty static dir only costs cache busting, never boot.
+  defp warm_assets(), do: AnnotateWeb.Assets.warm()
 
   defp skip_migrations?() do
     System.get_env("RELEASE_NAME") == nil
