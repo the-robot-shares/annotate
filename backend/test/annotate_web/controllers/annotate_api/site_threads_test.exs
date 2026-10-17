@@ -296,7 +296,7 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
       assert %{"threads" => [_]} = json_response(authed, 200)
     end
 
-    test "deleted comments are excluded", %{conn: conn} do
+    test "a thread whose comments are all deleted is hidden (no empty shell)", %{conn: conn} do
       {site, _key} = create_site()
       commenter = create_commenter()
       thread = create_thread!(site, commenter)
@@ -308,7 +308,26 @@ defmodule AnnotateWeb.AnnotateAPI.SiteThreadsTest do
         conn
         |> get("/api/v1/sites/#{site.slug}/threads?page_key=/some/page")
 
-      assert %{"threads" => [%{"comments" => []}]} = json_response(conn, 200)
+      assert %{"threads" => []} = json_response(conn, 200)
+    end
+
+    test "deleted root with replies stays as a redacted [deleted] placeholder", %{conn: conn} do
+      {site, _key} = create_site()
+      commenter = create_commenter()
+      thread = create_thread!(site, commenter)
+      root = hd(Annotate.Repo.preload(thread, [:comments]).comments)
+      {:ok, _} = Annotate.Comments.add_comment(thread, commenter, %{"body_md" => "a reply"})
+      {:ok, _} = Annotate.Comments.soft_delete_comment(root)
+
+      conn = get(conn, "/api/v1/sites/#{site.slug}/threads?page_key=/some/page")
+
+      assert %{"threads" => [%{"comments" => [placeholder, %{"body_md" => "a reply"}]}]} =
+               json_response(conn, 200)
+
+      assert placeholder["body_md"] == "[deleted]"
+      assert placeholder["deleted"] == true
+      assert placeholder["author"] == nil
+      assert placeholder["attachments"] == []
     end
 
     test "unknown site → 404", %{conn: conn} do

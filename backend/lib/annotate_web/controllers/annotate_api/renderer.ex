@@ -32,6 +32,22 @@ defmodule AnnotateWeb.AnnotateAPI.Renderer do
     }
   end
 
+  # A soft-deleted comment only reaches here as the root placeholder of a
+  # thread that still has replies: no body, author or attachments leak.
+  def comment(%{deleted_at: %DateTime{}} = c) do
+    %{
+      "id" => c.id,
+      "thread_id" => c.thread_id,
+      "parent_id" => c.parent_id,
+      "author" => nil,
+      "body_md" => "[deleted]",
+      "deleted" => true,
+      "edited_at" => nil,
+      "inserted_at" => c.inserted_at,
+      "attachments" => []
+    }
+  end
+
   def comment(%{} = c) do
     %{
       "id" => c.id,

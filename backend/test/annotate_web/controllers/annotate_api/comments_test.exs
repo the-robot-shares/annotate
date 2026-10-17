@@ -133,7 +133,7 @@ defmodule AnnotateWeb.AnnotateAPI.CommentsTest do
 
       assert conn.status == 204
 
-      assert %{"threads" => [%{"comments" => []}]} =
+      assert %{"threads" => []} =
                build_conn()
                |> Map.put(:host, @site_host)
                |> get("/api/v1/sites/#{site.slug}/threads?page_key=/some/page")

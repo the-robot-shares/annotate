@@ -78,6 +78,7 @@ defmodule Annotate.Comments do
     limit = opts |> Keyword.get(:limit, 50) |> min(200) |> max(1)
 
     from(t in Thread,
+      as: :thread,
       join: p in assoc(t, :page),
       where: p.site_id == ^site_id,
       order_by: [desc: t.inserted_at],
@@ -94,6 +95,7 @@ defmodule Annotate.Comments do
       ]
     )
     |> filter_status(status)
+    |> with_live_comments()
     |> Repo.all()
   end
 
@@ -138,6 +140,7 @@ defmodule Annotate.Comments do
         ]
       )
       |> filter_status(Keyword.get(opts, :status, :open))
+      |> with_live_comments()
       |> search_page_path(Keyword.get(opts, :page_path))
       |> search_origin(Keyword.get(opts, :origin))
       |> search_since(Keyword.get(opts, :since))
@@ -301,6 +304,23 @@ defmodule Annotate.Comments do
     )
   end
 
+  # A thread whose comments were all soft-deleted is an empty shell (the root
+  # comment IS the thread's content): hide it from every read surface. Derived
+  # at read time — nothing is deleted or migrated, so the rule also covers
+  # threads emptied before it existed. Requires the `:thread` named binding.
+  defp with_live_comments(query) do
+    where(
+      query,
+      [t],
+      exists(
+        from(c in Comment,
+          where: c.thread_id == parent_as(:thread).id and is_nil(c.deleted_at),
+          select: 1
+        )
+      )
+    )
+  end
+
   defp filter_status(query, :open), do: where(query, [t], t.status == :open)
   defp filter_status(query, :resolved), do: where(query, [t], t.status == :resolved)
   defp filter_status(query, _), do: query
@@ -309,11 +329,13 @@ defmodule Annotate.Comments do
   def site_thread_counts(site_id) do
     counts =
       from(t in Thread,
+        as: :thread,
         join: p in assoc(t, :page),
         where: p.site_id == ^site_id,
         group_by: t.status,
         select: {t.status, count(t.id)}
       )
+      |> with_live_comments()
       |> Repo.all()
       |> Map.new()
 
@@ -322,6 +344,7 @@ defmodule Annotate.Comments do
 
   defp do_list_threads(site_id, page_key, viewer) do
     from(t in Thread,
+      as: :thread,
       join: p in assoc(t, :page),
       where: p.site_id == ^site_id and p.page_key == ^page_key,
       order_by: [asc: t.inserted_at],
@@ -334,8 +357,37 @@ defmodule Annotate.Comments do
           )
       ]
     )
+    |> with_live_comments()
     |> scope_to_viewer(viewer)
     |> Repo.all()
+    |> with_deleted_root_placeholders()
+  end
+
+  # The thread's first comment is its root. When it was soft-deleted but
+  # replies remain, hand it back as a redacted placeholder (rendered as
+  # "[deleted]" by `Renderer.comment/1`) so the thread keeps its place instead
+  # of promoting the first reply to root.
+  defp with_deleted_root_placeholders([]), do: []
+
+  defp with_deleted_root_placeholders(threads) do
+    ids = Enum.map(threads, & &1.id)
+
+    deleted_roots =
+      from(c in Comment,
+        where: c.thread_id in ^ids,
+        distinct: c.thread_id,
+        order_by: [asc: c.thread_id, asc: c.inserted_at]
+      )
+      |> Repo.all()
+      |> Enum.filter(&(not is_nil(&1.deleted_at)))
+      |> Map.new(&{&1.thread_id, &1})
+
+    Enum.map(threads, fn thread ->
+      case Map.get(deleted_roots, thread.id) do
+        nil -> thread
+        root -> %{thread | comments: [%{root | author: nil, attachments: []} | thread.comments]}
+      end
+    end)
   end
 
   defp scope_to_viewer(query, nil), do: query
