@@ -90,6 +90,8 @@ defmodule Annotate.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
       {:jason, "~> 1.2"},
+      # Reads the rendered landing FAQ to build FAQPage JSON-LD (AnnotateWeb.SEO).
+      {:floki, "~> 0.38"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:guardian, "~> 2.3"},
