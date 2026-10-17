@@ -265,8 +265,21 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
         Regex.run(~r{<code id="dsh-snippet-code">(.*?)</code>}s, page, capture: :all_but_first)
 
       assert snippet =~ ~r/noizu-page-comments site=(&quot;|")delta(&quot;|")/
+      # Default snippet loads the always-newest loader and starts collapsed.
+      assert snippet =~ "https://cdn.derobot.is/tobor-kit/latest/annotate.js"
+      refute snippet =~ "enabled"
+
+      [pinned] =
+        Regex.run(~r{<code id="dsh-snippet-code-pinned">(.*?)</code>}s, page,
+          capture: :all_but_first
+        )
+
+      assert pinned =~ AnnotateWeb.WidgetCdn.pinned_src()
+      assert pinned =~ ~r/noizu-page-comments site=(&quot;|")delta(&quot;|")/
       assert page =~ "noizu-page-comments"
       assert page =~ "Copy snippet"
+      assert page =~ "Copy pinned snippet"
+      assert page =~ "dsh-snippet-tradeoff"
     end
 
     test "another tenant's site renders not found; anonymous is sent to sign-in" do

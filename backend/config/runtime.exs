@@ -41,7 +41,8 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
+      # Exact tobor-kit release; keep in step with AnnotateWeb.WidgetCdn.
+      "https://cdn.derobot.is/tobor-kit/v1.0.0/annotate.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
