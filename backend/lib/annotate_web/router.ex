@@ -265,6 +265,16 @@ defmodule AnnotateWeb.Router do
     get "/callback", EmbedController, :callback
   end
 
+  # DEV-ONLY devbox login stand-in; compiled out of every non-dev build.
+  if Mix.env() == :dev do
+    scope "/embed", AnnotateWeb.AnnotateAPI do
+      pipe_through [:sso_session]
+
+      get "/dev-login", DevLoginController, :form
+      post "/dev-login", DevLoginController, :login
+    end
+  end
+
   if Application.compile_env(:annotate, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 

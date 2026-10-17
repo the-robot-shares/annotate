@@ -58,6 +58,8 @@ scripts/devbox test [args]              # mix test, always against the local doc
   read-only (`DEVBOX_CLUSTER_WRITES=1` to lift), Oban queues/cron/pruner are off, and no migration, Liquibase,
   seed or test ever runs against it. Browser use against cluster data additionally needs the page origin in the
   site's `allowed_origins` (per-site exact-origin CORS).
+- **Login without Authentik (dev only):** `http://annotate-srv.localhost:4100/embed/dev-login?site=<slug>&origin=<origin>` shows a name/email form and mints the same token pair as `/embed/callback` (postMessage to the opener). The route and controller are compiled in only when `MIX_ENV=dev` (pinned by `dev_login_test.exs`). It writes a commenter + refresh-token row, so on cluster data use the dedicated `devbox` site and `DEVBOX_CLUSTER_WRITES=1`.
+- `scripts/devbox cluster-site SLUG NAME ORIGINS` is the one sanctioned additive cluster write (refuses an existing slug); the key goes to `~/.local/state/annotate-devbox/site-SLUG.key`.
 - The landing widget loads from the CDN (`ANNOTATE_PUBLIC_WIDGET_SRC` overrides); its `api-base` points at the local API host.
 - Generated dev secrets live in `~/.local/state/annotate-devbox/env` (outside the repo, mode 600).
 
