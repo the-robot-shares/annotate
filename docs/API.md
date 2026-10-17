@@ -185,7 +185,8 @@ screenshot (default file). Pending uploads never completed are swept after 24h
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/v1/token/refresh` | `{"refresh_token"}` → `{"access_token", "refresh_token", "commenter"}`; rotation is single-use — reuse of a rotated token → `401 invalid_refresh_token`; the site's **current** `comment_policy` is re-checked against the identity captured at issuance and a failure revokes the presented token → `403 policy_violation` |
+| POST | `/api/v1/token/refresh` | `{"refresh_token"}` → `{"access_token", "refresh_token", "expires_at", "commenter"}` (`expires_at` = access-token expiry, ms since epoch); rotation is single-use — reuse of a rotated token → `401 invalid_refresh_token`, and a reuse more than 10 s after rotation revokes the whole refresh family (T-02); the site's **current** `comment_policy` is re-checked against the identity captured at issuance and a failure revokes the presented token → `403 policy_violation` |
+| POST | `/api/v1/token/revoke` | `{"refresh_token"}` → `200 {"revoked": true}` — sign-out: revokes every live token in the presented token's family; unknown/expired/revoked tokens are a 200 no-op (RFC 7009 style, not a token oracle); `400 refresh_token_required` without the field. Carry `?site=<slug>` like `/token/refresh` so the CORS preflight is authorized |
 | POST | `/api/v1/sites/:site/token/assert` | host-assert identity, see EMBED-AUTH.md |
 
 Host-assert body: `{"token": "<HS256 JWT signed with the site service key>"}`,
@@ -207,7 +208,7 @@ sub_required | service_key_not_configured`, `404 site_not_found`.
 ### Rate limiting
 
 Annotate write routes (thread create/reply/resolve/reopen/anchor, comment
-edit/delete, attachment presign/complete, `/token/refresh`, `/token/assert`)
+edit/delete, attachment presign/complete, `/token/refresh`, `/token/revoke`, `/token/assert`)
 share a **60 requests/minute** budget keyed per `(client ip, site)`. Reads are
 not counted. Exceeding it → `429` with a `Retry-After` header.
 

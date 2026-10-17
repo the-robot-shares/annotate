@@ -287,6 +287,7 @@ defmodule AnnotateWeb.Router do
     pipe_through [:api, :annotate_rate_limited]
 
     post "/token/refresh", TokenController, :refresh
+    post "/token/revoke", TokenController, :revoke
     post "/sites/:site/token/assert", TokenController, :host_assert
   end
 
