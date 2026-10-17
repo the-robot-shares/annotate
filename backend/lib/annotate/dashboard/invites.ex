@@ -110,6 +110,7 @@ defmodule Annotate.Dashboard.Invites do
 
           case fun.() do
             {:ok, _} = ok -> ok
+            {:ok, _, _} = ok -> ok
             {:error, reason} -> Repo.rollback(reason)
           end
 
