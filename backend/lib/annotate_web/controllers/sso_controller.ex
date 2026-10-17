@@ -149,9 +149,60 @@ defmodule AnnotateWeb.SSOController do
   # dedicated path that keys on the GitHub numeric id and accepts only a
   # GitHub-VERIFIED email (Annotate.Dashboard.GithubLogin). It deliberately
   # bypasses the scaffold's email-linking SSO path below.
+  #
+  # EMBED popup leg: when the session carries the `embed_social` context
+  # stashed by /embed/login (armed by `prepare_oauth` via `?via=embed`), the
+  # same callback lands the WIDGET instead — the dashboard's clients and
+  # profile builders are reused, but the result is an embed COMMENTER token
+  # pair postMessaged to the widget origin (AnnotateWeb.AnnotateAPI
+  # .EmbedController.social_callback/3), never a dashboard session. The
+  # context is single-use and cleared here either way.
   def oauth_callback(%{assigns: %{ueberauth_auth: %{provider: provider} = auth}} = conn, _params)
       when provider in [:github, :google] do
-    name = Atom.to_string(provider)
+    case take_embed_social(conn) do
+      {conn, %{"provider" => p} = st} ->
+        if p == Atom.to_string(provider) do
+          AnnotateWeb.AnnotateAPI.EmbedController.social_callback(conn, st, auth)
+        else
+          dashboard_oauth_callback(conn, auth)
+        end
+
+      {conn, _} ->
+        dashboard_oauth_callback(conn, auth)
+    end
+  end
+
+
+  def oauth_callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
+    provider_type = auth.provider |> to_string() |> String.to_existing_atom()
+
+    handle_sso_callback(conn, provider_type, %{
+      email: auth.info.email,
+      name: %{first: auth.info.first_name || "", last: auth.info.last_name || ""},
+      uid: to_string(auth.uid),
+      sub: to_string(auth.uid),
+      invite_token: take_stashed_invite(conn)
+    })
+  end
+
+  def oauth_callback(%{assigns: %{ueberauth_failure: _}} = conn, %{"provider" => provider}) do
+    case take_embed_social(conn) do
+      {conn, %{"origin" => origin}} when is_binary(origin) ->
+        AnnotateWeb.AnnotateAPI.EmbedController.render_error(conn, "auth_failed", origin)
+
+      {conn, _} ->
+        redirect_with_error(conn, "#{provider}_failed")
+    end
+  end
+
+  # Callback with no Ueberauth result: the provider is not configured.
+  def oauth_callback(conn, %{"provider" => provider}) when provider in ["github", "google"],
+    do: redirect_with_error(conn, "#{provider}_not_configured")
+
+  def oauth_callback(conn, _params), do: send_resp(conn, :not_found, "")
+
+  defp dashboard_oauth_callback(conn, auth) do
+    name = auth.provider |> to_string()
     # Read the invite carried through the OAuth round trip BEFORE the flow
     # cookie is cleared (`/auth/<provider>?invite=<token>` → prepare_oauth).
     invite_token = take_stashed_invite(conn)
@@ -162,7 +213,7 @@ defmodule AnnotateWeb.SSOController do
     conn = clear_sso_session(conn)
 
     builder =
-      if provider == :github,
+      if auth.provider == :github,
         do: Annotate.Dashboard.GithubLogin,
         else: Annotate.Dashboard.GoogleLogin
 
@@ -196,28 +247,6 @@ defmodule AnnotateWeb.SSOController do
         redirect_with_error(conn, "#{name}_failed")
     end
   end
-
-  def oauth_callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
-    provider_type = auth.provider |> to_string() |> String.to_existing_atom()
-
-    handle_sso_callback(conn, provider_type, %{
-      email: auth.info.email,
-      name: %{first: auth.info.first_name || "", last: auth.info.last_name || ""},
-      uid: to_string(auth.uid),
-      sub: to_string(auth.uid),
-      invite_token: take_stashed_invite(conn)
-    })
-  end
-
-  def oauth_callback(%{assigns: %{ueberauth_failure: _}} = conn, %{"provider" => provider}) do
-    redirect_with_error(conn, "#{provider}_failed")
-  end
-
-  # Callback with no Ueberauth result: the provider is not configured.
-  def oauth_callback(conn, %{"provider" => provider}) when provider in ["github", "google"],
-    do: redirect_with_error(conn, "#{provider}_not_configured")
-
-  def oauth_callback(conn, _params), do: send_resp(conn, :not_found, "")
 
   # ── Code Exchange ────────────────────────────────────────────
 
@@ -298,7 +327,37 @@ defmodule AnnotateWeb.SSOController do
   # invite placed anywhere after it — including an action body — is dropped
   # before it reaches the IdP round-trip.
   defp prepare_oauth(conn, _opts),
-    do: conn |> stash_invite_token(conn.params) |> stash_return_to(conn.params)
+    do: conn |> stash_invite_token(conn.params) |> stash_return_to(conn.params) |> arm_embed_flow(conn.params)
+
+  # The embed popup's provider leg arrives as `/auth/<provider>?via=embed`
+  # (context stashed by /embed/login). Any OTHER entry — a dashboard
+  # sign-in — disarms it and drops any stale popup context, so an abandoned
+  # widget popup can never redirect a later DASHBOARD callback into the
+  # embed flow.
+  defp arm_embed_flow(conn, %{"via" => "embed"}) do
+    put_session(conn, "embed_via", true)
+  end
+
+  defp arm_embed_flow(conn, _params) do
+    conn
+    |> delete_session("embed_via")
+    |> delete_session("embed_social")
+  end
+
+  # Single-use: read then clear the embed popup context (and the arm flag).
+  defp take_embed_social(conn) do
+    st = get_session(conn, "embed_social")
+
+    conn =
+      conn
+      |> delete_session("embed_via")
+      |> delete_session("embed_social")
+
+    case st do
+      %{"provider" => _} = st -> {conn, st}
+      _ -> {conn, nil}
+    end
+  end
 
   # `?return_to=` on the provider entry URL (`/auth/github?return_to=…`, set by
   # `/sign-in?return_to=…`). Only a same-origin path survives

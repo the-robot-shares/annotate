@@ -12,7 +12,8 @@ defmodule AnnotateWeb.AnnotateAPI.ThreadCommentsController do
   alias AnnotateWeb.AnnotateAPI.Renderer
 
   def create(conn, params) do
-    with {:ok, thread} <- thread_for(conn, params) do
+    with {:ok, thread} <- thread_for(conn, params),
+         :ok <- Annotate.Moderation.check_text(params["body_md"]) do
       case Comments.add_comment(thread, conn.assigns.annotate_commenter, params) do
         {:ok, comment} ->
           comment = with_preloads(comment)
@@ -42,6 +43,9 @@ defmodule AnnotateWeb.AnnotateAPI.ThreadCommentsController do
           conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
       end
     else
+      {:error, :content_rejected} ->
+        conn |> put_status(:unprocessable_entity) |> json(Annotate.Moderation.rejection_payload())
+
       {:error, %Plug.Conn{} = conn} -> conn
     end
   end
