@@ -1,0 +1,63 @@
+databaseChangeLog:
+  # ── Annotate: site_members (dashboard team model, Feature B-core) ──
+  # Additive only. Roles: owner / admin / member. Members are scaffold
+  # `users` (dashboard SSO realm); commenters bridge in by Authentik email
+  # at access-token issuance (team_role claim — see Annotate.SiteMembers).
+  # Changeset ids follow the 2026-10-17 feature plan (B = annotate-0037+).
+  # Reserved elsewhere: 032 visibility (annotate-0033..0036), 033 anchor
+  # fidelity (annotate-0041..0043). The (site_id, user_id) UNIQUE already
+  # indexes site_id lookups, so only user_id gets its own index.
+
+  - changeSet:
+      id: annotate-0037-enum-site-member-role
+      author: annotate
+      changes:
+        - sql:
+            sql: CREATE TYPE site_member_role_enum AS ENUM ('owner', 'admin', 'member');
+      rollback:
+        - sql:
+            sql: DROP TYPE IF EXISTS site_member_role_enum;
+
+  - changeSet:
+      id: annotate-0038-create-table-site-members
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE site_members (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                site_id uuid NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+                user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                role site_member_role_enum NOT NULL DEFAULT 'member',
+                invited_by uuid REFERENCES users(id) ON DELETE SET NULL,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT site_members_site_user_key UNIQUE (site_id, user_id)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS site_members;
+
+  - changeSet:
+      id: annotate-0039-site-members-indexes
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE INDEX site_members_user_id_idx ON site_members (user_id);
+      rollback:
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS site_members_user_id_idx;
+
+  # Email-bridge gate: the Authentik `email_verified` claim captured at
+  # commenter upsert decides whether that email may inherit a team role.
+  - changeSet:
+      id: annotate-0040-commenters-email-verified
+      author: annotate
+      changes:
+        - sql:
+            sql: ALTER TABLE commenters ADD COLUMN email_verified boolean;
+      rollback:
+        - sql:
+            sql: ALTER TABLE commenters DROP COLUMN IF EXISTS email_verified;

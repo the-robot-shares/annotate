@@ -190,7 +190,21 @@ if config_env() == :dev and System.get_env("S3_BUCKET") do
     ]
 end
 
+# Dev-only GitHub sign-in stub (Annotate.Auth.GithubStub): lets the dashboard
+# flow run locally without a GitHub OAuth app. Never in prod — the strategy
+# itself also refuses to run unless :github_stub_allowed is set, which only
+# dev/test config does.
+if config_env() == :dev and System.get_env("ANNOTATE_GITHUB_STUB") == "1" and
+     is_nil(System.get_env("GITHUB_CLIENT_ID")) do
+  config :annotate, :github_stub_allowed, true
+  config :annotate, :github_enabled, true
+  config :ueberauth, Ueberauth, providers: [github: {Annotate.Auth.GithubStub, []}]
+end
+
 if config_env() == :prod do
+  # Dashboard + SSO flow cookies are Secure behind the TLS ingress.
+  config :annotate, :secure_cookies, true
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
@@ -422,17 +436,24 @@ if config_env() == :prod do
       oauth_providers
     end
 
+  # Both halves must be present and non-blank (the chart's secretKeyRefs are
+  # optional, so an unpopulated Secret yields unset vars): otherwise GitHub
+  # sign-in stays "not configured" rather than failing at github.com.
   oauth_providers =
-    if gh_id = System.get_env("GITHUB_CLIENT_ID") do
-      config :ueberauth, Ueberauth.Strategy.Github.OAuth,
-        client_id: gh_id,
-        client_secret: System.get_env("GITHUB_CLIENT_SECRET")
+    gh_id = System.get_env("GITHUB_CLIENT_ID", "") |> String.trim()
 
-      config :annotate, :github_enabled, true
-      [{:github, {Ueberauth.Strategy.Github, [default_scope: "user:email"]}} | oauth_providers]
-    else
-      oauth_providers
-    end
+  gh_secret = System.get_env("GITHUB_CLIENT_SECRET", "") |> String.trim()
+
+  if gh_id != "" and gh_secret != "" do
+    config :ueberauth, Ueberauth.Strategy.Github.OAuth,
+      client_id: gh_id,
+      client_secret: gh_secret
+
+    config :annotate, :github_enabled, true
+    [{:github, {Ueberauth.Strategy.Github, [default_scope: "user:email"]}} | oauth_providers]
+  else
+    oauth_providers
+  end
 
   # LinkedIn SSO disabled — ueberauth_linkedin has incompatible oauth2 dep
   # oauth_providers =

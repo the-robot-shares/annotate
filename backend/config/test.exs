@@ -68,3 +68,12 @@ config :annotate, Annotate.Storage,
   secret_access_key: "test-secret-key",
   scheme: "http://",
   host: "localhost:9000"
+
+# The scaffold's own auth suites exercise every sign-in family; the GitHub-only
+# gate has its own tests that narrow this per test.
+config :annotate, :login_methods, :all
+
+# GitHub sign-in in tests runs the in-process stub strategy (no network).
+config :annotate, :github_stub_allowed, true
+config :annotate, :github_enabled, true
+config :ueberauth, Ueberauth, providers: [github: {Annotate.Auth.GithubStub, []}]

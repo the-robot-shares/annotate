@@ -80,8 +80,11 @@ secrets:
     googleClientSecret: ""
     facebookClientId: ""
     facebookClientSecret: ""
-    githubClientId: ""
-    githubClientSecret: ""
+    # Dashboard sign-in (GitHub OAuth App; dc services apps.annotate_github_*).
+    # Optional secretKeyRefs: the pod boots before the keys are populated and
+    # the UI shows "GitHub sign-in is not configured yet".
+    githubClientId: ANNOTATE_GITHUB_CLIENT_ID
+    githubClientSecret: ANNOTATE_GITHUB_CLIENT_SECRET
     linkedinClientId: ""
     linkedinClientSecret: ""
     samlSpCert: ""

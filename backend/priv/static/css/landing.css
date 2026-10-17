@@ -714,3 +714,56 @@ a:hover {
     transition: none;
   }
 }
+
+/* ── Navbar GitHub sign-in card (GithubAuth, variant "nd") ───────────────
+ * Night Desk skin over the shared .sg-auth* floating-card structure. */
+.nd-auth {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nd-auth__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 60;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  padding: 1.5rem;
+  border: 1px solid var(--nd-fog);
+  border-radius: 16px;
+  background: var(--nd-surface); /* opaque: hero art must not bleed */
+  color: var(--nd-text-primary);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+}
+
+.nd-auth__panel .sg-auth__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--nd-text-bright);
+}
+
+.nd-auth__panel .sg-auth__subtitle,
+.nd-auth__panel .sg-auth__note {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--nd-text-secondary);
+}
+
+.nd-auth__panel .sg-auth__sso { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.nd-auth__github { width: 100%; justify-content: center; text-align: center; }
+.nd-auth__github[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.nd-auth__panel .sg-auth__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--nd-text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+}

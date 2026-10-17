@@ -25,7 +25,25 @@ mix annotate.site.create --slug acme --name "Acme" --origins https://acme.com,ht
 
 Prints the **service key once** (32-byte url64). Store it host-side; annotate
 keeps a hash (verification) and an AES-256-GCM sealed copy (host-assert
-commenter upserts). No site CRUD over HTTP in Phase 1.
+commenter upserts).
+
+**Primary path (2026-10-17): the owner dashboard** at
+`https://annotate.therobotlives.com/dashboard`. Sign in with GitHub (the only
+dashboard sign-in), **Add site** (name, site code = slug, exact origins), and
+the site page shows the embed snippet, settings (display: admin+; origins and
+`comment_policy`: owner; key rotation: owner), members (owner adds verified
+users by email) and the comments inbox. Dashboard actions are Hologram
+commands, not a REST API. Ops escape hatches: `mix annotate.site.create`,
+`mix annotate.site.grant --slug S --email E` /
+`Annotate.Release.grant_site_owner/2` (owner grant to a verified user).
+
+## Site config (widget bootstrap)
+
+`GET /api/v1/sites/:site/config` (token optional, `public_read` gated like
+other reads) → `{"site", "default_visibility", "public_read",
+"allow_anonymous", "max_upload_mb", "page_key_strategy", "team"}`. No PII.
+`team` is true when the presented token's commenter is on the site's team
+**right now** (re-derived per request, not read off the claim).
 
 ## Threads
 
@@ -108,7 +126,13 @@ screenshot (default file). Pending uploads never completed are swept after 24h
 
 Host-assert body: `{"token": "<HS256 JWT signed with the site service key>"}`,
 claims `sub` (external user id, required), `exp` (required, ≤ 300s in the
-future), `name/email/avatar/groups` optional. The site's `comment_policy` is
+future), `name/email/avatar/groups` optional, `team_role`
+(`owner|admin|member`) honoured only when the site's
+`comment_policy.trust_host_roles` is true.
+
+Access tokens of team members carry `team_role` + `team_src`
+(`bridge`|`host`); see EMBED-AUTH.md "Team roles". Comment author objects
+carry `"team": true` for replies written from the owner dashboard. The site's `comment_policy` is
 enforced at assert time (`allowed_email_domains` against the asserted email,
 `required_groups` against the optional `groups` claim) →
 `403 group_not_allowed | email_domain_not_allowed`. Upserts the commenter by

@@ -41,7 +41,7 @@ if Mix.env() == :dev do
            claims = %{"name" => name, "email" => email, "sub" => "dev:" <> String.downcase(email)},
            {:ok, commenter} <- Sites.upsert_commenter_by_external(site, claims["sub"], claims),
            {:ok, %{access_token: access, refresh_token: refresh}} <-
-             ApiToken.issue_pair(commenter, site, origin, %{}) do
+             ApiToken.issue_pair(commenter, site, origin, %{}, :none) do
         payload = %{
           "type" => "annotate-auth",
           "access" => access,

@@ -1,6 +1,6 @@
 # Threat Model Summary — annotate.therobotlives.com
 
-Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/embed/*`, host-assert, websocket `/socket/annotate`, MinIO presigned attachments. Code-read review of `develop` @ `2b5819d` (2026-10-17); no dynamic testing. Crown jewels: `ANNOTATE_JWT_SECRET`, `ANNOTATE_KEY_ENC_SECRET`, per-site service keys, refresh tokens.
+Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/embed/*`, host-assert, websocket `/socket/annotate`, MinIO presigned attachments, and the GitHub-only owner dashboard (sites, members, inbox). Code-read review of `develop` @ `2b5819d` (2026-10-17); no dynamic testing. Crown jewels: `ANNOTATE_JWT_SECRET`, `ANNOTATE_KEY_ENC_SECRET`, per-site service keys, refresh tokens.
 
 | ID | Sev | Finding | Status |
 |----|-----|---------|--------|
@@ -18,5 +18,15 @@ Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/em
 | T-12 | Info | Per-site exact-match CORS works | Mitigated |
 | T-13 | Med | Stored XSS safety depends on widget renderer (outside repo) | Unknown |
 | T-14 | Info | Popup postMessage targets registered origin | Mitigated |
+| T-15 | High | Host-assert could set `email_verified` and bridge into a team role | Fixed 2026-10-17 |
+| T-16 | High | Unverified accounts / GitHub unverified primary email could inherit memberships | Fixed 2026-10-17 |
+| T-17 | Med | `trust_host_roles` lets service-key holders mint team roles | Mitigated (opt-in, owner-only) |
+| T-18 | Med | Stale `team_role` claim after membership change | Mitigated (per-request DB re-check) |
+| T-19 | Med | Dashboard role escalation / cross-tenant via commands | Mitigated |
+| T-20 | Med | Dashboard origin edits weaken exact-match CORS | Mitigated |
+| T-21 | Low | Show-once service key in command response / logs | Partial / Unknown |
+| T-22 | Low | Self-serve site creation abuse; commands not rate-limited | Partial |
+| T-23 | Info | Untrusted strings in Hologram hydration state | Mitigated (inbox) |
+| T-24 | Med | OAuth login CSRF / cookie scope | Mitigated |
 
 Full doc: [THREAT-MODEL.md](THREAT-MODEL.md).

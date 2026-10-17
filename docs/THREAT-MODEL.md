@@ -1,14 +1,14 @@
 # Threat Model — annotate.therobotlives.com
 
-Security counterpart to [PROJ-ARCH.md](PROJ-ARCH.md). Scope: the embeddable comments service (embed REST API, popup auth broker, host-assert, websocket channel, attachment storage) and the perimeter it is deployed behind. The inherited scaffold surface (PBAC/orgs/invites/password auth/webhooks/media) is only noted in the last section.
+Security counterpart to [PROJ-ARCH.md](PROJ-ARCH.md). Scope: the embeddable comments service (embed REST API, popup auth broker, host-assert, websocket channel, attachment storage), the **owner dashboard** (GitHub sign-in, sites, members, comments inbox; added 2026-10-17, epic `site-management`, findings T-15..T-24) and the perimeter it is deployed behind. The inherited scaffold surface (PBAC/orgs/invites/password auth/webhooks/media) is only noted in the last section.
 
 Method: read-through of the code at `develop` @ `2b5819d` (2026-10-17). Every finding cites a module. **No dynamic testing or pentest was performed**; items needing runtime or infra confirmation are marked **unknown**. Status values: Mitigated (control present and tested), Partial, Open (no control found), Unknown.
 
 ## Assets and actors
 
-Crown jewels: `ANNOTATE_JWT_SECRET` (signs every access token for every tenant), `ANNOTATE_KEY_ENC_SECRET` (unseals per-site service keys), per-site service keys, refresh tokens, Authentik client secret, the Postgres data (commenters incl. emails), the MinIO bucket.
+Crown jewels: `GITHUB_CLIENT_SECRET` (dashboard sign-in), `site_members` (who may administer which site), `ANNOTATE_JWT_SECRET` (signs every access token for every tenant), `ANNOTATE_KEY_ENC_SECRET` (unseals per-site service keys), per-site service keys, refresh tokens, Authentik client secret, the Postgres data (commenters incl. emails), the MinIO bucket.
 
-Actors: anonymous internet client; a malicious commenter with a legitimate token on one site; a malicious site owner/host page (tenant A) attacking tenant B; a hostile third-party web page that tries to abuse a visitor's session or the widget; an attacker who obtains a token (XSS on a host page, log leak, shared machine).
+Actors: anonymous internet client; any GitHub user (self-serve dashboard sign-up); a site member trying to exceed their role or reach another tenant's site; a malicious commenter with a legitimate token on one site; a malicious site owner/host page (tenant A) attacking tenant B; a hostile third-party web page that tries to abuse a visitor's session or the widget; an attacker who obtains a token (XSS on a host page, log leak, shared machine).
 
 ## Trust boundaries
 
@@ -18,6 +18,8 @@ Actors: anonymous internet client; a malicious commenter with a legitimate token
 4. Popup (annotate-srv origin) -> opener (host origin) via `postMessage` to a pre-registered origin.
 5. API -> Postgres / Valkey / MinIO with credentialed access; browser -> MinIO directly through presigned URLs.
 6. API -> Authentik (OIDC code exchange, ID-token verification).
+7. Browser -> dashboard on `annotate.therobotlives.com` (Hologram pages/commands, session cookie `_annotate_key`) and dashboard -> GitHub OAuth (`/auth/github`, Ueberauth `state`).
+8. **Dashboard realm <-> embed realm**: scaffold `users` (GitHub) and embed `commenters` (Authentik / host-assert) meet only through the verified-email team bridge (`Annotate.SiteMembers.team_role_for_commenter/3`) and the dashboard's own team commenter rows.
 
 ```mermaid
 graph LR
@@ -48,6 +50,16 @@ graph LR
 | T-12 | Info | CORS | Per-site exact-match CORS works; browser `token/refresh` needs `?site=`; scaffold CORS reflects any Origin outside annotate prefixes | Mitigated / note |
 | T-13 | Med | XSS (stored) | Server stores raw markdown and URLs; safety depends on the widget renderer, which is outside this repo | Unknown |
 | T-14 | Info | Embed origin | Popup `postMessage` target is the registered origin; origin spoofing needs a non-browser client | Mitigated |
+| T-15 | High | Team bridge | A host-assert JWT could set `commenters.email_verified` and a member's email, then inherit that member's team role at refresh even with `trust_host_roles` off (WIP S1) | **Fixed** 2026-10-17 (only the Authentik id_token writes `email_verified`; the bridge runs only for `authentik_sub` commenters) |
+| T-16 | High | Identity | Unverified accounts could inherit memberships by email (WIP S2); `ueberauth_github` takes the primary email without checking `verified` | **Fixed** 2026-10-17 (members/bridge need `users.verified`; GitHub email taken only from verified `/user/emails`; GitHub id keys the identity; unverified same-email rows are taken over with the password cleared) |
+| T-17 | Med | Host roles | With `trust_host_roles` on, anyone holding the site service key can mint owner/admin team roles | Mitigated (opt-in, owner-only setting, default off; re-checked at every refresh and per request) |
+| T-18 | Med | Revocation | `team_role` on a 15-minute access token goes stale after a membership change | Mitigated (authorization re-derives the role from the DB per request: moderation, `/config`, every dashboard command; the claim is a UI hint) |
+| T-19 | Med | Dashboard authz | Role escalation / cross-tenant access through Hologram commands (callable by hand) | Mitigated (`DashboardAuth.authorize_site/3` on render AND every command; owner-only security/members/key; last-owner guard under a row lock; non-members get "not found") |
+| T-20 | Med | Origins | Dashboard origin edits could weaken the exact-match CORS / popup target contract | Mitigated (`Sites.normalize_origins/1` on create and update: scheme://host[:port] only, `http` only for localhost) |
+| T-21 | Low | Service key | Show-once key travels in a Hologram command response and client state until dismissed; whether any log captures Hologram command payloads is unverified | Partial / Unknown |
+| T-22 | Low | Abuse | Any verified GitHub user can create sites (cap 25 owned per user); Hologram commands bypass the router rate limits; slug squatting | Partial |
+| T-23 | Info | Hydration | Hologram inlines page state in a script tag; untrusted strings with newlines or `</script` must never ride it | Mitigated for the inbox (bodies load by command; test pins it) |
+| T-24 | Med | Login CSRF / session | OAuth login CSRF; session cookie scope | Mitigated (Ueberauth `state` enforced, tested; `_annotate_key` + `_annotate_sso` host-only, SameSite=Lax, Secure in prod) |
 
 ## Detail by threat class
 
@@ -95,13 +107,21 @@ Controls: transport `check_origin` requires a registered origin, `connect/3` bin
 
 Good: every domain lookup is site-scoped by join (`get_thread_for_site`, `get_comment_for_site`, `get_attachment_for_site`); tokens carry `site` and are rejected on mismatch with 403; topics embed the slug; rate-limit buckets are per site; attachment binding requires same site and same uploader; storage keys are namespaced by site id. Weak points: **T-05** a single global JWT secret and a single `ANNOTATE_KEY_ENC_SECRET` for all tenants (compromise or dev-fallback misuse affects everyone; non-prod falls back to committed dev strings, prod boot fails closed without the env vars, `config/runtime.exs`); one tenant's host page may register any origin string in its own `allowed_origins`, but the websocket transport gate checks *any* site's origin list (`Sites.origin_registered?/1`), so registering `https://victim.example` on a hostile site lets that page pass only the first gate - the per-site binding in `connect/3` still stops cross-site access. Soft-deleted comment bodies remain in the database (privacy/retention, no purge job found).
 
+### Owner dashboard, GitHub sign-in and team roles (T-15..T-24)
+
+Sign-in is **GitHub-only** (`Annotate.Auth.LoginMethods`, `config :annotate, :login_methods, ["github"]`): the scaffold's password, magic-link, OTP, reset and verify routes, `/auth/oidc`, `/sso/saml` and other social providers 404, their Hologram commands refuse, and their pages redirect to `/sign-in` via middleware (which also blocks the page's commands). `Annotate.Dashboard.GithubLogin` keys identities on the GitHub numeric id (`github_identities`), accepts only a **verified** email from `/user/emails`, refuses an email already linked to another GitHub account, and refuses disabled users. The dev/test `GithubStub` strategy runs only when `:github_stub_allowed` is set (test config and dev `ANNOTATE_GITHUB_STUB=1`), never in prod.
+
+Team roles: `team_src` = `bridge` (Authentik commenter, verified email -> verified user -> `site_members`) or `host` (host-assert claim under `trust_host_roles`). Refresh tokens store the *source* only (`identity_claims.team_src` / `host_team_role`), never a derived role; rotation re-evaluates it and keeps the T-01 origin binding. Moderation (delete others' comments) = author, legacy `owner_commenter_id`, or a **live** owner/admin (`Annotate.Embed.Team.moderator?/3`). Editing others' text stays author/owner.
+
+Dashboard: every site-scoped page authorizes in `init` and in every command against the DB. Inbox replies use a `(site_id, user_id)` team commenter with no `external_id` (host-assert cannot claim it) and no email (cannot feed the bridge). The inbox realtime channel `{:annotate_inbox, slug}` carries no data; the page re-fetches through its authorized command, so a subscriber who lost access learns nothing. Residual: Hologram commands are not rate-limited by the router (T-22); site creation is capped per user but not per time window.
+
 ### Comment authorization (T-06)
 
-Edit/delete: author or site owner (`Comments.comment_manageable_by?/3`, good). Resolve/reopen/re-anchor (`ThreadCommentsController`) check only that the thread belongs to the token's site. Any commenter (including a freshly signed-up Authentik account under the default policy) can resolve, reopen or move the anchor of anyone's thread; `resolve` records the actor but no role check exists. Whether this is intended product behaviour is **unknown**; it is documented here as a risk.
+Edit: author or site owner (`Comments.comment_manageable_by?/3`); delete additionally allows a live team owner/admin (`comment_moderatable_by?/4`, T-18). Resolve/reopen/re-anchor (`ThreadCommentsController`) check only that the thread belongs to the token's site. Any commenter (including a freshly signed-up Authentik account under the default policy) can resolve, reopen or move the anchor of anyone's thread; `resolve` records the actor but no role check exists. Whether this is intended product behaviour is **unknown**; it is documented here as a risk.
 
 ## Residual and inherited surface
 
-The same hosts expose the scaffold's orgs/PBAC/invite/password/magic-link/SSO-domain/SAML/webhook/media routes (`router.ex`). They have their own rate limits (`auth` classes) and an invite gate, but were not reviewed in this pass and are not needed by the embed product; disabling or firewalling them in prod would shrink the attack surface (whether prod already does so is **unknown**). Logging: the embed callback redacts token-shaped strings (`redact/1`); no other log review done. Backups, MinIO bucket policy, ingress annotations and Infisical access policy live in the monorepo Terraform and are out of scope here.
+The scaffold's password/magic-link/OTP/OIDC/SAML sign-in routes are disabled by the GitHub-only login gate (2026-10-17). The orgs/PBAC/invite/webhook/media routes are still exposed (`router.ex`), have their own rate limits, and were not reviewed in this pass. Logging: the embed callback redacts token-shaped strings (`redact/1`); no other log review done. Backups, MinIO bucket policy, ingress annotations and Infisical access policy live in the monorepo Terraform and are out of scope here.
 
 ## Recommended next actions (priority order)
 
@@ -112,3 +132,4 @@ The same hosts expose the scaffold's orgs/PBAC/invite/password/magic-link/SSO-do
 5. T-07: `escape: :html_safe` plus CSP on `/embed/callback`.
 6. T-09/T-10: expiry-driven socket disconnect; `jti` replay cache for assertions.
 7. T-13: add widget-side escape tests; validate `avatar_url` scheme server-side.
+8. T-22: per-user rate limit on dashboard commands (site creation, member adds); T-21: confirm Hologram command payloads never reach logs/OTEL.
