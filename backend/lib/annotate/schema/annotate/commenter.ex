@@ -42,7 +42,7 @@ defmodule Annotate.Schema.Annotate.Commenter do
       :email,
       :email_verified
     ])
-    |> unique_constraint(:authentik_sub)
-    |> unique_constraint([:site_id, :external_id])
+    |> unique_constraint(:authentik_sub, name: :commenters_authentik_sub_key)
+    |> unique_constraint([:site_id, :external_id], name: :commenters_site_external_key)
   end
 end

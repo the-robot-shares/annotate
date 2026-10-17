@@ -12,8 +12,19 @@ defmodule Annotate.Sites do
   @default_settings %{
     "public_read" => true,
     "page_key_strategy" => "strip_query_hash",
-    "max_upload_mb" => 20
+    "max_upload_mb" => 20,
+    "default_visibility" => "public"
   }
+
+  # Self-serve abuse bound: sites a single dashboard user may own.
+  @max_owned_sites 25
+
+  # Dashboard-editable keys, split by required role (see `update_site_display/2`
+  # vs `update_site_security/2`). Anything else in the input is ignored.
+  @display_settings_keys ~w(public_read page_key_strategy max_upload_mb default_visibility)
+  @security_policy_keys ~w(required_groups allowed_email_domains allow_anonymous trust_host_roles)
+  @page_key_strategies ~w(strip_query_hash)
+  @max_origins 20
 
   # ── Sites ─────────────────────────────────────────────────────
 
@@ -45,6 +56,211 @@ defmodule Annotate.Sites do
       error -> error
     end
   end
+
+  def max_owned_sites, do: @max_owned_sites
+
+  @doc """
+  Dashboard site creation: validates origins, creates the site + service key
+  AND the creator's owner membership in ONE transaction (a crash can never
+  leave an ownerless, unmanageable site). Enforces the per-user ownership cap.
+
+  Returns `{:ok, site, service_key}` (key shown ONCE) · `{:error, :invalid_origin}`
+  · `{:error, :site_limit}` · `{:error, changeset}`.
+  """
+  def create_site_with_owner(attrs, %{id: user_id} = user) when is_binary(user_id) do
+    origins = attrs["allowed_origins"] || []
+
+    with {:ok, origins} <- normalize_origins(origins),
+         :ok <- check_site_limit(user_id) do
+      Repo.transaction(fn ->
+        case create_site(%{
+               "slug" => attrs["slug"],
+               "name" => attrs["name"],
+               "allowed_origins" => origins
+             }) do
+          {:ok, site, key} ->
+            case Annotate.SiteMembers.grant_owner(site, user) do
+              {:ok, _} -> {site, key}
+              {:error, reason} -> Repo.rollback(reason)
+            end
+
+          {:error, reason} ->
+            Repo.rollback(reason)
+        end
+      end)
+      |> case do
+        {:ok, {site, key}} -> {:ok, site, key}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp check_site_limit(user_id) do
+    if Annotate.SiteMembers.owned_site_count(user_id) >= @max_owned_sites,
+      do: {:error, :site_limit},
+      else: :ok
+  end
+
+  @doc """
+  Display settings (admin+): `name` and the `settings` keys
+  #{inspect(@display_settings_keys)}. Never touches origins, policy, slug or keys.
+  """
+  def update_site_display(%Site{} = site, attrs) do
+    settings =
+      attrs
+      |> Map.get("settings", %{})
+      |> Map.take(@display_settings_keys)
+
+    with :ok <- validate_display_settings(settings) do
+      changes = %{"settings" => Map.merge(site.settings || %{}, settings)}
+
+      changes =
+        if is_binary(attrs["name"]), do: Map.put(changes, "name", attrs["name"]), else: changes
+
+      site
+      |> Ecto.Changeset.cast(changes, [:name, :settings])
+      |> Ecto.Changeset.validate_required([:name])
+      |> Ecto.Changeset.validate_length(:name, min: 1, max: 120)
+      |> Repo.update()
+    end
+  end
+
+  defp validate_display_settings(settings) do
+    ok? =
+      Enum.all?(settings, fn
+        {"public_read", v} -> is_boolean(v)
+        {"page_key_strategy", v} -> v in @page_key_strategies
+        {"max_upload_mb", v} -> is_integer(v) and v >= 1 and v <= 100
+        {"default_visibility", v} -> v in ["public", "internal"]
+      end)
+
+    if ok?, do: :ok, else: {:error, :invalid_settings}
+  end
+
+  @doc """
+  Security settings (OWNER only at the caller): `allowed_origins` (validated,
+  exact-match contract) and the `comment_policy` keys
+  #{inspect(@security_policy_keys)}.
+  """
+  def update_site_security(%Site{} = site, attrs) do
+    policy_in = attrs |> Map.get("comment_policy", %{}) |> Map.take(@security_policy_keys)
+
+    with {:ok, origins} <- normalize_origins(attrs["allowed_origins"] || site.allowed_origins),
+         {:ok, policy_in} <- validate_policy(policy_in) do
+      site
+      |> Ecto.Changeset.cast(
+        %{
+          "allowed_origins" => origins,
+          "comment_policy" => Map.merge(site.comment_policy || %{}, policy_in)
+        },
+        [:allowed_origins, :comment_policy]
+      )
+      |> Repo.update()
+    end
+  end
+
+  defp validate_policy(policy) do
+    Enum.reduce_while(policy, {:ok, %{}}, fn
+      {k, v}, {:ok, acc} when k in ["allow_anonymous", "trust_host_roles"] and is_boolean(v) ->
+        {:cont, {:ok, Map.put(acc, k, v)}}
+
+      {k, v}, {:ok, acc} when k in ["required_groups", "allowed_email_domains"] and is_list(v) ->
+        list =
+          v |> Enum.filter(&is_binary/1) |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+
+        if length(list) == length(v) and length(list) <= 50,
+          do: {:cont, {:ok, Map.put(acc, k, Enum.uniq(list))}},
+          else: {:halt, {:error, :invalid_policy}}
+
+      _, _ ->
+        {:halt, {:error, :invalid_policy}}
+    end)
+  end
+
+  @doc """
+  Rotates the site's service key. Returns `{:ok, site, new_key}`: the new key
+  is shown ONCE; the old hash + seal are replaced, so the previous key stops
+  verifying host-asserts immediately.
+  """
+  def rotate_service_key(%Site{} = site) do
+    service_key = ServiceKey.generate()
+
+    site
+    |> Ecto.Changeset.change(
+      service_key_hash: ServiceKey.hash(service_key),
+      service_key_encrypted: ServiceKey.encrypt(service_key)
+    )
+    |> Repo.update()
+    |> case do
+      {:ok, site} -> {:ok, site, service_key}
+      error -> error
+    end
+  end
+
+  @doc """
+  Normalizes and validates an origin list for the exact-match contract
+  `allowed_origin?/2` depends on: `scheme://host[:port]`, lowercase host, no
+  path/query/fragment/userinfo/trailing slash, no wildcards. `http://` is
+  accepted only for `localhost` / `127.0.0.1`. Dedupes; max #{@max_origins}.
+  Any invalid entry rejects the whole list (`{:error, :invalid_origin}`).
+  """
+  def normalize_origins(origins) when is_list(origins) and length(origins) <= @max_origins do
+    origins
+    |> Enum.reduce_while({:ok, []}, fn origin, {:ok, acc} ->
+      case normalize_origin(origin) do
+        {:ok, o} -> {:cont, {:ok, [o | acc]}}
+        :error -> {:halt, {:error, :invalid_origin}}
+      end
+    end)
+    |> case do
+      {:ok, list} -> {:ok, list |> Enum.reverse() |> Enum.uniq()}
+      error -> error
+    end
+  end
+
+  def normalize_origins(_), do: {:error, :invalid_origin}
+
+  @origin_re ~r/^(https?):\/\/([a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*)(?::(\d{1,5}))?$/
+
+  def normalize_origin(origin) when is_binary(origin) do
+    o = origin |> String.trim() |> String.downcase()
+
+    case Regex.run(@origin_re, o) do
+      [_, scheme, host | rest] ->
+        port = List.first(rest)
+
+        cond do
+          port && (String.to_integer(port) < 1 or String.to_integer(port) > 65_535) -> :error
+          scheme == "http" and host not in ["localhost", "127.0.0.1"] -> :error
+          true -> {:ok, o}
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  def normalize_origin(_), do: :error
+
+  @doc """
+  Default visibility for new threads (`settings["default_visibility"]`,
+  `"public"` when absent): `:public | :internal`.
+  """
+  def default_visibility(%Site{} = site) do
+    case get_in_settings(site, ["default_visibility"], "public") do
+      "internal" -> :internal
+      _ -> :public
+    end
+  end
+
+  @doc """
+  Per-site opt-in for trusting a host-asserted `team_role` claim
+  (`comment_policy["trust_host_roles"]`, default **false**).
+  """
+  def trust_host_roles?(%Site{comment_policy: policy}) when is_map(policy),
+    do: policy["trust_host_roles"] == true
+
+  def trust_host_roles?(_), do: false
 
   @doc "Exact-match origin check against `sites.allowed_origins` (no wildcards)."
   def allowed_origin?(%Site{allowed_origins: origins}, origin)
