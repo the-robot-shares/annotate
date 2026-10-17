@@ -127,10 +127,8 @@ defmodule Annotate.MixProject do
       # override: genai 0.4.x pins noizu_mcp ~> 0.1.6/0.5.0; annotate never
       # calls GenAI, and genai's only MCP use (GenAI.Tool.Source.MCP:
       # Client.list_tools/call_tool) is unchanged in 0.6.
-      # 0.6.2 (private-use redirect schemes, for Cursor) is tagged but not yet
-      # on hex: pinned to the public git tag until `mix hex.publish`, then
-      # back to {:noizu_mcp, "~> 0.6.2", override: true}.
-      {:noizu_mcp, github: "noizu-labs-ml/elixir-mcp-lib", tag: "v0.6.2", override: true},
+      # >= 0.6.2: private-use redirect schemes (Cursor's cursor:// callback).
+      {:noizu_mcp, "~> 0.6.2", override: true},
       {:bcrypt_elixir, "~> 3.0"},
       # Explicit (not just transitive-optional) so Mint/Finch/Redix HTTPS
       # clients (OIDC discovery, outbound Redis TLS, etc.) always have a CA

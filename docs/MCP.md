@@ -11,7 +11,7 @@ can read and triage a site's comments **as the signed-in dashboard user**.
 | AS metadata (RFC 8414) | `/.well-known/oauth-authorization-server` (also `/.well-known/openid-configuration`) |
 | Protected-resource metadata (RFC 9728) | `/.well-known/oauth-protected-resource/mcp` (and the bare path) |
 | OAuth endpoints | `/oauth/authorize`, `/oauth/consent`, `/oauth/token`, `/oauth/register` (DCR, RFC 7591), `/oauth/revoke` |
-| Library | [`noizu_mcp`](https://hex.pm/packages/noizu_mcp) 0.6.2 (git tag `v0.6.2` until it is on hex) (`Noizu.MCP.Auth.Server`, `Store.Ecto`) |
+| Library | [`noizu_mcp`](https://hex.pm/packages/noizu_mcp) 0.6.2 (`Noizu.MCP.Auth.Server`, `Store.Ecto`) |
 | Dashboard | `/dashboard/agents` — connect snippets, connected clients (+ granted scopes, revoke), activity log |
 
 ## Connect
