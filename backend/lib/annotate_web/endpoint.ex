@@ -14,13 +14,17 @@ defmodule AnnotateWeb.Endpoint do
     ],
     longpoll: false
 
+  # Crawler files (robots/sitemap/llms), noindex headers, landing JSON-LD —
+  # generated, not static (AnnotateWeb.SEO). Must precede Plug.Static.
+  plug AnnotateWeb.Plugs.SEO
+
   # Style-guide CSS + Hologram client bundles; fonts + landing images serve the
   # marketing page (see LandingLayout / priv/static).
   plug Plug.Static,
     at: "/",
     from: :annotate,
     gzip: false,
-    only: ~w(themes css js hologram favicon.ico robots.txt fonts images)
+    only: ~w(themes css js hologram favicon.ico favicon.svg apple-touch-icon.png fonts images)
 
   if code_reloading? do
     plug Phoenix.CodeReloader
