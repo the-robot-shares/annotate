@@ -1,75 +1,66 @@
-# Test Health — hologram-start-app (template)
-_Last measured: 2026-10-07 · branch develop@79cd4f1 (+ chore/ci-test-speed)_
+# Test Health — annotate.therobotlives.com
+_Written 2026-10-17 from a read of `develop` @ `2b5819d`. Suite was **not re-run** for this document; timing and coverage figures are the last values recorded elsewhere in the repo and are marked as such._
 
-This repo is the **Hologram scaffold template**: every default below is
-inherited by apps hydrated from it (`init-proj-scaffold … --from
-components/hologram-start-app`). Keep this file accurate after hydration.
+## Snapshot
 
-| Metric | Before | After |
+| Metric | Value | Source |
 |---|---|---|
-| CI PR wall-clock — critical path (warm / cold) | n/a — no workflows existed | see PR run (first run is cold) |
-| Main release build (warm / cold) | n/a — no release job; template never releases | hydrated apps only (`build-push` gated on `test`) |
-| CI acceptance test job (warm / cold) | n/a — suite never ran in CI | see PR run |
-| Local full-suite runtime (uptime load) | 18.6s suite / 33s `mix test` (load 9) | 2.7s suite / 17s `mix test` (load 13) |
-| Docker build (warm / cold) | broken standalone: no `vendor/` copy, no tobor-kit context | smoke build on PR/develop, gha cache |
-| Tests in acceptance / slow tier | 60 / 0 | 68 / 0 (+8 repo-override dispatch tests, 2026-10-07; 18.5% local coverage, green on two seeds, fresh DB); 2026-10-08 invite interstitial: +24 `invite_gate_test` + 3 SSO register-open tests (gate files 54/54 locally; full suite verified by PR CI) |
-| Async modules / total | 1 / 12 | 1 / 12 (ConnCase modules stay sync — see debt) |
-| Coverage — acceptance pass | not measured | 16.7% |
-| Coverage — full pass | = acceptance | = acceptance |
-| Coverage gate | — | 11% (`mix.exs` `test_coverage` threshold, `mix test --cover` in CI) |
+| Full backend suite | 261 tests green at PR #33 (2026-10-17) | `CHANGELOG.md` 2026-10-17 |
+| Annotate-specific tests | 119 `test` blocks (90 in `test/annotate_web/controllers/annotate_api/`, 29 in `test/annotate_web/channels/`) | counted with grep, 2026-10-17 |
+| Coverage | **unknown / unmeasured here**; the last recorded figure (16.7%, 2026-10-07) predates all annotate code | previous TEST-HEALTH |
+| Coverage gate | 11% (`mix.exs` `test_coverage: [summary: [threshold: 11]]`) | `backend/mix.exs` |
+| Local suite runtime | ~3 s reported for the scaffold-era suite; not re-measured with the annotate tests | previous TEST-HEALTH |
+| CI | `.github/workflows/ci.yml` (PR + `develop`/`main` push) and `nightly.yml` (`23 7 * * *`, docker cache warmer only) | repo |
 
-Local "before" already includes the `ecto.migrate` alias fix — without it the
-suite cannot start on a fresh DB (Oban/SmartToken tables missing).
+## What is covered (annotate product path)
 
-## Template defaults (fleet lessons baked in)
-
-| Default | Where | Why |
+| Area | Test files | Notes |
 |---|---|---|
-| Job-level `MIX_ENV: test` | `ci.yml` `test` job | one `_build/test`; no dev+test double compile |
-| sha-suffixed mix cache, split restore/save | `ci.yml` | exact-hit keys never re-save (`_build` drifts); save survives a red test step |
-| `push: [main, develop]`, PR-only `cancel-in-progress` | `ci.yml` | develop seeds caches PRs can read; never cancel a release push |
-| PRs restore caches only (mix `cache/save` guarded `github.event_name != 'pull_request'`) | `ci.yml` `test` | per-commit PR saves are unreadable by other PRs and churn the 10 GB/repo cache, evicting develop/nightly caches |
-| Toolchain = `.tool-versions` = Dockerfile `BASE_IMAGE` | `ci.yml` setup-beam `version-file` + `strict`; `backend/Dockerfile` | CI, local and the release image compile on the same Elixir 1.20.1 / OTP 29 |
-| `test` alias runs `ecto.migrate` | `backend/mix.exs` | Liquibase owns app schema; Oban + SmartToken tables come from Ecto migrations |
-| bcrypt `log_rounds: 4` in test | `config/test.exs` | 18.6s → 2.7s (bcrypt was ~85% of the suite) |
-| Provider-key stripping | `config/test.exs` (runs before `runtime.exs`) | a developer's shell key can never reach a live provider |
-| Fixed-id seed rows committed once | `test/test_helper.exs`, before `Sandbox.mode(:manual)` | per-test `on_conflict: :nothing` upserts of uuid5 auth providers block concurrent sandboxes |
-| Library-default `:uid_provider` | `noizu_labs_entities` 0.3.4 (`Noizu.Entity.UID.Default`); regression test `test/annotate/entity_uid_concurrency_test.exs` (50 concurrent creates: unique ids, each fetched back by id, all listed) | ≤ 0.3.1 shipped only the `{ms, 0}` stub, which collides on same-millisecond `id(:uuid)` inserts; 0.3.2 minted an uppercase uuid tail that did not round-trip through Postgres (fixed in 0.3.4, which also downcases legacy ids on parse); no app-level provider needed |
-| sref handler warm-up | `test/test_helper.exs` (before `ExUnit.start`: `Annotate.EntityRepo.warm_sref_handlers()` + hard assert the `"user-session"` handler exists); `Annotate.Application.start/2` after the supervision tree is up (guarded: failure logs a warning, never fails boot) | a cold build `Code.ensure_loaded?`s every app module; on ≤ 0.3.3 callers racing it got `%{}` → `handler_not_found` → Guardian 401 (`no_resource_found`) in whichever async ConnCase landed in the window (seed-dependent), and right after a deploy. Scaffold default for new apps |
-| Entity repo overrides call `super` | `backend/lib/annotate/entities/` — `Auth.Providers`, `Media`, `Users.Media`, `Versioned.{Descriptions,Names,Strings}`; regression test `test/annotate/entities/repo_override_dispatch_test.exs` | fixed 2026-10-07 (aifighter `fed51d1` shape). The template shipped self-dispatching overrides that every hydrated app inherited: `create/3` piped a built entity into `change/2` (`Protocol.UndefinedError` — `Credentials.register/4` raised on its first `Versioned.Strings` create), `update/4`'s `options \\ []` defined an `update/3` that shadowed the `def_repo` one (`FunctionClauseError`), `delete/3` called itself forever. Now: `%Entity{}`/changeset/attrs `create` clauses → `super`, `update/4` without a default, `delete` → `super`. The test covers all six (calls time-bounded to 5s) plus `Credentials.register/4`; `entity_uid_concurrency_test` races `Versioned.Names.Name` creates again instead of the `Organization` workaround |
-| Invite gate router walk | `test/annotate_web/controllers/invite_gate_test.exs` | walks every `:authenticated` route (>40) as a `:pending` user and expects `403 invite_required`, except `RequireInvite.exempt_routes/0`; mutation-checked 2026-10-08 (dropping the plug from `AuthPipeline` fails it). New authenticated routes are covered automatically — keep the exempt list small |
-| `mix test --cover` + threshold | `mix.exs` `test_coverage`, `ci.yml` | ratchet gate; Hologram 0.10.1 does not crash under `--cover` here |
-| Release gated on backend tests | `build-push: needs: [test]`, no `continue-on-error` | never ship an image whose suite is red |
-| Docker gha cache, exported off-PR only | `docker-build` (PR/develop), `build-push`, `nightly.yml` | PR-ref caches are unreadable elsewhere |
-| tobor-kit as a named build context | `backend/Dockerfile`, `Makefile` `KIT_CONTEXT`, CI `build-contexts` | the `tobor_kit_hologram` path dep is a separate private repo |
-| `nightly.yml` docker cache warmer | `.github/workflows/nightly.yml` | releases > 7 days apart otherwise build cold |
+| Comments / threads | `comments_test.exs` (13), `site_threads_test.exs` (14) | tenancy scoping, anonymous opt-in, attachment binding |
+| Attachments | `attachment_test.exs` (9) | presign validation, uploader-only complete |
+| Token binding | `token_binding_test.exs` (9) | site/origin claim enforcement, missing-Origin writes |
+| CORS | `cors_test.exs` (8) | per-site exact-match, preflight, foreign origin 403 |
+| Embed auth broker | `embed_auth_test.exs` (19) | state/nonce, IdP error legs, crash -> `auth_failed`, cookie attributes, `fetch_tokens` map contract (regression for the 2026-10-16 prod 500) |
+| Host-assert | `host_assert_test.exs` (12) | signature, `exp` window, policy |
+| Rate limiting | `rate_limit_test.exs` (6) | per ip+site buckets |
+| Websocket | `annotate_socket_test.exs` (19), `page_channel_test.exs` (10) | origin gate, token handling, read-only channel, join auth |
+| Realtime broadcast | `test/annotate/realtime_test.exs` | payload parity with REST renderer |
+| Landing | `marketing_landing_test.exs` | host split + CSP |
 
-## Caching status
-- GitHub Actions: deps ✅ · build ✅ (`_build/test`, sha-keyed) · npm n.a. (no frontend) · .next/cache n.a. · PLT n.a. (no dialyzer) · develop-ref seeding ✅ · Liquibase CLI ✅
-- Docker: buildx gha cache ✅ (scope `backend`; verify `CACHED` lines on the first warm develop run) · cache mounts ✅ (hex/rebar; local builders only) · .dockerignore ✅ · release-cache warmer ✅ (inert until on the default branch, `main`)
+Inherited scaffold tests (auth, invites, SSO, orgs, entities, observability) also run; the invite gate router walk (`invite_gate_test.exs`) covers every `:authenticated` route automatically.
 
-## Slow tests (tier: nightly)
-None — the full suite runs in ~3s.
+## Gaps (ordered by risk)
 
-| Test | Time | Why slow | Fix idea |
-|---|---|---|---|
+| Gap | Why it matters | Related threat |
+|---|---|---|
+| No test for refresh-token reuse, concurrent rotation or origin handling on refresh | rotation is non-atomic; origin comes from the request header | THREAT-MODEL T-01, T-02 |
+| No test of `Annotate.Auth.RefreshTokens` / `ServiceKey` / `Policy` as units (only via controllers) | crypto and policy regressions surface late | T-05, T-10 |
+| No test that resolve/reopen/re-anchor reject non-authors (current behaviour allows) | undecided product rule | T-06 |
+| No test for `</script>` / hostile `display_name` in `/embed/callback` | inline-script injection | T-07 |
+| No upload content tests (size mismatch, sniffing, orphan sweep deleting objects) | declared `bytes`/type unverified | T-04, T-08 |
+| No socket test for token expiry mid-connection | socket outlives token | T-09 |
+| Widget-side rendering (markdown escape, `avatar_url`) is untested here - the code lives in tobor-kit | stored XSS | T-13 |
+| Hologram pages/components have no page tests beyond the landing | low coverage | - |
+| End-to-end through a real browser + Authentik popup | only `Annotate.Embed.OIDC` fakes exercise the broker; the real `OpenIDConnect` contract broke in prod once. A live round trip belongs in the e2e lane | - |
 
 ## Test debt
+
 | Item | Kind | Notes |
 |---|---|---|
-| ConnCase modules (`auth_controller_test`, `user_controller_test`, …) | sync-only | token auth goes through cache layers outside the sandbox — fleet rule: keep token-authenticated ConnCase sync |
-| `sso_test`, `invites_test` | sync-only | `Application.put_env(:annotate, :sso_domain_policies, …)` global fixture |
-| Hologram pages/components | coverage gap | no page tests; 16.7% total. If a page test crashes under `--cover` (`Hologram.Reflection.beam_defs/1`, seen on other 0.10.x apps), drop `--cover` in CI and record it here |
-| `mix format --check-formatted` | not gated | ~25 lib/test files are unformatted on develop; CI has no format step until they're formatted in a dedicated PR |
-| `Users.Media` `media_type` enum drift | resolved | Ecto enum aligned to the DB's `media_type_enum` (`image/video/audio/document/other`) — `:profile/:cover/:gallery` were never storable. Dispatch test now uses `:image` (fix/media-type-enum). |
-| Compile-env change after restoring an old `_build` | ops note | the noizu_labs_entities 0.3.2/0.3.4 bumps (and dropping the app `:uid_provider`) change its compile env; if a stale `_build` fails "could not compile dependency", run `mix deps.compile noizu_labs_entities --force` once (the mix.lock hash in the CI key avoids it) |
+| ConnCase modules with token auth | sync-only | token auth goes through cache layers outside the sandbox |
+| `sso_test`, `invites_test` | sync-only | global `Application.put_env(:annotate, :sso_domain_policies, ...)` |
+| `mix format --check-formatted` | not gated | ~25 files unformatted on develop as of 2026-10-07 (not re-counted) |
+| Hammer ETS limiter state | isolation | `rate_limit_test.exs` relies on per-test unique keys/IPs; global ETS state is shared across tests (**unverified** - check before making the module async) |
+| Stale `_build` after compile-env change | ops note | if a restored `_build` fails "could not compile dependency", run `mix deps.compile noizu_labs_entities --force` once |
 
-## Nightly
-`.github/workflows/nightly.yml` — `23 7 * * *` + `workflow_dispatch`, docker cache
-warmer only (no slow tier to run). Inert in the template repo until it reaches
-the default branch (`main`).
+## CI / build facts (verified in repo)
 
-## CI secrets (inherited by hydrated apps)
-- `TRR_GITHUB_APP_ID` / `TRR_GITHUB_APP_PRIVATE_KEY` — GitHub App token to check
-  out the private `tobor-kit` repo (test, docker-build, build-push, nightly).
-- `REGISTRY_USER` / `REGISTRY_PASSWORD` — `ops.noizu.com` push (release only).
+- Test alias runs `ecto.create -> liquibase.update -> ecto.migrate -> test`: Liquibase owns the schema, Ecto migrations add Oban/SmartToken tables (`mix.exs` aliases, `lib/mix/tasks/liquibase.update.ex`, `ci.yml` Liquibase steps).
+- `config/test.exs` enables the Hologram runtime (`HOLOGRAM_START=1`) and the test alias runs `mix holo.sync_assets` first, otherwise the landing 404s/500s (PR #27).
+- Toolchain pinned by `.tool-versions` (Elixir 1.20.1 / OTP 29) shared by CI and the Dockerfile.
+- Release job (`build-push`) is gated on the `test` job; CI commits the Helm tag bump.
+- Branch CI split (what `stage` runs beyond `develop`) was not verified in this pass.
+
+## CI secrets
+- `TRR_GITHUB_APP_ID` / `TRR_GITHUB_APP_PRIVATE_KEY` - GitHub App token to check out the private `tobor-kit` repo.
+- `REGISTRY_USER` / `REGISTRY_PASSWORD` - image registry push (release only).
