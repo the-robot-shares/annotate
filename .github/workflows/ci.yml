@@ -304,9 +304,7 @@ jobs:
             if git diff --cached --quiet; then
               echo "::notice::values already pin sha-${SHORT}"; exit 0
             fi
-            git commit --quiet -m "ci: deploy backend sha-${SHORT} [skip ci]
-
-Co-Authored-By: Loom <loom@therobotlives.com>"
+            git commit --quiet -m "ci: deploy backend sha-${SHORT} [skip ci]" -m "Co-Authored-By: Loom <loom@therobotlives.com>"
             if git push origin "HEAD:${BRANCH}"; then exit 0; fi
             echo "::warning::push attempt ${i} lost a race; retrying from fresh tip"
             sleep $(( i * 3 + RANDOM % 5 ))
