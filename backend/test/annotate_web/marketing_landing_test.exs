@@ -26,6 +26,13 @@ defmodule AnnotateWeb.MarketingLandingTest do
     assert csp =~ "frame-ancestors 'none'"
     assert csp =~ "script-src 'self' 'unsafe-inline' https://cdn.derobot.is"
     assert get_resp_header(conn, "x-frame-options") == ["DENY"]
+
+    # The widget PUTs attachments to the presigned storage url: the storage
+    # origin must be allowed for XHR, not just for <img>.
+    storage = Annotate.Storage.public_origin()
+    assert is_binary(storage)
+    [connect_src] = Regex.run(~r/connect-src [^;]+/, csp)
+    assert connect_src =~ storage
   end
 
   test "GET / on the API host redirects to the marketing host", %{conn: conn} do

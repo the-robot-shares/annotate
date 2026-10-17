@@ -209,24 +209,48 @@ if config_env() == :prod do
           System.get_env("MAIL_FROM_ADDRESS", "noreply@annotate.local")}
 
   # ── Storage (S3/MinIO) ──────────────────────────────────────────
+  # S3_ENDPOINT may be a bare host[:port] or a full URL
+  # ("http://minio-service.infra.svc.cluster.local:9000"); ExAws wants scheme,
+  # host and port as separate keys, so split it here. Passing the URL straight
+  # through as :host produced "http://http:%3A//minio…" presigned URLs.
+  #
+  # S3_PUBLIC_ENDPOINT is the browser-reachable endpoint (e.g.
+  # "https://minio.noizu.com"). Presigned PUT/GET urls are handed to the
+  # browser, so they must be signed for that host — the in-cluster service
+  # name never resolves outside the cluster. Server-side calls keep using
+  # S3_ENDPOINT.
+  # Parsing lives in Annotate.Storage.Endpoint (unit-tested).
   if s3_bucket = System.get_env("S3_BUCKET") do
-    config :annotate, Annotate.Storage,
-      bucket: s3_bucket,
-      region: System.get_env("S3_REGION", "us-east-1"),
-      host: System.get_env("S3_ENDPOINT"),
-      scheme: System.get_env("S3_SCHEME", "https://"),
-      access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
-      secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY")
+    internal =
+      Annotate.Storage.Endpoint.parse(
+        System.get_env("S3_ENDPOINT"),
+        System.get_env("S3_SCHEME", "https://")
+      )
+
+    public = Annotate.Storage.Endpoint.parse(System.get_env("S3_PUBLIC_ENDPOINT"), "https://")
+
+    config :annotate,
+           Annotate.Storage,
+           [
+             bucket: s3_bucket,
+             region: System.get_env("S3_REGION", "us-east-1"),
+             scheme: System.get_env("S3_SCHEME", "https://"),
+             access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+             secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+             public: public
+           ]
+           |> Keyword.merge(internal)
 
     config :ex_aws,
       access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
       secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
       region: System.get_env("S3_REGION", "us-east-1"),
-      s3: [
-        scheme: System.get_env("S3_SCHEME", "https://"),
-        host: System.get_env("S3_ENDPOINT"),
-        region: System.get_env("S3_REGION", "us-east-1")
-      ]
+      s3:
+        [
+          scheme: System.get_env("S3_SCHEME", "https://"),
+          region: System.get_env("S3_REGION", "us-east-1")
+        ]
+        |> Keyword.merge(internal)
   end
 
   # ── SSO: OIDC ──────────────────────────────────────────────────
