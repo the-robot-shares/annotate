@@ -459,10 +459,7 @@ html.dark body {
   .app-dash-grid--home { grid-template-columns: 1fr; }
 }
 
-/* ── Floating auth (tobor-kit-style dropdown card) ────────────────────────
- * Chrome mirror of TRP's LoginDropdown: ~380px rounded card, opaque panel
- * so page art never bleeds through, heavy shadow to float it above content.
- * Tokens map: bg-panel → --surface (opaque), border-line2 → --border. */
+/* ── Navbar sign-in triggers (GithubAuth) ─────────────────────────────── */
 
 .sg-auth {
   position: relative;
@@ -470,56 +467,6 @@ html.dark body {
   align-items: center;
   gap: var(--space-1, 0.5rem);
 }
-
-.sg-auth__panel {
-  position: absolute;
-  top: calc(100% + var(--space-1, 0.5rem));
-  right: 0;
-  z-index: 50;
-  width: 380px;
-  max-width: calc(100vw - 2 * var(--space-2, 1rem));
-  padding: var(--space-3, 1.5rem);
-  border: var(--border-thin, 1px) solid var(--border, #ddd);
-  border-radius: 16px; /* rounded-2xl */
-  background: var(--surface, #fff); /* opaque: hero art must not bleed */
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); /* shadow-2xl */
-}
-
-.sg-auth__title {
-  margin: 0 0 var(--space-2, 1rem);
-  font-size: var(--font-size-xl, 1.25rem);
-  font-weight: 600;
-}
-
-.sg-auth__subtitle {
-  margin: 0 0 var(--space-2, 1rem);
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--text-secondary, #444);
-}
-
-.sg-auth__divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1, 0.5rem);
-  margin: var(--space-2, 1rem) 0;
-  font-size: var(--font-size-xs, 0.75rem);
-  color: var(--text-muted, #666);
-}
-
-.sg-auth__divider::before,
-.sg-auth__divider::after {
-  content: "";
-  flex: 1;
-  border-top: var(--border-thin, 1px) solid var(--border, #ddd);
-}
-
-.sg-auth__sso {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1, 0.5rem);
-}
-
-.sg-auth__sso .btn { width: 100%; justify-content: center; }
 
 .sg-auth__invite-note {
   margin: 0 0 var(--space-2, 1rem);
@@ -531,39 +478,23 @@ html.dark body {
   color: var(--text-secondary, #444);
 }
 
+
+/* tobor-kit <noizu-auth> sign-in modal (GithubAuth, variant "sg"), themed via
+ * its --auth-* tokens from the style-guide palette. */
+noizu-auth.annotate-auth--sg {
+  --auth-color: var(--text, #20232c);
+  --auth-muted: var(--text-secondary, #606575);
+  --auth-background: var(--surface, #fff);
+  --auth-border: var(--border, #dddfe5);
+  --auth-input-background: var(--surface-alt, #f1f2f5);
+  --auth-button-background: var(--surface-alt, #f1f2f5);
+  --auth-provider-background: #24292f;
+  --auth-provider-color: #fff;
+}
+
 .sg-auth__note {
   margin: var(--space-1, 0.5rem) 0 0;
   font-size: var(--font-size-xs, 0.75rem);
   color: var(--text-muted, #666);
 }
 
-.sg-auth__close {
-  position: absolute;
-  top: var(--space-1, 0.5rem);
-  right: var(--space-1, 0.5rem);
-  border: none;
-  background: transparent;
-  color: var(--text-muted, #666);
-  font-size: var(--font-size-lg, 1rem);
-  line-height: 1;
-  padding: var(--space-half, 0.25rem);
-  cursor: pointer;
-}
-
-.sg-auth__panel .sg-form,
-.sg-auth__panel .sg-stack { max-width: none; }
-
-@media (max-width: 640px) {
-  /* Small screens: the 380px card would clip — pin it to the viewport
-     edges instead of the trigger. */
-  .sg-auth__panel {
-    position: fixed;
-    top: auto;
-    right: var(--space-2, 1rem);
-    bottom: var(--space-2, 1rem);
-    left: var(--space-2, 1rem);
-    width: auto;
-    overflow-y: auto;
-    max-height: 80vh;
-  }
-}
