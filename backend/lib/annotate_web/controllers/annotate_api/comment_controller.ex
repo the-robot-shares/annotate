@@ -69,8 +69,19 @@ defmodule AnnotateWeb.AnnotateAPI.CommentController do
       else: {:error, :forbidden}
   end
 
+  # Visibility-gated BEFORE the author/moderator check: a comment in a thread
+  # the viewer may not read (staff_only) is 404, never 403 — no existence leak.
   defp comment_for(conn, params) do
-    case Comments.get_comment_for_site(params["id"], conn.assigns.annotate_site.id) do
+    site = conn.assigns.annotate_site
+
+    viewer =
+      Annotate.Embed.Visibility.viewer(
+        site,
+        conn.assigns[:annotate_commenter],
+        conn.assigns[:annotate_claims]
+      )
+
+    case Comments.get_visible_comment_for_site(params["id"], site.id, viewer) do
       %Annotate.Schema.Annotate.Comment{} = comment -> {:ok, comment}
       nil -> {:error, not_found(conn)}
     end

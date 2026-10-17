@@ -22,7 +22,8 @@ defmodule Annotate.Sites do
   # Dashboard-editable keys, split by required role (see `update_site_display/2`
   # vs `update_site_security/2`). Anything else in the input is ignored.
   @display_settings_keys ~w(public_read page_key_strategy max_upload_mb default_visibility)
-  @security_policy_keys ~w(required_groups allowed_email_domains allow_anonymous trust_host_roles)
+  @security_policy_keys ~w(required_groups allowed_email_domains allow_anonymous trust_host_roles read_visibility)
+  @read_visibilities ~w(public staff_only)
   @page_key_strategies ~w(strip_query_hash)
   @max_origins 20
 
@@ -164,6 +165,9 @@ defmodule Annotate.Sites do
       {k, v}, {:ok, acc} when k in ["allow_anonymous", "trust_host_roles"] and is_boolean(v) ->
         {:cont, {:ok, Map.put(acc, k, v)}}
 
+      {"read_visibility", v}, {:ok, acc} when v in @read_visibilities ->
+        {:cont, {:ok, Map.put(acc, "read_visibility", v)}}
+
       {k, v}, {:ok, acc} when k in ["required_groups", "allowed_email_domains"] and is_list(v) ->
         list =
           v |> Enum.filter(&is_binary/1) |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
@@ -252,6 +256,21 @@ defmodule Annotate.Sites do
       _ -> :public
     end
   end
+
+  @doc """
+  Who may read comments (`comment_policy["read_visibility"]`, OWNER-only
+  security setting): `:public` (default — every reader sees every thread) or
+  `:staff_only` (team members see everything; everyone else sees only the
+  threads they started, with all replies). Enforced server-side by
+  `Annotate.Embed.Visibility`.
+  """
+  def read_visibility(%Site{comment_policy: %{"read_visibility" => "staff_only"}}),
+    do: :staff_only
+
+  def read_visibility(_), do: :public
+
+  @doc "True when the site restricts reading to staff (+ own threads)."
+  def staff_only?(site), do: read_visibility(site) == :staff_only
 
   @doc """
   Per-site opt-in for trusting a host-asserted `team_role` claim

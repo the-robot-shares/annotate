@@ -28,5 +28,7 @@ Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/em
 | T-22 | Low | Self-serve site creation abuse; commands not rate-limited | Partial |
 | T-23 | Info | Untrusted strings in Hologram hydration state | Mitigated (inbox) |
 | T-24 | Med | OAuth login CSRF / cookie scope | Mitigated |
+| T-25 | High | staff_only read visibility on every path incl. realtime | Mitigated (residual: host-asserted staff = host trust) |
+| T-26 | Low | `/me` permission endpoint (no PII, live) | Mitigated |
 
 Full doc: [THREAT-MODEL.md](THREAT-MODEL.md).
