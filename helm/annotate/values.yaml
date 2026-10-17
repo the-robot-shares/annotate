@@ -70,10 +70,12 @@ secrets:
     sendgridApiKey: ""
     oidcClientId: ANNOTATE_OIDC_CLIENT_ID
     oidcClientSecret: ANNOTATE_OIDC_CLIENT_SECRET
-    # MinIO bucket `annotate` scoped user (monorepo kubernetes/init
-    # annotate-minio.tf), same wiring as timely.
-    awsAccessKeyId: AWS_ACCESS_KEY_ID
-    awsSecretAccessKey: AWS_SECRET_ACCESS_KEY
+    # App-scoped key for the dedicated annotate MinIO (`files:` below) —
+    # bucket `annotate` only. The legacy shared-MinIO pair (AWS_ACCESS_KEY_ID /
+    # AWS_SECRET_ACCESS_KEY, monorepo kubernetes/init annotate-minio.tf) stays
+    # in the Secret as the rollback path; point these back at it to revert.
+    awsAccessKeyId: ANNOTATE_FILES_ACCESS_KEY_ID
+    awsSecretAccessKey: ANNOTATE_FILES_SECRET_ACCESS_KEY
     googleClientId: ""
     googleClientSecret: ""
     facebookClientId: ""
@@ -177,20 +179,59 @@ otel:
   serviceVersion: ""
 
 storage:
-  # MinIO bucket `annotate` + scoped IAM user provisioned by Terraform:
-  # terraform/kubernetes/init/annotate-minio.tf (monorepo). Credentials come
-  # from the Infisical /apps/annotate section (AWS_ACCESS_KEY_ID /
-  # AWS_SECRET_ACCESS_KEY), synced into annotate-secrets by the InfisicalSecret
-  # CRD. Same wiring as tracktimo/timely.
+  # Bucket `annotate` on the dedicated annotate MinIO (`files:` below).
+  # Credentials: ANNOTATE_FILES_ACCESS_KEY_ID / ANNOTATE_FILES_SECRET_ACCESS_KEY
+  # in /apps/annotate (synced into annotate-secrets).
   enabled: true
   bucket: "annotate"
   region: "us-east-1"
-  endpoint: "http://minio-service.infra.svc.cluster.local:9000"
+  # In-cluster endpoint for server-side calls (media get/put, deletes).
+  endpoint: "http://annotate-files.apps.svc.cluster.local:9000"
   scheme: "http://"
   # Browser-reachable endpoint presigned upload/download urls are signed for
   # (the widget PUTs attachments straight to it). The in-cluster endpoint
   # above never resolves from a browser. Empty = sign for `endpoint`.
-  publicEndpoint: "https://minio.noizu.com"
+  publicEndpoint: "https://annotate-files.therobotlives.com"
+
+# Dedicated single-node MinIO for annotate (replaces the shared
+# minio.noizu.com bucket). S3 API only, at `files.host` behind Cloudflare
+# (single-level subdomain so the *.therobotlives.com edge + origin certs cover
+# it). Console is disabled (MINIO_BROWSER=off) and never exposed.
+# Root creds + the app key pair come from Infisical /apps/annotate-files
+# (synced into `files.secretName` by templates/files-infisical-secret.yaml).
+# The files-bootstrap Sync hook creates the bucket (private, no anonymous
+# policy) and the bucket-scoped app user before the app rolls.
+files:
+  enabled: true
+  host: annotate-files.therobotlives.com
+  image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+  # quay.io 401s fresh anonymous pulls: pin to the node with the image cached
+  # (same pin as the shared MinIO and app-valkey).
+  nodeSelector:
+    kubernetes.io/hostname: noizu-server
+  secretName: annotate-files-secrets
+  infisicalPath: /apps/annotate-files
+  # Presigned urls are the only access path (private bucket), so CORS is
+  # open to any origin: the widget uploads from arbitrary embedding sites.
+  # Same as the shared MinIO's default (cors_allow_origin=*).
+  corsAllowOrigin: "*"
+  appPolicyName: annotate-app
+  persistence:
+    size: 20Gi
+    storageClass: longhorn
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  ingress:
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
 
 autoscaling:
   enabled: false

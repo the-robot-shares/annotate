@@ -275,3 +275,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
       key: {{ .Values.secrets.keys.awsSecretAccessKey | default "AWS_SECRET_ACCESS_KEY" }}
 {{- end }}
 {{- end }}
+
+{{/* Distinct name so the app Service/PDB selectors (annotate.selectorLabels)
+never match the MinIO pod. */}}
+{{- define "annotate.filesSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "annotate.name" . }}-files
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: files
+{{- end }}

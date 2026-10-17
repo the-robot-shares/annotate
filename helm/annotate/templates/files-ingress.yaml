@@ -1,0 +1,33 @@
+{{- if and .Values.files.enabled .Values.ingress.enabled }}
+# Public S3 API host for presigned upload/download urls. Cloudflare-only
+# source range like the app ingress; same *.therobotlives.com TLS secret.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "annotate.fullname" . }}-files
+  labels:
+    {{- include "annotate.labels" . | nindent 4 }}
+    app.kubernetes.io/component: files
+  annotations:
+    {{- toYaml .Values.files.ingress.annotations | nindent 4 }}
+    {{- if .Values.ingress.cloudflareOnly }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: {{ include "annotate.cloudflareWhitelist" . | quote }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+  - hosts:
+    - {{ .Values.files.host }}
+    secretName: {{ .Values.tls.secretName }}
+  rules:
+  - host: {{ .Values.files.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "annotate.fullname" . }}-files
+            port:
+              number: 9000
+{{- end }}

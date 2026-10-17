@@ -1,0 +1,89 @@
+{{- if .Values.files.enabled }}
+# Idempotent bucket + app-user bootstrap for the dedicated annotate MinIO.
+# ArgoCD Sync hook at wave -1: runs after the MinIO Deployment (wave -2) is
+# healthy and before the app Deployment (wave 0) rolls onto it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "annotate.fullname" . }}-files-bootstrap
+  labels:
+    {{- include "annotate.labels" . | nindent 4 }}
+    app.kubernetes.io/component: files-bootstrap
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "annotate.name" . }}-files-bootstrap
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.files.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: mc
+        # The MinIO server image ships /usr/bin/mc (cache-warm on the pinned node).
+        image: {{ .Values.files.image }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          ep="http://{{ include "annotate.fullname" . }}-files.{{ .Release.Namespace }}.svc.cluster.local:9000"
+          until mc alias set files "$ep" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+            echo 'Waiting for MinIO...'; sleep 5
+          done
+          mc mb --ignore-existing files/{{ .Values.storage.bucket }}
+          # Private bucket: presigned urls only, no anonymous read/list.
+          mc anonymous set none files/{{ .Values.storage.bucket }}
+          cat > /tmp/policy.json <<'JSON'
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": ["s3:GetBucketLocation", "s3:ListBucket", "s3:ListBucketMultipartUploads"],
+                "Resource": ["arn:aws:s3:::{{ .Values.storage.bucket }}"]
+              },
+              {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+                "Resource": ["arn:aws:s3:::{{ .Values.storage.bucket }}/*"]
+              }
+            ]
+          }
+          JSON
+          mc admin policy create files {{ .Values.files.appPolicyName }} /tmp/policy.json >/dev/null
+          mc admin user add files "$APP_ACCESS_KEY_ID" "$APP_SECRET_ACCESS_KEY" >/dev/null
+          mc admin policy attach files {{ .Values.files.appPolicyName }} --user "$APP_ACCESS_KEY_ID" >/dev/null 2>&1 || true
+          # No grep in the minio image: check the attachment with a shell case.
+          info="$(mc admin user info files "$APP_ACCESS_KEY_ID")"
+          case "$info" in
+            *{{ .Values.files.appPolicyName }}*) ;;
+            *) echo 'app policy not attached'; exit 1 ;;
+          esac
+          echo 'annotate-files bucket + scoped app user ready.'
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef: { name: {{ .Values.files.secretName }}, key: MINIO_ROOT_USER }
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef: { name: {{ .Values.files.secretName }}, key: MINIO_ROOT_PASSWORD }
+        - name: APP_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef: { name: {{ .Values.files.secretName }}, key: ANNOTATE_APP_ACCESS_KEY_ID }
+        - name: APP_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef: { name: {{ .Values.files.secretName }}, key: ANNOTATE_APP_SECRET_ACCESS_KEY }
+        resources:
+          requests: { cpu: 10m, memory: 32Mi }
+          limits: { memory: 128Mi }
+{{- end }}
