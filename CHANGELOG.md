@@ -4,6 +4,7 @@ All notable changes to `annotate.therobotlives.com`.
 
 ## 2026-10-17
 
+- fix(landing): Hologram's client boot (`history.replaceState(id, null, location.pathname)`, hologram 0.10.1) dropped the query string and hash of every landing URL, losing `?tab=…` page identity and `#annotate=<id>` deep links. New `priv/static/js/keep-location.js` (loaded before the runtime, one-shot) re-appends them; widget pinned to tobor-kit `sha-6905686` which also restores the boot-time location itself (tobor-kit#101).
 - fix(security): T-03 follow-up - rate limits were effectively keyed by Cloudflare edge IP (fresh connections landed on different edges, so per-client limits did not hold). Opt-in `RATE_LIMIT_CLIENT_IP_HEADER` (`cf-connecting-ip`) now supplies the client IP when valid, falling back to the XFF logic; the chart enables it only when `ingress.cloudflareOnly` (Cloudflare-only whitelist-source-range). Tests in `rate_limit_test.exs`.
 - chore(landing): pin dogfood widget CDN to tobor-kit `sha-74079d0` (anchor v2 / query matching / deep links, tobor-kit#97).
 - devbox: dev-only `/embed/dev-login` (name+email -> same token pair as `/embed/callback`), compiled in only for `MIX_ENV=dev` (router + controller behind `Mix.env() == :dev`; `dev_login_test.exs` pins it absent in test/prod); cluster-mode MinIO forward repointed to the dedicated `annotate-files` service (`ANNOTATE_FILES_*` keys, #48); `scripts/devbox cluster-site` for the single additive devbox-site insert.
