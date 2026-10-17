@@ -134,10 +134,16 @@ config :annotate, :marketing,
   api_host: "annotate-srv.therobotlives.com",
   api_base: "https://annotate-srv.therobotlives.com",
   widget_src:
-    "https://cdn.derobot.is/tobor-kit/sha-eb1ebf97b6f0a058f15aea55b50e29cfd4c34e09/components/page-comments/page-comments.js",
+    "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js",
   dogfood_site: "annotate-landing"
 
 # i18n
 config :annotate, AnnotateWeb.Gettext, default_locale: "en"
+
+# ExAws defaults to hackney, which is not a dependency here (req is): without
+# this every server-side S3 call (delete_object, media fetch/variants) raised
+# UndefinedFunctionError ExAws.Request.Hackney.request/5. Presigned urls are
+# signed locally and were unaffected.
+config :ex_aws, http_client: ExAws.Request.Req
 
 import_config "#{config_env()}.exs"
