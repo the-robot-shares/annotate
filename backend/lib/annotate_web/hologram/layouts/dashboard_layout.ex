@@ -13,7 +13,7 @@ defmodule AnnotateWeb.Hologram.Layouts.DashboardLayout do
   prop :page_title, :string, default: "annotate — dashboard"
 
   def init(_props, component, _server) do
-    put_state(component, [])
+    put_state(component, dashboard_css: AnnotateWeb.Assets.versioned("/css/dashboard.css"))
   end
 
   def template do
@@ -31,7 +31,7 @@ defmodule AnnotateWeb.Hologram.Layouts.DashboardLayout do
         <title>{@page_title}</title>
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
-        <link rel="stylesheet" href="/css/dashboard.css" />
+        <link rel="stylesheet" href={@dashboard_css} />
         <Hologram.UI.Runtime />
       </head>
       <body>

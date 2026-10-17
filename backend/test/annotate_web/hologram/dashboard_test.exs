@@ -246,6 +246,7 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
       assert html =~ "No sites yet"
       assert html =~ "Create your first site"
       assert html =~ "<noizu-footer-brand"
+      assert html =~ "/css/site-footer.css?v="
       assert html =~ ~s(data-cy="footer-terms")
 
       user = Repo.get_by!(Annotate.Schema.Users.User, email: "h1@example.com")
@@ -258,6 +259,9 @@ defmodule AnnotateWeb.Hologram.DashboardTest do
 
       html = conn |> recycle() |> get("/dashboard") |> html_response(200)
       assert html =~ "/dashboard/sites/delta"
+      # sites exist -> the button says "Add site"; empty-state copy is gone
+      assert html =~ ~r{data-cy="dsh-add-site">Add site</button>}
+      refute html =~ "Create your first site"
 
       page = conn |> recycle() |> get("/dashboard/sites/delta") |> html_response(200)
 

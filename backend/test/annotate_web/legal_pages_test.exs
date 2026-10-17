@@ -75,8 +75,33 @@ defmodule AnnotateWeb.SiteFooterTest do
       assert body =~ "components/footer-brand/noizu-footer-brand.js"
       assert body =~ ~s(data-cy="footer-privacy")
       assert body =~ ~s(data-cy="footer-terms")
+      # self-styled: cache-busted own stylesheet, so no host sheet has to carry the rules
+      assert body =~ ~r/<link rel="stylesheet" href="\/css\/site-footer\.css\?v=[0-9a-f]{8}"/
       refute body =~ ~s(href="/sitemap")
       refute body =~ ~r/AI[- ]generated/i
+    end
+  end
+end
+
+defmodule AnnotateWeb.SiteFooterCssTest do
+  use ExUnit.Case, async: true
+
+  @css Path.expand("../../priv/static/css/site-footer.css", __DIR__)
+
+  test "footer sheet exists and styles the row, links and brand" do
+    css = File.read!(@css)
+    assert css =~ ".nd-site-footer__inner"
+    assert css =~ "justify-content: space-between"
+    assert css =~ "flex-wrap: wrap"
+    assert css =~ "text-decoration: none"
+    assert css =~ ".nd-site-footer__links a:hover"
+    assert css =~ "@media (max-width: 560px)"
+  end
+
+  test "host sheets no longer duplicate the footer rules" do
+    for sheet <- ["landing.css", "dashboard.css"] do
+      css = File.read!(Path.expand("../../priv/static/css/" <> sheet, __DIR__))
+      refute css =~ ".nd-site-footer__links a {"
     end
   end
 end
