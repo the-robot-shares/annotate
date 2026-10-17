@@ -18,14 +18,26 @@ defmodule AnnotateWeb.Router do
     # with no indication it was a timeout rather than an attack. This cookie
     # carries flow state, never credentials, so 900s is not a
     # credential-lifetime decision.
-    plug Plug.Session,
-      store: :cookie,
-      key: "_annotate_sso",
-      signing_salt: "sso_session_salt",
-      same_site: "Lax",
-      max_age: 900
-
+    plug AnnotateWeb.Plugs.SsoSession
     plug :fetch_session
+  end
+
+  # GitHub-only deployments (Annotate.Auth.LoginMethods) refuse every other
+  # sign-in family at the route, not just in the UI.
+  pipeline :password_login do
+    plug AnnotateWeb.Plugs.RequireLoginMethod, method: "password"
+  end
+
+  pipeline :oidc_login do
+    plug AnnotateWeb.Plugs.RequireLoginMethod, method: "oidc"
+  end
+
+  pipeline :saml_login do
+    plug AnnotateWeb.Plugs.RequireLoginMethod, method: "saml"
+  end
+
+  pipeline :oauth_login do
+    plug AnnotateWeb.Plugs.RequireLoginMethod, from_param: "provider"
   end
 
   pipeline :rate_limited_auth do
@@ -81,9 +93,13 @@ defmodule AnnotateWeb.Router do
   end
 
   scope "/api/v1", AnnotateWeb do
-    pipe_through [:api, :rate_limited_auth]
+    pipe_through [:api, :password_login, :rate_limited_auth]
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
+  end
+
+  scope "/api/v1", AnnotateWeb do
+    pipe_through [:api, :rate_limited_auth]
     post "/auth/refresh", AuthController, :refresh
     get "/consent/cookies", ConsentController, :show
     put "/consent/cookies", ConsentController, :update
@@ -94,7 +110,7 @@ defmodule AnnotateWeb.Router do
   end
 
   scope "/api/v1", AnnotateWeb do
-    pipe_through [:api, :rate_limited_sensitive]
+    pipe_through [:api, :password_login, :rate_limited_sensitive]
     post "/auth/magic-link", AuthController, :request_magic_link
     post "/auth/magic-link/verify", AuthController, :verify_magic_link
     post "/auth/otp-login", AuthController, :request_otp_login
@@ -107,7 +123,6 @@ defmodule AnnotateWeb.Router do
   scope "/api/v1", AnnotateWeb do
     pipe_through [:api, :authenticated]
     get "/auth/me", AuthController, :me
-    post "/auth/verify-email", AuthController, :send_verification
     get "/users/me", UserController, :show
     patch "/users/me", UserController, :update
     post "/users/me/complete-registration", UserController, :complete_registration
@@ -115,6 +130,11 @@ defmodule AnnotateWeb.Router do
     post "/media/presign", MediaController, :presign
     post "/media/download", MediaController, :download
     post "/media/register", MediaController, :register
+  end
+
+  scope "/api/v1", AnnotateWeb do
+    pipe_through [:api, :password_login, :authenticated]
+    post "/auth/verify-email", AuthController, :send_verification
   end
 
   # Redeem an invite as a signed-in user (the /auth/invite-required
@@ -150,20 +170,20 @@ defmodule AnnotateWeb.Router do
 
   # SAML 2.0 (Samly handles assertion consumer service, metadata, etc.)
   scope "/sso/saml" do
-    pipe_through [:sso_session]
+    pipe_through [:saml_login, :sso_session]
     forward "/", Samly.Router
   end
 
   # OIDC redirect flow
   scope "/auth/oidc", AnnotateWeb do
-    pipe_through [:sso_session]
+    pipe_through [:oidc_login, :sso_session]
     get "/", SSOController, :oidc_init
     get "/callback", SSOController, :oidc_callback
   end
 
   # Social OAuth (ueberauth handles request + callback)
   scope "/auth", AnnotateWeb do
-    pipe_through [:sso_session]
+    pipe_through [:oauth_login, :sso_session]
     get "/:provider", SSOController, :oauth_request
     get "/:provider/callback", SSOController, :oauth_callback
   end

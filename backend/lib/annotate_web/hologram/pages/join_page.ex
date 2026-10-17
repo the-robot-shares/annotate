@@ -14,6 +14,7 @@ defmodule AnnotateWeb.Hologram.Pages.JoinPage do
 
   route "/join/:token"
   layout MainLayout, page_title: "Join"
+  middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   def init(params, component, _server) do
     catalog = Auth.sso_catalog()

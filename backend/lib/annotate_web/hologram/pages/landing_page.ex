@@ -10,6 +10,8 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
 
   use Hologram.Page
 
+  alias AnnotateWeb.Hologram.Components.GithubAuth
+
   alias AnnotateWeb.Hologram.Layouts.LandingLayout
 
   route "/"
@@ -38,6 +40,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
         <button type="button" class="nd-btn nd-btn--primary nd-btn--sm nd-nav__cta" $click="try_it">
           Try it on this page
         </button>
+        <GithubAuth cid="landing_github_auth" variant="nd" />
       </div>
     </header>
 

@@ -11,6 +11,7 @@ defmodule AnnotateWeb.Hologram.Pages.ForgotPasswordPage do
 
   route "/forgot-password"
   layout MainLayout, page_title: "Forgot Password"
+  middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
   def init(_params, component, _server) do
