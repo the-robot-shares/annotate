@@ -22,6 +22,9 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
     ga_id = AnnotateWeb.Analytics.for_server(server)
 
     put_state(component,
+      ga_css: AnnotateWeb.Assets.versioned("/css/ga-consent.css"),
+      ga_js: AnnotateWeb.Assets.versioned("/js/ga-init.js"),
+      landing_css: AnnotateWeb.Assets.versioned("/css/landing.css"),
       ga_id: ga_id,
       host: marketing_host(),
       theme_color: AnnotateWeb.SEO.theme_color(),
@@ -60,10 +63,10 @@ defmodule AnnotateWeb.Hologram.Layouts.LegalLayout do
         <meta name="twitter:description" content={@description} />
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
-        <link rel="stylesheet" href="/css/landing.css" />
+        <link rel="stylesheet" href={@landing_css} />
         {%if @ga_id}
-          <link rel="stylesheet" href="/css/ga-consent.css" />
-          <script src="/js/ga-init.js" data-ga-id={@ga_id}></script>
+          <link rel="stylesheet" href={@ga_css} />
+          <script src={@ga_js} data-ga-id={@ga_id}></script>
         {/if}
         <Hologram.UI.Runtime />
       </head>

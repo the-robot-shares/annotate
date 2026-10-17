@@ -1,0 +1,7 @@
+{
+  "name": "annotate-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test ga-consent.e2e.mjs" },
+  "devDependencies": { "playwright-core": "^1.49.0" }
+}

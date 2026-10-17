@@ -66,42 +66,67 @@
   });
 
   function banner() { return document.getElementById("ga-consent"); }
-  function show() { var b = banner(); if (b) { b.hidden = false; b.removeAttribute("hidden"); } }
+  var reopened = false;
+  function show() {
+    var b = banner();
+    if (b) { b.hidden = false; b.removeAttribute("hidden"); }
+  }
   function hide() { var b = banner(); if (b) b.hidden = true; }
 
-  function choose(v) { write(v); apply(v); hide(); }
+  function choose(v) { reopened = false; write(v); apply(v); hide(); }
 
   function addSettingsLink() {
-    if (document.getElementById("ga-consent-open")) return;
+    if (!document.body || document.getElementById("ga-consent-open")) return;
     var btn = document.createElement("button");
     btn.type = "button";
     btn.id = "ga-consent-open";
     btn.className = "ga-consent-open";
     btn.textContent = "Cookie settings";
-    btn.addEventListener("click", show);
     var links = document.querySelector(".nd-site-footer__links");
     if (links) links.appendChild(btn);
     else { btn.className += " ga-consent-open--float"; document.body.appendChild(btn); }
   }
 
-  function ready() {
-    var b = banner();
-    if (b) {
-      b.addEventListener("click", function (e) {
-        var t = e.target.closest ? e.target.closest("[data-ga-consent]") : null;
-        if (t) choose(t.getAttribute("data-ga-consent") === "accept" ? "granted" : "denied");
-      });
+  // Hologram hydrates AFTER this script runs and replaces the body's nodes, so
+  // per-node listeners are lost. Delegate from `document` (survives any
+  // re-render) and re-assert state whenever the DOM changes.
+  document.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target : (e.target && e.target.parentElement);
+    if (!t || !t.closest) return;
+    var c = t.closest("[data-ga-consent]");
+    if (c && c.closest("#ga-consent")) {
+      e.preventDefault();
+      choose(c.getAttribute("data-ga-consent") === "accept" ? "granted" : "denied");
+      return;
     }
+    if (t.closest("#ga-consent-open")) { e.preventDefault(); reopened = true; show(); }
+  }, true);
+
+  function ensure() {
     addSettingsLink();
+    var b = banner();
+    if (!b) return;
+    var want = reopened || !read();
+    if (want && b.hidden) show();
+    if (!want && !b.hidden) hide();
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    setTimeout(function () { queued = false; ensure(); }, 50);
+  }
+
+  function ready() {
     var stored = read();
-    if (stored) apply(stored); else show();
+    if (stored) apply(stored);
+    ensure();
+    if (window.MutationObserver) {
+      new window.MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready);
   else ready();
-  // Hologram hydration can re-mount the body after first paint; re-attach once.
-  window.addEventListener("load", function () { setTimeout(function () {
-    if (!document.getElementById("ga-consent-open")) addSettingsLink();
-    if (!read() && banner() && banner().hidden) show();
-  }, 300); });
 })();
