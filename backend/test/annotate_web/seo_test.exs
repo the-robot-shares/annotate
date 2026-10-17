@@ -96,8 +96,9 @@ defmodule AnnotateWeb.SEOTest do
       assert body =~ "[Privacy Policy](https://#{@host}/privacy)"
       assert body =~ "[Terms of Service](https://#{@host}/terms)"
       assert body =~ "llms-full.txt"
-      assert body =~ "planned, not available"
-      assert body =~ "no MCP server"
+      assert body =~ "Not shipped yet"
+      assert body =~ "in development"
+      assert body =~ "no MCP server yet"
     end
 
     test "llm.txt alias is byte-identical to llms.txt", %{conn: conn} do

@@ -49,14 +49,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
 
       {%if @sites == [] && !@show_form}
         <section class="dsh-panel" data-cy="dsh-empty">
-          <h2 class="dsh-panel__title">Add your first site</h2>
+          <h2 class="dsh-panel__title">No sites yet</h2>
           <div class="dsh-panel__body">
             <p class="dsh-hint">
-              Name it, list the exact origins the widget will run on, and you get a
-              site code and an embed snippet to paste into your pages.
+              Create a site to get its service key and embed snippet. Keys are bound
+              to the origins you register.
             </p>
             <div class="dsh-actions">
-              <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Add site</button>
+              <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Create your first site</button>
             </div>
           </div>
         </section>
@@ -97,7 +97,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
             </table>
             {%if !@show_form}
               <div class="dsh-actions">
-                <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Add site</button>
+                <button type="button" class="dsh-btn dsh-btn--primary" $click={:show_form} data-cy="dsh-add-site">Create your first site</button>
               </div>
             {/if}
           </div>

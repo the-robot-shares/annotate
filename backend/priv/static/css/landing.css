@@ -663,19 +663,10 @@ a:hover {
   .nd-snippet {
     grid-template-columns: 1fr;
   }
-  /* IA.md mobile bento order: ring, threads, screenshot+annotate, rail,
-     attachments, live, rules */
   .nd-bento {
     display: flex;
     flex-direction: column;
   }
-  .nd-bento .nd-tile:nth-child(1) { order: 4; } /* anchored rail */
-  .nd-bento .nd-tile:nth-child(2) { order: 1; } /* ring highlight */
-  .nd-bento .nd-tile:nth-child(3) { order: 2; } /* threads */
-  .nd-bento .nd-tile:nth-child(4) { order: 5; } /* attachments */
-  .nd-bento .nd-tile:nth-child(5) { order: 3; } /* screenshot + annotate */
-  .nd-bento .nd-tile:nth-child(6) { order: 6; } /* live updates */
-  .nd-bento .nd-tile:nth-child(7) { order: 7; } /* rules + SSO */
 }
 @media (max-width: 640px) {
   .nd-tile--third,
@@ -688,8 +679,270 @@ a:hover {
   body {
     font-size: 16px;
   }
+  /* The hero carries the same CTA; the bar only has room for brand + auth. */
   .nd-nav__cta {
-    margin-left: auto;
+    display: none;
+  }
+  .nd-nav__inner {
+    gap: var(--nd-space-2);
+    padding: 0 var(--nd-space-2);
+  }
+  .nd-nav__brand {
+    margin-right: auto;
+  }
+}
+
+/* ── Hero art: soft 1.7x upscale, never wider than ~1100px ───── */
+.nd-hero__art img {
+  max-width: 1100px;
+}
+
+.nd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Status chips ────────────────────────────────────────────── */
+.nd-chip {
+  display: inline-block;
+  font-family: var(--nd-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--nd-fog);
+  color: var(--nd-text-secondary);
+  background: transparent;
+  white-space: nowrap;
+}
+.nd-chip--live {
+  color: var(--nd-ember-bright);
+  border-color: rgba(251, 146, 60, 0.55);
+  background: rgba(249, 115, 22, 0.1);
+}
+.nd-chip--dev {
+  color: var(--nd-text-primary);
+  border-color: var(--nd-text-dim);
+  border-style: dashed;
+}
+.nd-chip--planned {
+  color: var(--nd-text-secondary);
+  border-color: var(--nd-mist);
+}
+
+/* ── The loop (5 steps) ──────────────────────────────────────── */
+.nd-loop {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--nd-space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: nd-step;
+}
+.nd-loop .nd-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--nd-space-3) var(--nd-space-2);
+}
+.nd-loop .nd-step h3 {
+  font-size: 18px;
+}
+.nd-loop .nd-step p {
+  font-size: 15px;
+  margin-bottom: var(--nd-space-2);
+}
+.nd-loop .nd-chip {
+  margin-top: auto;
+}
+.nd-footnote {
+  margin: var(--nd-space-3) 0 0;
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+  max-width: 70ch;
+}
+
+/* ── For agents ──────────────────────────────────────────────── */
+.nd-agents {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--nd-space-4);
+  align-items: start;
+}
+.nd-agents__copy p {
+  margin: 0 0 var(--nd-space-2);
+  max-width: 62ch;
+}
+.nd-agents__copy .nd-chip {
+  margin-right: 8px;
+}
+.nd-agents__status {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  padding: var(--nd-space-3);
+  list-style: none;
+  margin: 0;
+}
+.nd-agents__status li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--nd-space-2);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--nd-mist);
+  font-size: 15px;
+}
+.nd-agents__status li:last-child {
+  border-bottom: 0;
+}
+
+/* ── Integrations roster ─────────────────────────────────────── */
+.nd-roster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--nd-space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--nd-space-3);
+}
+.nd-roster li {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  padding: var(--nd-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.nd-roster h3 {
+  font-size: 19px;
+  font-weight: 400;
+  margin: 0;
+  color: var(--nd-text-primary);
+}
+.nd-roster p {
+  margin: 0;
+  font-size: 15px;
+}
+.nd-roster a {
+  color: var(--nd-ember-bright);
+  font-size: 15px;
+  margin-top: auto;
+}
+
+/* ── Waitlist ────────────────────────────────────────────────── */
+.nd-waitlist {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  padding: var(--nd-space-4);
+  max-width: 720px;
+}
+.nd-waitlist__legend {
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+  margin: 0 0 var(--nd-space-1);
+  padding: 0;
+}
+.nd-waitlist fieldset {
+  border: 0;
+  margin: 0 0 var(--nd-space-3);
+  padding: 0;
+}
+.nd-waitlist__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.nd-waitlist__opts label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--nd-text-primary);
+  cursor: pointer;
+}
+.nd-waitlist__opts input {
+  accent-color: var(--nd-ember);
+  width: 18px;
+  height: 18px;
+}
+.nd-waitlist__row {
+  display: flex;
+  gap: var(--nd-space-1);
+  flex-wrap: wrap;
+}
+.nd-waitlist input[type="email"] {
+  flex: 1 1 260px;
+  min-width: 0;
+  background: var(--nd-void);
+  color: var(--nd-text-bright);
+  border: 1px solid var(--nd-fog);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px;
+}
+.nd-waitlist input[type="email"]:focus-visible,
+.nd-waitlist__opts input:focus-visible {
+  outline: 2px solid var(--nd-ember-bright);
+  outline-offset: 2px;
+}
+.nd-waitlist__msg {
+  min-height: 1.4em;
+  margin: var(--nd-space-1) 0 0;
+  font-size: 15px;
+  color: #fca5a5;
+}
+.nd-waitlist__note {
+  margin: var(--nd-space-1) 0 0;
+  font-size: 14px;
+  color: var(--nd-text-secondary);
+}
+.nd-waitlist__done {
+  outline: none;
+}
+.nd-waitlist__done h3 {
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--nd-text-bright);
+  margin: 0 0 8px;
+}
+.nd-waitlist__done p {
+  margin: 0;
+}
+/* honeypot: off-screen, not display:none (bots skip hidden inputs) */
+.nd-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .nd-loop {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .nd-agents {
+    grid-template-columns: 1fr;
+  }
+  .nd-roster {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .nd-loop,
+  .nd-roster {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -5,6 +5,8 @@ defmodule AnnotateWeb.Plugs.RateLimit do
   @default_limits %{
     auth: {10, 60_000},
     auth_sensitive: {5, 60_000},
+    # Landing waitlist form (public, unauthenticated).
+    waitlist: {5, 60_000},
     # Annotate embed API writes (threads/comments/attachments/token endpoints).
     # Reads pass through uncounted — only write methods consume budget.
     annotate_write: {60, 60_000}

@@ -1,0 +1,27 @@
+databaseChangeLog:
+  # ── Annotate: landing waitlist (additive only) ─────────────────────
+  # One row per (email, interest): the "coming soon" CTAs on the landing page
+  # (MCP / agent tools, ticket integrations) capture an email plus the
+  # integrations the visitor wants to hear about. Idempotent re-submits hit
+  # the unique key and are ignored. Email is citext (case-insensitive).
+  # id 0046: 0033-0036 reserved, 0037-0040 site-members, 0041-0045 used.
+
+  - changeSet:
+      id: annotate-0046-create-table-waitlist-signups
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE waitlist_signups (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                email citext NOT NULL,
+                interest text NOT NULL,
+                source text NOT NULL DEFAULT 'landing',
+                created_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT waitlist_signups_email_interest_key UNIQUE (email, interest),
+                CONSTRAINT waitlist_signups_email_len CHECK (char_length(email::text) <= 254)
+              );
+              CREATE INDEX waitlist_signups_interest_idx ON waitlist_signups (interest);
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS waitlist_signups;
