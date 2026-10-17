@@ -86,8 +86,24 @@ now sends both spellings and the widget accepts both. The payload JSON is
 encoded `html_safe` (`/` escaped) so no field can close the inline script
 (T-07).
 
-Widget listens for the message and keeps the tokens in memory (access 15 min;
-refresh 30 days, single-use rotation via `POST /api/v1/token/refresh`).
+Widget listens for the message. The **access** token (15 min) stays in
+memory only. The **refresh** token (30 days, fixed server-side in
+`RefreshTokens.ttl_days/0`; single-use rotation) is persisted by tobor-kit ≥
+1.0.3 so sign-in survives a reload (THREAT-MODEL T-36):
+
+| Concern | Behaviour |
+|---|---|
+| Storage | `localStorage["noizu-annotate:refresh:v1:<api-origin>\|<site>"] = {"rt": …, "at": …}`, one key per (api-base, site); `auth-storage="memory"` on `<noizu-page-comments>` opts out |
+| Page load | stored token ⇒ `POST /api/v1/token/refresh?site=<slug>` (JSON body `{"refresh_token"}`, page `Origin`) ⇒ signed in; any 4xx (`invalid_refresh_token`, `origin_mismatch`, `policy_violation`) clears it and renders signed out with no error; network/5xx keeps it for the next load |
+| Rotation | every refresh returns a new refresh token (+ `expires_at`, ms); the widget writes it back before releasing its lock and re-arms a timer one minute before access expiry |
+| Multiple tabs | rotations run under a Web Lock named after the storage key and re-read storage inside it, so no tab presents a token another tab already rotated; without Web Locks a 401 re-reads storage once and retries. `storage` events: key removed ⇒ this tab signs out; key appears while signed out ⇒ this tab refreshes silently |
+| Reuse detection | a rotated token presented again more than 10 s later revokes the whole family (theft); inside 10 s it only fails (tab race) — T-02 |
+| Sign out | clears storage, then `POST /api/v1/token/revoke?site=<slug>` `{"refresh_token"}` (always `200 {"revoked": true}`) revokes the family; other tabs follow via the `storage` event |
+
+Widgets before 1.0.3 kept both tokens in memory (every reload signed out) and
+called refresh without `?site=` and with the token in an `Authorization`
+header, which the per-site CORS gate refused — so their sessions also ended
+when the first 15-minute access token expired.
 
 ## 2. Host-assert (`POST /api/v1/sites/:site/token/assert`)
 

@@ -6,6 +6,9 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
     rest, 30-day TTL; reuse of a rotated token fails). The site's CURRENT
     `comment_policy` is re-checked against the identity captured at issuance;
     on failure the presented token is revoked → `403 policy_violation`.
+  - `POST /api/v1/token/revoke` — sign-out: revokes the presented refresh
+    token's whole family (RFC 7009 style: always `200 {"revoked": true}`,
+    unknown/expired tokens included, so it is not a token oracle).
   - `POST /api/v1/sites/:site/token/assert` — host-asserted identity: a JWT
     signed HS256 with the site's SERVICE KEY (claims `sub`, `name`, `email?`,
     `avatar?`, `groups?`, `exp` ≤ 5 min). The site's `comment_policy` is
@@ -49,6 +52,9 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
         json(conn, %{
           "access_token" => access,
           "refresh_token" => fresh,
+          # Access-token expiry in ms since the epoch (same as the popup
+          # payload's `expires_at`) so the widget can schedule its next turn.
+          "expires_at" => (System.system_time(:second) + ApiToken.access_ttl()) * 1000,
           "commenter" => Renderer.commenter(commenter)
         })
 
@@ -64,6 +70,15 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
   end
 
   def refresh(conn, _params) do
+    conn |> put_status(:bad_request) |> json(%{"error" => "refresh_token_required"})
+  end
+
+  def revoke(conn, %{"refresh_token" => raw}) when is_binary(raw) do
+    _ = RefreshTokens.revoke_family(raw)
+    json(conn, %{"revoked" => true})
+  end
+
+  def revoke(conn, _params) do
     conn |> put_status(:bad_request) |> json(%{"error" => "refresh_token_required"})
   end
 
