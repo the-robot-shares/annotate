@@ -523,14 +523,44 @@ defmodule Annotate.Comments do
     |> Repo.one()
   end
 
-  def update_comment_body(%Comment{} = comment, body_md) do
+  @doc """
+  Edits a comment's body and, optionally, its attachments.
+
+  `opts`:
+    * `:attachment_ids` — bind additional attachments (the editor's OWN, `ready`,
+      unbound, same site — same rule as `add_comment/3`; else
+      `{:error, :attachment_mismatch}`).
+    * `:remove_attachment_ids` — detach attachments currently bound to THIS
+      comment (their rows stay, unbound; ids bound elsewhere are ignored).
+
+  No schema change: it only moves `attachments.comment_id`.
+  """
+  def update_comment_body(%Comment{} = comment, body_md, opts \\ []) do
+    add_ids = Keyword.get(opts, :attachment_ids)
+    remove_ids = Keyword.get(opts, :remove_attachment_ids) || []
+    editor = Keyword.get(opts, :commenter)
+
     with :ok <- validate_body(body_md),
-         {:ok, comment} <-
-           comment
-           |> Comment.changeset(%{body_md: body_md, edited_at: now_usec()})
-           |> Repo.update() do
-      Realtime.comment_event(comment, :comment_updated)
-      {:ok, comment}
+         :ok <- validate_id_list(remove_ids),
+         {:ok, attachments} <-
+           fetch_bindable_attachments(comment_site(comment), add_ids, editor) do
+      case Repo.transaction(fn ->
+             updated =
+               comment
+               |> Comment.changeset(%{body_md: body_md, edited_at: now_usec()})
+               |> Repo.update!()
+
+             unbind_attachments(comment.id, remove_ids)
+             bind_attachments(attachments, comment.id)
+             updated
+           end) do
+        {:ok, updated} ->
+          Realtime.comment_event(updated, :comment_updated)
+          {:ok, updated}
+
+        error ->
+          error
+      end
     end
   end
 
@@ -748,6 +778,46 @@ defmodule Annotate.Comments do
       |> Ecto.Changeset.change(comment_id: comment_id)
       |> Repo.update!()
     end)
+  end
+
+  defp validate_id_list(ids) when is_list(ids) do
+    if Enum.all?(ids, &is_binary/1), do: :ok, else: {:error, :attachment_mismatch}
+  end
+
+  defp validate_id_list(_), do: {:error, :attachment_mismatch}
+
+  defp unbind_attachments(_comment_id, []), do: :ok
+
+  defp unbind_attachments(comment_id, ids) do
+    case Enum.flat_map(ids, fn id ->
+           case Ecto.UUID.cast(id) do
+             {:ok, uuid} -> [uuid]
+             :error -> []
+           end
+         end) do
+      [] ->
+        :ok
+
+      uuids ->
+        from(a in Attachment, where: a.comment_id == ^comment_id and a.id in ^uuids)
+        |> Repo.update_all(set: [comment_id: nil])
+
+        :ok
+    end
+  end
+
+  defp comment_site(%Comment{thread_id: thread_id}) do
+    from(t in Thread,
+      join: p in Page,
+      on: p.id == t.page_id,
+      where: t.id == ^thread_id,
+      select: p.site_id
+    )
+    |> Repo.one()
+    |> case do
+      nil -> nil
+      site_id -> %Site{id: site_id}
+    end
   end
 
   defp thread_site(%Thread{page_id: page_id}) do
