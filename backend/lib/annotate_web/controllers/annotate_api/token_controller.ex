@@ -25,9 +25,18 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
   @host_assert_max_skew_seconds 5 * 60
 
   def refresh(conn, %{"refresh_token" => raw}) do
-    case RefreshTokens.rotate(raw) do
+    # The access token's `origin` is the REQUEST Origin, which `rotate/2` has
+    # already proven is in the site's allowed_origins and matches the origin
+    # the refresh token was issued for. Missing/forged Origin → 401.
+    request_origin =
+      case get_req_header(conn, "origin") do
+        [origin | _] -> origin
+        [] -> nil
+      end
+
+    case RefreshTokens.rotate(raw, request_origin) do
       {:ok, %{commenter: commenter, site: site, refresh_token: fresh}} ->
-        access = ApiToken.issue_access(commenter, site, claims_origin(conn, site))
+        access = ApiToken.issue_access(commenter, site, request_origin)
 
         json(conn, %{
           "access_token" => access,
@@ -37,6 +46,9 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
 
       {:error, :policy} ->
         conn |> put_status(:forbidden) |> json(%{"error" => "policy_violation"})
+
+      {:error, :origin} ->
+        conn |> put_status(:unauthorized) |> json(%{"error" => "origin_mismatch"})
 
       {:error, :invalid} ->
         conn |> put_status(:unauthorized) |> json(%{"error" => "invalid_refresh_token"})
@@ -155,16 +167,24 @@ defmodule AnnotateWeb.AnnotateAPI.TokenController do
 
   defp check_exp_window(_), do: {:error, :invalid_token}
 
+  # host_assert is authenticated by the site's service key (server-to-server,
+  # normally Origin-less). A PRESENTED Origin must still be on the allowlist;
+  # otherwise fall back to the site's first registered origin, never echo an
+  # arbitrary header into a token claim.
   defp claims_origin(conn, site) do
     case get_req_header(conn, "origin") do
-      [origin | _] ->
-        origin
+      [origin | _] when is_binary(origin) ->
+        if site && Sites.allowed_origin?(site, origin), do: origin, else: default_origin(site)
 
       [] ->
-        case site && site.allowed_origins do
-          [first | _] when is_binary(first) -> first
-          _ -> "unknown"
-        end
+        default_origin(site)
+    end
+  end
+
+  defp default_origin(site) do
+    case site && site.allowed_origins do
+      [first | _] when is_binary(first) -> first
+      _ -> "unknown"
     end
   end
 end

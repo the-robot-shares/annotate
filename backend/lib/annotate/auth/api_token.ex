@@ -114,7 +114,7 @@ defmodule Annotate.Auth.ApiToken do
   """
   def issue_pair(commenter, site, origin, identity_claims \\ nil) do
     access = issue_access(commenter, site, origin)
-    {:ok, refresh} = Annotate.Auth.RefreshTokens.issue(commenter, site, identity_claims)
+    {:ok, refresh} = Annotate.Auth.RefreshTokens.issue(commenter, site, identity_claims, origin)
     {:ok, %{access_token: access, refresh_token: refresh}}
   end
 

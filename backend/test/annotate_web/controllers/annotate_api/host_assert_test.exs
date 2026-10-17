@@ -62,7 +62,8 @@ defmodule AnnotateWeb.AnnotateAPI.HostAssertTest do
       rot =
         build_conn()
         |> Map.put(:host, @site_host)
-        |> post("/api/v1/token/refresh", %{"refresh_token" => refresh})
+        |> put_req_header("origin", @good_origin)
+        |> post("/api/v1/token/refresh?site=#{site.slug}", %{"refresh_token" => refresh})
 
       assert json_response(rot, 200)["refresh_token"]
     end
