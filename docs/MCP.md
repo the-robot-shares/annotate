@@ -11,7 +11,7 @@ can read and triage a site's comments **as the signed-in dashboard user**.
 | AS metadata (RFC 8414) | `/.well-known/oauth-authorization-server` (also `/.well-known/openid-configuration`) |
 | Protected-resource metadata (RFC 9728) | `/.well-known/oauth-protected-resource/mcp` (and the bare path) |
 | OAuth endpoints | `/oauth/authorize`, `/oauth/consent`, `/oauth/token`, `/oauth/register` (DCR, RFC 7591), `/oauth/revoke` |
-| Library | [`noizu_mcp`](https://hex.pm/packages/noizu_mcp) 0.6.x (`Noizu.MCP.Auth.Server`, `Store.Ecto`) |
+| Library | [`noizu_mcp`](https://hex.pm/packages/noizu_mcp) 0.6.2 (`Noizu.MCP.Auth.Server`, `Store.Ecto`) |
 | Dashboard | `/dashboard/agents` — connect snippets, connected clients (+ granted scopes, revoke), activity log |
 
 ## Connect
@@ -24,8 +24,11 @@ claude mcp add --transport http annotate https://annotate.therobotlives.com/mcp
 Claude.ai / Claude Desktop: *Settings → Connectors → Add custom connector*, URL
 above. VS Code: `.vscode/mcp.json` `{"servers":{"annotate":{"type":"http","url":"…/mcp"}}}`.
 Codex: `codex mcp add annotate --url …/mcp` then `codex mcp login annotate`.
-**Cursor is not supported yet**: its OAuth callback is a `cursor://` URI and
-noizu_mcp's DCR accepts only https or loopback redirect URIs.
+Cursor: `~/.cursor/mcp.json` `{"mcpServers":{"annotate":{"url":"…/mcp"}}}`; its
+OAuth callback `cursor://anysphere.cursor-mcp/oauth/callback` is accepted via
+noizu_mcp ≥ 0.6.2 `allowed_redirect_schemes: ["cursor"]` (exact scheme; the
+registered URI must match byte-for-byte; javascript/data/file/web schemes are
+always refused).
 
 ## Sign-in flow
 

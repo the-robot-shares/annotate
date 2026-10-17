@@ -120,6 +120,9 @@ defmodule AnnotateWeb.MCP.Consent do
       %URI{host: host} when host in ["localhost", "127.0.0.1", "::1", "[::1]"] ->
         "this computer (#{host})"
 
+      %URI{scheme: "cursor"} ->
+        "the Cursor app (cursor://)"
+
       %URI{host: host} when is_binary(host) ->
         host
 
