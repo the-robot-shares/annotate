@@ -41,7 +41,7 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
+      "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
@@ -264,7 +264,7 @@ if config_env() == :prod do
   # through as :host produced "http://http:%3A//minio…" presigned URLs.
   #
   # S3_PUBLIC_ENDPOINT is the browser-reachable endpoint (e.g.
-  # "https://minio.noizu.com"). Presigned PUT/GET urls are handed to the
+  # "https://annotate-files.therobotlives.com"). Presigned PUT/GET urls are handed to the
   # browser, so they must be signed for that host — the in-cluster service
   # name never resolves outside the cluster. Server-side calls keep using
   # S3_ENDPOINT.
@@ -324,6 +324,18 @@ if config_env() == :prod do
   config :annotate,
          :rate_limit_trusted_hops,
          String.to_integer(System.get_env("RATE_LIMIT_TRUSTED_HOPS") || "1")
+
+  # Opt-in: take the client IP from this request header (e.g. cf-connecting-ip)
+  # when it holds a valid IP. ONLY set when every request reaching the pod has
+  # passed a proxy that overwrites the header (chart gates it on the
+  # Cloudflare-only ingress whitelist); otherwise clients can forge it.
+  rate_limit_client_ip_header =
+    case System.get_env("RATE_LIMIT_CLIENT_IP_HEADER") do
+      h when is_binary(h) and h != "" -> String.downcase(h)
+      _ -> nil
+    end
+
+  config :annotate, :rate_limit_client_ip_header, rate_limit_client_ip_header
 
   # ── Annotate embeddable-comments API ────────────────────────────
   config :annotate, Annotate.Auth.ApiToken,

@@ -149,5 +149,25 @@ defmodule AnnotateWeb.AnnotateAPI.RateLimitTest do
       assert denied.halted
       assert denied.status == 429
     end
+
+    test "opt-in client IP header wins when valid; invalid falls back to XFF" do
+      Application.put_env(:annotate, :rate_limit_client_ip_header, "cf-connecting-ip")
+      on_exit(fn -> Application.delete_env(:annotate, :rate_limit_client_ip_header) end)
+
+      conn =
+        xff_conn("s", "6.6.6.6, 10.1.2.3") |> put_req_header("cf-connecting-ip", "203.0.113.7")
+
+      assert RateLimit.client_ip(conn) == "203.0.113.7"
+
+      bad = xff_conn("s", "6.6.6.6, 10.1.2.3") |> put_req_header("cf-connecting-ip", "garbage")
+      assert RateLimit.client_ip(bad) == "10.1.2.3"
+
+      assert RateLimit.client_ip(xff_conn("s", "6.6.6.6, 10.1.2.3")) == "10.1.2.3"
+    end
+
+    test "header ignored when not configured (default)" do
+      conn = xff_conn("s", "10.1.2.3") |> put_req_header("cf-connecting-ip", "203.0.113.7")
+      assert RateLimit.client_ip(conn) == "10.1.2.3"
+    end
   end
 end

@@ -29,6 +29,17 @@ defmodule Annotate.Schema.Annotate.Thread do
     field :resolved_at, :utc_datetime_usec
     field :orphaned_at, :utc_datetime_usec
 
+    # Page context (033-annotate-anchor-fidelity): where the thread was written.
+    # NULL on legacy rows; query_params NULL = "unknown, match any query".
+    field :url, :string
+    field :origin, :string
+    field :page_path, :string
+    field :query_string, :string
+    field :query_params, :map
+    field :hash, :string
+    field :page_title, :string
+    field :anchor_version, :integer, default: 1
+
     timestamps(type: :utc_datetime_usec)
   end
 
@@ -41,7 +52,15 @@ defmodule Annotate.Schema.Annotate.Thread do
       :created_by,
       :resolved_by,
       :resolved_at,
-      :orphaned_at
+      :orphaned_at,
+      :url,
+      :origin,
+      :page_path,
+      :query_string,
+      :query_params,
+      :hash,
+      :page_title,
+      :anchor_version
     ])
     |> validate_required([:page_id, :anchor])
     |> foreign_key_constraint(:page_id)

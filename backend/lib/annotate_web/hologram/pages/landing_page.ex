@@ -339,7 +339,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
             Keyword.get(
               kw,
               :widget_src,
-              "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
+              "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js"
             )
         }
 
@@ -347,7 +347,7 @@ defmodule AnnotateWeb.Hologram.Pages.LandingPage do
         %{
           api_base: "https://annotate-srv.therobotlives.com",
           widget_src:
-            "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js"
+            "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js"
         }
     end
   end

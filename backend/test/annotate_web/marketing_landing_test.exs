@@ -41,7 +41,7 @@ defmodule AnnotateWeb.MarketingLandingTest do
       api_host: @api_host,
       api_base: "https://#{@api_host}",
       widget_src:
-        "https://cdn.derobot.is/tobor-kit/sha-5790251ac09be4c87eadc3f1894a10cd14f8c84e/components/page-comments/page-comments.js",
+        "https://cdn.derobot.is/tobor-kit/sha-69056864dcf3fba0adfa4eea995dde4fa381c8eb/components/page-comments/page-comments.js",
       dogfood_site: "annotate-landing"
     )
 
@@ -66,5 +66,42 @@ defmodule AnnotateWeb.MarketingLandingTest do
 
     assert conn.status == 200
     assert get_resp_header(conn, "content-type") |> List.first() =~ "text/css"
+  end
+
+  test "keep-location.js loads before the Hologram runtime and is served", %{conn: conn} do
+    body =
+      conn |> Map.put(:host, @marketing_host) |> get("/") |> html_response(200)
+
+    {kl, _} = :binary.match(body, "/js/keep-location.js")
+    {rt, _} = :binary.match(body, "/hologram/")
+    assert kl < rt
+
+    js = get(build_conn(), "/js/keep-location.js")
+    assert js.status == 200
+  end
+
+  @tag :node
+  test "keep-location.js re-appends search+hash to Hologram's boot replaceState once" do
+    script = Path.expand("../../priv/static/js/keep-location.js", __DIR__)
+
+    harness = """
+    const fs = require("fs");
+    const calls = [];
+    global.location = {pathname: "/", search: "?tab=anchors&utm_source=x", hash: "#annotate=abc"};
+    global.history = {replaceState(s, t, u) { calls.push(u); }};
+    eval(fs.readFileSync(process.argv[1], "utf8"));
+    history.replaceState("id", null, location.pathname);   // Hologram boot
+    history.replaceState("id2", null, "/other");           // later call untouched
+    console.log(JSON.stringify(calls));
+    """
+
+    case System.find_executable("node") do
+      nil ->
+        :ok
+
+      node ->
+        {out, 0} = System.cmd(node, ["-e", harness, script])
+        assert Jason.decode!(String.trim(out)) == ["/?tab=anchors&utm_source=x#annotate=abc", "/other"]
+    end
   end
 end

@@ -31,7 +31,7 @@ commenter upserts). No site CRUD over HTTP in Phase 1.
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `/api/v1/sites/:site/threads?page_key=/p/1` | optional (see below) | list w/ comments |
+| GET | `/api/v1/sites/:site/threads?page_key=/p/1[&query=a=1&b=2][&url=…][&ignore_params=utm_x]` | optional (see below) | list w/ comments; `query`/`url` narrow to matching query params (see `ANCHORS.md`) |
 | POST | `/api/v1/sites/:site/threads` | token, or guest opt-in (see below) | create thread + root comment |
 
 `GET` honors site setting `public_read` (default true): when false, a valid

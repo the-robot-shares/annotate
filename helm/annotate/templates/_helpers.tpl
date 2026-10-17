@@ -107,6 +107,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 # embed target survives any future default drift.
 - name: ANNOTATE_PUBLIC_API_BASE
   value: "https://{{ .Values.appDomain | default .Values.domain }}"
+# Rate-limit client IP: trust Cloudflare's CF-Connecting-IP ONLY when the
+# ingress admits Cloudflare source ranges alone (ingress whitelist-source-range
+# via cloudflareOnly) - otherwise a direct caller could forge the header.
+{{- if and .Values.ingress.enabled .Values.ingress.cloudflareOnly }}
+- name: RATE_LIMIT_CLIENT_IP_HEADER
+  value: "cf-connecting-ip"
+{{- end }}
 - name: PHX_SERVER
   value: "true"
 - name: PORT
@@ -276,4 +283,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.awsSecretAccessKey | default "AWS_SECRET_ACCESS_KEY" }}
 {{- end }}
+{{- end }}
+
+{{/* Distinct name so the app Service/PDB selectors (annotate.selectorLabels)
+never match the MinIO pod. */}}
+{{- define "annotate.filesSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "annotate.name" . }}-files
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: files
 {{- end }}
