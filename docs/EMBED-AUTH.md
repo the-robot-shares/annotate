@@ -77,6 +77,7 @@ tobor-kit `auth.test.ts` (widget).
 {type: "annotate-auth-error", error, reason}
 // error/reason: "state_mismatch" | "nonce_mismatch" | "group_not_allowed"
 //  | "email_domain_not_allowed" | "unknown_session" | "auth_failed" | "access_denied"
+//  | "email_unverified"
 ```
 
 Until 2026-10-17 the server sent only `access` / `refresh` / `reason` while
@@ -104,6 +105,53 @@ Widgets before 1.0.3 kept both tokens in memory (every reload signed out) and
 called refresh without `?site=` and with the token in an `Authorization`
 header, which the per-site CORS gate refused — so their sessions also ended
 when the first 15-minute access token expired.
+
+### Sign-in providers (`provider=` on `/embed/login`)
+
+The popup broker supports three providers, chosen with a `provider` query
+param (omitted = `sso`, the original Authentik flow):
+
+| `provider` | Identity source | Needs setup on your side? |
+|---|---|---|
+| `sso` (default) | Authentik OIDC (`auth.derobot.is`), any organisation account | no |
+| `github` | GitHub sign-in (annotate's OAuth app) | no |
+| `google` | Google sign-in (annotate's OAuth app) | no |
+
+`/embed/login?site=<slug>&origin=<…>&provider=github` opens the same popup
+flow: GitHub/Google run through annotate's dashboard OAuth clients and
+callback routes, and the resulting verified-email identity is converted to an
+embed **commenter** (site-scoped, keyed `github:<id>` / `google:<id>`), so the
+widget receives the identical `annotate-auth` postMessage either way — the
+widget does not care which provider was used. Site `comment_policy` applies
+to all three: `allowed_email_domains` matches the provider-verified email;
+`required_groups` (Authentik groups) can only be satisfied by `sso` —
+GitHub/Google sign-ins are rejected with `group_not_allowed` on such sites.
+
+Error responses at `/embed/login` time (rendered in the popup, no
+postMessage): `400 {"error": "invalid_provider"}` for an unknown `provider`
+value, and `503 {"error": "provider_not_configured"}` when GitHub/Google
+sign-in is not enabled server-side. A GitHub/Google account without a
+verified email fails the callback with the `annotate-auth-error` payload
+`error: "email_unverified"`.
+
+## 1b. Secure fetch — require sign-in to read (`require_auth_to_read`)
+
+By default anyone can **read** a site's public threads through the embed API.
+A site owner can require sign-in for reads too, from the dashboard
+(Settings → Security, owner only): `require_auth_to_read: true` is stored in
+the site's settings (default **off** — existing sites are unchanged).
+
+When on, the public thread list (`GET /api/v1/sites/:site/threads`) and the
+realtime channel reject unauthenticated viewers:
+
+```
+401 {"error": "auth_required"}
+```
+
+…on REST, and a `reason: "auth_required"` socket reply on the channel. CORS
+is unchanged; the widget (tobor-kit ≥ 1.0.15) shows its sign-in modal on this
+error and retries after the popup flow completes. Writes always required a
+token; this setting only gates reads.
 
 ## 2. Host-assert (`POST /api/v1/sites/:site/token/assert`)
 
@@ -254,3 +302,15 @@ If the host site ships a strict CSP, it must allow:
 | `OIDC_ISSUER` | Authentik issuer, e.g. `https://auth.derobot.is/application/o/annotate/` (Phase 1b provisioning) |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Authentik confidential client |
 | `EMBED_OIDC_REDIRECT_URI` | defaults to `https://<host>/embed/callback` |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth client — shared by dashboard sign-in AND the embed `provider=github` popup (no separate app needed) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth client — shared by dashboard sign-in AND the embed `provider=google` popup |
+| `ANNOTATE_DASHSCOPE_API_KEY` | DashScope key for the profanity/content filter (qwen). Unset ⇒ filter soft-disabled: every write is allowed |
+| `ANNOTATE_COMMENT_STORAGE_CAP_GB` | rolling cap on stored comment attachments (GB, FIFO eviction of the oldest); default 1 |
+
+`ANNOTATE_DASHSCOPE_BASE_URL` (default DashScope compatible-mode, international
+region), `ANNOTATE_DASHSCOPE_TEXT_MODEL` (default `qwen3.8-flash`),
+`ANNOTATE_DASHSCOPE_IMAGE_MODEL` (default `qwen-vl-flash`) and
+`ANNOTATE_DASHSCOPE_TIMEOUT_MS` (default 3000) are overridable for other
+regions/models. The filter runs on comment create/edit and attachment
+completion only (never reads) and fails OPEN: timeout, API error or unparseable
+reply ⇒ allow + a single log line.

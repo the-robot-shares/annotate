@@ -169,6 +169,35 @@ build_sso_domain_policies = fn domains, auto_approve_domains ->
   end)
 end
 
+# ── Content moderation (Alibaba DashScope, OpenAI-compatible) ─────
+# ANNOTATE_DASHSCOPE_API_KEY (Infisical /apps/annotate) — UNSET ⇒ the filter
+# is soft-disabled: every check allows and nothing is ever called. When set,
+# comment bodies (create + edit) and attachments are classified on WRITE only
+# (reads never pay the latency). Fail-open by design: timeouts (≤ 3s budget),
+# network/API errors and unparseable replies all allow + log one line.
+config :annotate, Annotate.Moderation,
+  api_key: parse_env.("ANNOTATE_DASHSCOPE_API_KEY"),
+  base_url:
+    System.get_env(
+      "ANNOTATE_DASHSCOPE_BASE_URL",
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+    ),
+  text_model: System.get_env("ANNOTATE_DASHSCOPE_TEXT_MODEL", "qwen3.8-flash"),
+  image_model: System.get_env("ANNOTATE_DASHSCOPE_IMAGE_MODEL", "qwen-vl-flash"),
+  timeout_ms: String.to_integer(System.get_env("ANNOTATE_DASHSCOPE_TIMEOUT_MS", "3000"))
+
+# ── Comment-attachment storage cap (rolling, FIFO eviction) ────────
+# ANNOTATE_COMMENT_STORAGE_CAP_GB (default 1): after any upload, oldest
+# attachments are evicted until the stored total is back under the cap
+# (Annotate.Storage.Rotation). `attachments` rows only — never the dashboard
+# media tables.
+config :annotate, :comment_storage,
+  cap_gb:
+    (case Integer.parse(System.get_env("ANNOTATE_COMMENT_STORAGE_CAP_GB", "1")) do
+       {n, _} when n > 0 -> n
+       _ -> 1
+     end)
+
 # ── OpenTelemetry ────────────────────────────────────────────────
 # House conventions: trl-infra monorepo docs/observability/OTEL-CONVENTIONS.md.
 # Everything below is keyed off OTEL_EXPORTER_OTLP_ENDPOINT: unset (dev,
@@ -240,23 +269,36 @@ end
 # Dev has no Annotate.Storage config by default; the devbox points it at its
 # local MinIO via S3_* env. Unset S3_BUCKET ⇒ dev behaves as before.
 if config_env() == :dev and System.get_env("S3_BUCKET") do
-  config :annotate, Annotate.Storage,
-    bucket: System.fetch_env!("S3_BUCKET"),
-    region: System.get_env("S3_REGION", "us-east-1"),
-    host: System.get_env("S3_ENDPOINT"),
-    scheme: System.get_env("S3_SCHEME", "http://"),
-    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
-    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY")
+  # Split the endpoint like prod (below) does: a bare "localhost:59000" as
+  # :host string-builds fine into presigned urls but ExAws.request brackets
+  # the colon host ("http://[localhost:59000]:443") and every server-side
+  # call nxdmains. Server-side reads/deletes (size cap, moderation fetch,
+  # storage rotation) need the parsed scheme/host/port.
+  internal =
+    Annotate.Storage.Endpoint.parse(
+      System.get_env("S3_ENDPOINT"),
+      System.get_env("S3_SCHEME", "http://")
+    )
+
+  config :annotate,
+         Annotate.Storage,
+         [
+           bucket: System.fetch_env!("S3_BUCKET"),
+           region: System.get_env("S3_REGION", "us-east-1"),
+           access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+           secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY")
+         ]
+         |> Keyword.merge(internal)
 
   config :ex_aws,
     access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
     secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
     region: System.get_env("S3_REGION", "us-east-1"),
-    s3: [
-      scheme: System.get_env("S3_SCHEME", "http://"),
-      host: System.get_env("S3_ENDPOINT"),
-      region: System.get_env("S3_REGION", "us-east-1")
-    ]
+    s3:
+      [
+        region: System.get_env("S3_REGION", "us-east-1")
+      ]
+      |> Keyword.merge(internal)
 end
 
 # Dev-only GitHub sign-in stub (Annotate.Auth.GithubStub): lets the dashboard

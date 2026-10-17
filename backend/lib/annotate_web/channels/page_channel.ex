@@ -111,9 +111,13 @@ defmodule AnnotateWeb.PageChannel do
   end
 
   defp authorize(%{assigns: %{site: site, claims: nil}}) do
-    if Sites.public_read?(site),
-      do: :ok,
-      else: {:error, %{reason: "invalid_token"}}
+    cond do
+      # Secure fetch: even a public_read site can require a commenter token
+      # for the live fan-out; same machine-readable reason as the REST reads.
+      Sites.require_auth_to_read?(site) -> {:error, %{reason: "auth_required"}}
+      Sites.public_read?(site) -> :ok
+      true -> {:error, %{reason: "invalid_token"}}
+    end
   end
 
   defp authorize(%{assigns: %{site: %Site{} = site, claims: claims}}) do
