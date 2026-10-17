@@ -439,21 +439,23 @@ if config_env() == :prod do
   # Both halves must be present and non-blank (the chart's secretKeyRefs are
   # optional, so an unpopulated Secret yields unset vars): otherwise GitHub
   # sign-in stays "not configured" rather than failing at github.com.
-  oauth_providers =
-    gh_id = System.get_env("GITHUB_CLIENT_ID", "") |> String.trim()
-
+  gh_id = System.get_env("GITHUB_CLIENT_ID", "") |> String.trim()
   gh_secret = System.get_env("GITHUB_CLIENT_SECRET", "") |> String.trim()
 
-  if gh_id != "" and gh_secret != "" do
-    config :ueberauth, Ueberauth.Strategy.Github.OAuth,
-      client_id: gh_id,
-      client_secret: gh_secret
+  # (Root cause of the 2026-10-17 prod /auth/github 500: an earlier edit left
+  # `oauth_providers = gh_id = ...` here, binding the provider list to the
+  # client-id STRING — "" when unset — and discarding this `if`.)
+  oauth_providers =
+    if gh_id != "" and gh_secret != "" do
+      config :ueberauth, Ueberauth.Strategy.Github.OAuth,
+        client_id: gh_id,
+        client_secret: gh_secret
 
-    config :annotate, :github_enabled, true
-    [{:github, {Ueberauth.Strategy.Github, [default_scope: "user:email"]}} | oauth_providers]
-  else
-    oauth_providers
-  end
+      config :annotate, :github_enabled, true
+      [{:github, {Ueberauth.Strategy.Github, [default_scope: "user:email"]}} | oauth_providers]
+    else
+      oauth_providers
+    end
 
   # LinkedIn SSO disabled — ueberauth_linkedin has incompatible oauth2 dep
   # oauth_providers =
