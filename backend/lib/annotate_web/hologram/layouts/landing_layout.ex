@@ -17,8 +17,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
   @default %{
     host: "annotate.therobotlives.com",
     api_base: "https://annotate-srv.therobotlives.com",
-    widget_src:
-      "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js",
+    widget_src: AnnotateWeb.WidgetCdn.pinned_src(),
     dogfood_site: "annotate-landing"
   }
 
@@ -96,7 +95,6 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <noizu-page-comments
           site={@dogfood_site}
           api-base={@api_base}
-          enabled
           rail-mode="overlay"
         ></noizu-page-comments>
         <script type="module" src={@widget_src}></script>
