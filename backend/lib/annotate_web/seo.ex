@@ -24,15 +24,15 @@ defmodule AnnotateWeb.SEO do
   @landing %{
     title: "annotate — site feedback that points at the thing",
     description:
-      "One script tag pins threaded comments to the exact element on any page. Triage in the dashboard, over the REST API, or with an AI agent over MCP.",
+      "One script tag pins threaded comments to the exact element or text they're about. Triage in the dashboard, over the REST API, or with an AI agent over MCP. Free 14-day trial.",
     og_title: "annotate — site feedback that points at the thing",
     og_description:
-      "One script tag pins threaded comments to the exact element on any page. Triage in the dashboard, over the REST API, or with an AI agent over MCP.",
+      "One script tag pins threaded comments to the exact element or text they're about. Triage in the dashboard, over the REST API, or with an AI agent over MCP.",
     og_image: "/images/landing/og.png",
     og_image_width: 1200,
     og_image_height: 630,
     og_image_alt:
-      "A comment pinned to a page's Export button becomes a ticket, then an agent reports a patch ready."
+      "A visitor pins a comment to a page's Export button; the thread opens in the rail and an agent replies as the site team, resolving it."
   }
 
   @org %{
@@ -42,7 +42,7 @@ defmodule AnnotateWeb.SEO do
     same_as: ["https://tobor.dev"]
   }
 
-  @theme_color "#0B0B10"
+  @theme_color "#FAFAF8"
 
   # Compile date: "/" ships with every deploy, so this is its lastmod.
   @built_on Date.utc_today() |> Date.to_iso8601()

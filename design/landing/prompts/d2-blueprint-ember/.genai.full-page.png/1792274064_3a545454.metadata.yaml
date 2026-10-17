@@ -1,0 +1,49 @@
+service: gemini
+model: gemini-2.5-flash-image
+timestamp: 1792274074
+prompt: |
+  Full-page desktop website mockup, tall portrait, a dark landing page drawn
+  on an engineering drafting sheet: a faint blueprint grid of hairline lines
+  #1C1C28 covers the near-black #0B0B10 background at very low contrast
+  (barely visible, never fighting the content), evenly spaced, and each
+  section sits inside crop-corner ticks with a tiny monospaced label bar.
+  Top nav: wordmark "annotate" spelled exactly, in monospaced type, four
+  gray nav-link bars, one ember pill button carrying no text. Hero splits
+  left/right: left column has a monospaced
+  eyebrow bar, the two-line large headline "Feedback that points at the
+  thing.", a two-line muted subhead reading "annotate pins threaded comments
+  to the exact element or text they're about." with both words "annotate"
+  and "threaded" spelled exactly, ember button "Try it on this
+  page" (spelled exactly) beside outlined button "Add to your site"; right,
+  a flat dark
+  browser sheet floating on the grid with registration-style corner marks:
+  title bar with three small GRAY dots, dark app page of gray placeholder
+  bars, one "Export" button ringed in glowing ember with a small pin, a thin
+  luminous orange connector to a monospaced comment thread card with two
+  muted orange circle avatars and short bars, a thin orange arrow to a
+  monospaced agent card reading "patch ready" (spelled exactly) with an
+  orange check, and a tiny "Resolved" badge directly beneath that card. A
+  dark instrument-panel comment rail with monospaced text bars and three
+  short rows is flush-docked to the browser sheet's right edge
+  with no gap. Below, sections in this exact order, each framed by
+  crop-corner ticks: a wide live-demo band showing a dashed ring around one
+  page element with a small pill; a single row of exactly seven small dark
+  screenshot thumbnails sitting on grid cells; a six-tile bento of raised
+  panels each
+  with a tiny mono label bar and placeholder bars; a wide code panel holding
+  only short gray placeholder bars of varied widths and indents — strictly
+  no legible code characters — and one small icon-only copy button with no
+  text label; a two-column text row
+  with monospaced bars; a low roadmap row of small outline chips where
+  exactly one tiny chip reads "Soon"; one small "FAQ" label above four slim
+  textless accordion rows of gray bars — the word FAQ appears exactly once;
+  a final textless ember-tinted strip with one ember button. The ONLY text in
+  the whole image is exactly: annotate · Feedback that points at the thing.
+  · annotate pins threaded comments to the exact element or text they're
+  about. · Try it on this page · Add to your site · Export · patch ready ·
+  Resolved · Soon · FAQ. All other copy is abstract gray placeholder bars.
+  Crisp Inter-style grotesque for the headline and buttons, true monospaced
+  type for labels, high contrast, no warped text, calm and precise,
+  generous negative space.
+negative: |
+  garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices, dollar signs, currency, any real brand name or logo, URLs, hex codes, hash symbols, photographic people or faces, initials in avatars, blue or green glow, light theme, heavy visible grid, blueprint blue tint, graph paper, second saturated hue, ticket-creation card, Jira or tracker logo, lens flares, watermark, cluttered spacing, annoate or anobate misspellings of the wordmark, legible or semi-legible code characters, duplicated thumbnail rows
