@@ -29,6 +29,34 @@ defmodule AnnotateWeb.GithubLoginFlowTest do
     assert %User{verified: true} = Repo.get_by(User, email: "octo@example.com")
   end
 
+  test "MCP return_to survives the GitHub round trip (same-origin only)" do
+    {conn, location} =
+      start_flow(%{
+        stub_id: "93",
+        stub_email: "mcp-return@example.com",
+        return_to: "/oauth/authorize?login_state=abc123"
+      })
+
+    conn = finish(conn, location)
+    target = redirected_to(conn)
+    assert target =~ ~r{^/auth/sso-callback\?code=.+&provider=github}
+
+    assert URI.decode_query(URI.parse(target).query)["return_to"] ==
+             "/oauth/authorize?login_state=abc123"
+  end
+
+  test "a foreign return_to is dropped before the round trip" do
+    {conn, location} =
+      start_flow(%{
+        stub_id: "94",
+        stub_email: "mcp-evil@example.com",
+        return_to: "https://evil.example/steal"
+      })
+
+    conn = finish(conn, location)
+    refute redirected_to(conn) =~ "return_to"
+  end
+
   test "prod 2026-10-17: a crash inside the token exchange is a friendly page, not a 500" do
     {conn, location} =
       start_flow(%{stub_id: "91", stub_email: "tls@example.com", stub_crash: "tls"})

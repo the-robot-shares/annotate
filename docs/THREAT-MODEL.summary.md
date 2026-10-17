@@ -33,5 +33,11 @@ Embeddable multi-tenant comments service: REST `/api/v1`, popup auth broker `/em
 | T-27 | Med | Self-serve dashboard sign-up | Fixed 2026-10-17 (invite-only; exact verified @noizu.com exempt) |
 | T-28 | Med | Invite token theft/guessing/replay | Mitigated (256-bit, bcrypt at rest, single-use, expiry, revoke, email bind, atomic) |
 | T-29 | Low | GitHub+Google account linking | Mitigated (verified-email exact match only) |
+| T-30 | High | MCP cross-tenant / stale membership | Mitigated (per-call DB re-authorization; uniform not_found) |
+| T-31 | Med | Unvalidated thread URL deep links | Mitigated for dashboard + MCP (allowed-origin check); embed renderer residual |
+| T-32 | High | Prompt injection via comment text | Mitigated by design (`untrusted` fields, opt-in write scopes, audit); inherent residual |
+| T-33 | High | MCP OAuth AS (confused deputy, redirects, replay, consent CSRF) | Mitigated (noizu_mcp AS, mandatory subset consent, same-origin return_to) |
+| T-34 | Med | MCP token lifetime / revocation | Mitigated (MCP-only key, per-request jti + consent check) |
+| T-35 | Low | MCP abuse / audit trail | Mitigated (rate limits, `mcp_audit_events`, purge) |
 
 Full doc: [THREAT-MODEL.md](THREAT-MODEL.md).

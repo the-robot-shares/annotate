@@ -121,6 +121,13 @@ defmodule Annotate.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:guardian, "~> 2.3"},
+      # MCP server (Streamable HTTP) + OAuth 2.1 authorization server facade
+      # for /mcp (hex, public). Store.Ecto speaks raw SQL to the
+      # mcp_oauth_* tables in db/changelog/037-annotate-mcp-oauth.yaml.
+      # override: genai 0.4.x pins noizu_mcp ~> 0.1.6/0.5.0; annotate never
+      # calls GenAI, and genai's only MCP use (GenAI.Tool.Source.MCP:
+      # Client.list_tools/call_tool) is unchanged in 0.6.
+      {:noizu_mcp, "~> 0.6.1", override: true},
       {:bcrypt_elixir, "~> 3.0"},
       # Explicit (not just transitive-optional) so Mint/Finch/Redix HTTPS
       # clients (OIDC discovery, outbound Redis TLS, etc.) always have a CA

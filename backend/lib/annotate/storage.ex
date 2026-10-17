@@ -32,7 +32,7 @@ defmodule Annotate.Storage do
   end
 
   # <REMOVED UUID HERE> presigned_download_url :: auto-generated pointer for public function presigned_download_url
-  def presigned_download_url(key) do
+  def presigned_download_url(key, expires_in \\ @default_expiry) do
     config = presign_config()
 
     {:ok, url} =
@@ -41,7 +41,7 @@ defmodule Annotate.Storage do
         :get,
         config[:bucket],
         key,
-        expires_in: @default_expiry
+        expires_in: expires_in
       )
 
     url

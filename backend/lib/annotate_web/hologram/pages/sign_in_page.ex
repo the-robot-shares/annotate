@@ -15,12 +15,24 @@ defmodule AnnotateWeb.Hologram.Pages.SignInPage do
   route "/sign-in"
   layout MainLayout, page_title: "Sign in — annotate"
 
+  # `?return_to=` (MCP OAuth: `/oauth/authorize?login_state=…`) survives the
+  # provider round trip; only a same-origin path is kept (ReturnTo.safe/1).
   def init(_params, component, server) do
+    return_to =
+      server |> Map.get(:query, %{}) |> query_value("return_to") |> AnnotateWeb.ReturnTo.safe()
+
     put_state(component,
       providers: ProviderButtons.providers(),
-      signed_in: Auth.current_user(server) != nil
+      signed_in: Auth.current_user(server) != nil,
+      return_to: return_to || "",
+      continue_path: return_to || "/dashboard"
     )
   end
+
+  defp query_value(query, key) when is_map(query),
+    do: Map.get(query, key) || Map.get(query, String.to_atom(key))
+
+  defp query_value(_, _), do: nil
 
   def template do
     ~HOLO"""
@@ -31,9 +43,9 @@ defmodule AnnotateWeb.Hologram.Pages.SignInPage do
         From the dashboard you can add a site, copy its embed snippet, and answer comments.
       </p>
       {%if @signed_in}
-        <p><a class="btn btn-black" href="/dashboard" data-cy="sign-in-dashboard">Go to your dashboard</a></p>
+        <p><a class="btn btn-black" href={@continue_path} data-cy="sign-in-dashboard">{%if @return_to != ""}Continue{%else}Go to your dashboard{/if}</a></p>
       {%else}
-        <ProviderButtons providers={@providers} />
+        <ProviderButtons providers={@providers} return_to={@return_to} />
       {/if}
       <p class="sg-auth__note" data-cy="sign-in-invite-only">
         annotate is invite-only. Have an invite link? Open it to sign up.

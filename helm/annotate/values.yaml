@@ -1,4 +1,6 @@
 replicas: 1
+# Deployment strategy. Recreate: MCP sessions are node-local (see deployment.yaml).
+strategy: Recreate
 domain: annotate.therobotlives.com
 appDomain: annotate-srv.therobotlives.com
 # appDomain is a sibling subdomain (not a child of domain), so the auth cookie
@@ -7,7 +9,7 @@ appDomain: annotate-srv.therobotlives.com
 cookieDomain: ".therobotlives.com"
 
 backend:
-  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-e001318
+  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-ea611f5
   port: 4000
   resources:
     requests:
@@ -63,6 +65,9 @@ secrets:
     jwtSecret: ANNOTATE_JWT_SECRET
     keyEncSecret: ANNOTATE_KEY_ENC_SECRET
     redisUrl: ANNOTATE_REDIS_URL
+    # MCP OAuth (annotate /mcp) access-token signing key — MCP-only, never
+    # the embed jwtSecret.
+    mcpSigningSecret: ANNOTATE_MCP_SIGNING_SECRET
     # Fleet dashboard (fleet.noizu.com) daily ingest bearer key. Optional
     # secretKeyRef in _helpers.tpl: until it lands in the synced secret the
     # pod boots without it and FleetPush no-ops (logs once).
@@ -145,6 +150,16 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   cloudflareOnly: true
+  # /mcp (Streamable HTTP): responses may be long-lived SSE streams. A second
+  # Ingress object for the one path carries the annotations nginx needs —
+  # no response buffering, long read/send timeouts. Same host, same TLS.
+  mcp:
+    enabled: true
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 
 tls:
   enabled: true

@@ -34,6 +34,9 @@ defmodule Annotate.Application do
         samly_children ++
         [
           Annotate.Events.WebhookHandler,
+          # MCP server (/mcp) session registry + supervisor — before the
+          # endpoint so the first request after boot can open a session.
+          Annotate.MCP.Server,
           AnnotateWeb.Endpoint
         ]
 
