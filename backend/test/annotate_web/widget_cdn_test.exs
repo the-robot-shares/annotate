@@ -28,4 +28,8 @@ defmodule AnnotateWeb.WidgetCdnTest do
              "https://cdn.derobot.is/tobor-kit/v1.0.1/components/page-comments/page-comments.js"
            ) == auth
   end
+
+  test "client-run helpers avoid Regex (not ported to the Hologram runtime)" do
+    refute File.read!("lib/annotate_web/widget_cdn.ex") =~ "~r"
+  end
 end
