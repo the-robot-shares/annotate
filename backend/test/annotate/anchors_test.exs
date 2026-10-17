@@ -3,7 +3,9 @@ defmodule Annotate.AnchorsTest do
   alias Annotate.Anchors
 
   test "parse_url decomposes url into stored page context" do
-    ctx = Anchors.parse_url("https://Good.example:8443/docs/intro/?b=2&a=1&a=0&utm_source=x#sec-3")
+    ctx =
+      Anchors.parse_url("https://Good.example:8443/docs/intro/?b=2&a=1&a=0&utm_source=x#sec-3")
+
     assert ctx["origin"] == "https://good.example:8443"
     assert ctx["page_path"] == "/docs/intro"
     assert ctx["query_string"] == "b=2&a=1&a=0&utm_source=x"
@@ -14,7 +16,10 @@ defmodule Annotate.AnchorsTest do
 
   test "deep-link token is not stored as page hash; deep_link replaces fragment" do
     assert Anchors.parse_url("https://a.example/p#annotate=abc")["hash"] == nil
-    assert Anchors.deep_link("https://a.example/p?x=1#old", "t1") == "https://a.example/p?x=1#annotate=t1"
+
+    assert Anchors.deep_link("https://a.example/p?x=1#old", "t1") ==
+             "https://a.example/p?x=1#annotate=t1"
+
     assert Anchors.deep_link(nil, "t1") == nil
   end
 

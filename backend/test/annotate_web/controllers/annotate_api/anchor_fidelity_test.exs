@@ -35,7 +35,9 @@ defmodule AnnotateWeb.AnnotateAPI.AnchorFidelityTest do
 
   defp list(conn, site, qs) do
     conn
-    |> get("/api/v1/sites/#{site.slug}/threads?page_key=#{URI.encode_www_form("https://good.example/shop")}#{qs}")
+    |> get(
+      "/api/v1/sites/#{site.slug}/threads?page_key=#{URI.encode_www_form("https://good.example/shop")}#{qs}"
+    )
     |> json_response(200)
     |> Map.fetch!("threads")
   end
@@ -52,7 +54,10 @@ defmodule AnnotateWeb.AnnotateAPI.AnchorFidelityTest do
     assert t["hash"] == "reviews"
     assert t["page_title"] == "Shop"
     assert t["anchor_version"] == 2
-    assert t["deep_link"] == "https://good.example/shop/?b=2&a=1&utm_source=nl#annotate=#{t["id"]}"
+
+    assert t["deep_link"] ==
+             "https://good.example/shop/?b=2&a=1&utm_source=nl#annotate=#{t["id"]}"
+
     assert t["anchor"]["ids"]["id"] == "buy"
   end
 
@@ -64,7 +69,10 @@ defmodule AnnotateWeb.AnnotateAPI.AnchorFidelityTest do
     ids = fn ts -> ts |> Enum.map(& &1["id"]) |> Enum.sort() end
 
     assert ids.(list(conn, site, "&query=b%3D2%26a%3D1")) == [a["id"]]
-    assert ids.(list(conn, site, "&url=#{URI.encode_www_form("https://good.example/shop?a=9")}")) == [b["id"]]
+
+    assert ids.(list(conn, site, "&url=#{URI.encode_www_form("https://good.example/shop?a=9")}")) ==
+             [b["id"]]
+
     assert ids.(list(conn, site, "")) == Enum.sort([a["id"], b["id"]])
     assert list(conn, site, "&query=zzz%3D1") == []
   end
@@ -89,7 +97,11 @@ defmodule AnnotateWeb.AnnotateAPI.AnchorFidelityTest do
     assert [_] = list(conn, site, "&query=id%3D7%26ref%3Dz&ignore_params=ref")
   end
 
-  test "legacy rows (NULL query_params) stay readable and match any query", %{conn: conn, site: site, author: author} do
+  test "legacy rows (NULL query_params) stay readable and match any query", %{
+    conn: conn,
+    site: site,
+    author: author
+  } do
     t = create_thread!(site, author, %{"page_key" => "https://good.example/shop"})
     Repo.update_all(Thread, set: [query_params: nil, url: nil, page_path: nil])
 
@@ -101,7 +113,11 @@ defmodule AnnotateWeb.AnnotateAPI.AnchorFidelityTest do
 
   test "url-less writer: client page_path / query_params are used", %{conn: conn, site: site} do
     %{"thread" => t} =
-      post_thread(conn, site, nil, %{"url" => nil, "page_path" => "/shop/", "query_params" => %{"a" => "1"}})
+      post_thread(conn, site, nil, %{
+        "url" => nil,
+        "page_path" => "/shop/",
+        "query_params" => %{"a" => "1"}
+      })
 
     assert t["page_path"] == "/shop"
     assert t["query_params"] == %{"a" => "1"}

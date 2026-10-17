@@ -73,10 +73,29 @@ defmodule AnnotateWeb.Plugs.RateLimit do
   client controls it). With `N` trusted proxy hops
   (`:annotate, :rate_limit_trusted_hops`, env `RATE_LIMIT_TRUSTED_HOPS`,
   default 1 = ingress-nginx) the address is the Nth entry from the RIGHT —
-  the one our own proxy appended. `0`, a missing/short header or an
+  the one our own proxy appended. If `:rate_limit_client_ip_header` is set
+  and that header holds a valid IP it wins (see runtime.exs for the safety
+  condition). `0`, a missing/short header or an
   unparsable entry falls back to `conn.remote_ip`.
   """
   def client_ip(conn) do
+    header_ip(conn) || xff_ip(conn)
+  end
+
+  # Opt-in trusted single-IP header (`:rate_limit_client_ip_header`, env
+  # RATE_LIMIT_CLIENT_IP_HEADER, e.g. "cf-connecting-ip"). Invalid/absent
+  # values fall through to the XFF logic.
+  defp header_ip(conn) do
+    with name when is_binary(name) <- Application.get_env(:annotate, :rate_limit_client_ip_header),
+         [value | _] <- get_req_header(conn, name),
+         {:ok, ip} <- value |> String.trim() |> String.to_charlist() |> :inet.parse_address() do
+      ip |> :inet.ntoa() |> to_string()
+    else
+      _ -> nil
+    end
+  end
+
+  defp xff_ip(conn) do
     hops = Application.get_env(:annotate, :rate_limit_trusted_hops, 1)
     peer = conn.remote_ip |> :inet.ntoa() |> to_string()
 
