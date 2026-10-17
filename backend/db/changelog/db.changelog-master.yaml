@@ -92,3 +92,9 @@ databaseChangeLog:
   - include:
       file: 030-annotate-refresh-token-identity-claims.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 031-annotate-site-members.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: 034-annotate-dashboard-identity.yaml
+      relativeToChangelogFile: true

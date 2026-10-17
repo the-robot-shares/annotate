@@ -1,0 +1,45 @@
+databaseChangeLog:
+  # ── Annotate: dashboard identity (GitHub login) + team commenter link ──
+  # Additive only. Dashboard owners sign in with GitHub (direct OAuth); the
+  # GitHub account is keyed by its immutable numeric id, never by login or
+  # email. `commenters.user_id` ties a site-scoped commenter row to the
+  # dashboard user so inbox replies carry the team identity.
+
+  - changeSet:
+      id: annotate-0044-create-table-github-identities
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              CREATE TABLE github_identities (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                github_id bigint NOT NULL,
+                user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                login text NOT NULL,
+                email citext,
+                name text,
+                avatar_url text,
+                inserted_at timestamptz NOT NULL,
+                updated_at timestamptz NOT NULL,
+                CONSTRAINT github_identities_github_id_key UNIQUE (github_id),
+                CONSTRAINT github_identities_user_id_key UNIQUE (user_id)
+              );
+      rollback:
+        - sql:
+            sql: DROP TABLE IF EXISTS github_identities;
+
+  - changeSet:
+      id: annotate-0045-commenters-user-id
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE commenters
+                ADD COLUMN user_id uuid REFERENCES users(id) ON DELETE SET NULL;
+              CREATE UNIQUE INDEX commenters_site_user_key
+                ON commenters (site_id, user_id) WHERE user_id IS NOT NULL;
+      rollback:
+        - sql:
+            sql: |
+              DROP INDEX IF EXISTS commenters_site_user_key;
+              ALTER TABLE commenters DROP COLUMN IF EXISTS user_id;
