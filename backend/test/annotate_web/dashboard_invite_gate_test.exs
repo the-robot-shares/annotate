@@ -46,6 +46,12 @@ defmodule AnnotateWeb.DashboardInviteGateTest do
 
   defp staff! do
     {:ok, %{user: u}} = OAuthLogin.sign_in(gh(9001, "staff@noizu.com"))
+
+    Repo.update_all(
+      from(u in User, where: u.id == ^u.id),
+      set: [invite_quota: 5]
+    )
+
     Repo.get!(User, u.id)
   end
 
