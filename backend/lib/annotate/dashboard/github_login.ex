@@ -164,7 +164,9 @@ defmodule Annotate.Dashboard.GithubLogin do
       status: :active,
       verified: true,
       flagged: false,
-      approved_at: DateTime.utc_now()
+      approved_at: DateTime.utc_now(),
+      # GitHub supplies everything the dashboard needs; no profile interstitial.
+      profile_completed_at: DateTime.utc_now()
     }
     |> Repo.insert()
   end
