@@ -73,6 +73,24 @@ defmodule Annotate.Billing.Subscriptions do
 
   def start_checkout(_, _), do: {:error, :unauthenticated}
 
+  @doc """
+  Starts the one-time $19.95 beta-join Checkout for a gated user (see
+  `Annotate.Billing.BetaJoin`). No signup cap is claimed — the webhook grants
+  a 90-day Team trial instead of a paid plan slot.
+  """
+  def start_beta_checkout(%{id: user_id, email: email}) do
+    with :ok <- ensure_billing(),
+         {:ok, row} <- ensure(user_id),
+         {:ok, customer_id} <- ensure_customer(row, user_id, email),
+         {:ok, session} <- Stripe.create_beta_checkout_session(customer_id, user_id: user_id) do
+      {:ok, session.url}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def start_beta_checkout(_), do: {:error, :unauthenticated}
+
   @doc "Billing Portal session for the user's Stripe customer."
   def start_portal(%{id: user_id}) do
     with :ok <- ensure_billing(),
@@ -176,12 +194,14 @@ defmodule Annotate.Billing.Subscriptions do
   defp handle_event(%{"type" => type, "data" => %{"object" => object}}) do
     case type do
       "checkout.session.completed" ->
-        sub_id = object["subscription"]
         user_id = get_in(object, ["metadata", "user_id"]) || object["client_reference_id"]
 
         cond do
-          is_binary(sub_id) and is_binary(user_id) ->
-            sync_from_stripe(user_id, sub_id, then_claim_cap: true)
+          get_in(object, ["metadata", "kind"]) == "beta_join" and is_binary(user_id) ->
+            Annotate.Billing.BetaJoin.activate(user_id)
+
+          is_binary(object["subscription"]) and is_binary(user_id) ->
+            sync_from_stripe(user_id, object["subscription"], then_claim_cap: true)
 
           true ->
             :ok

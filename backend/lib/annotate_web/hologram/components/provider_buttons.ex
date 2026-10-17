@@ -17,13 +17,13 @@ defmodule AnnotateWeb.Hologram.Components.ProviderButtons do
 
   def template do
     ~HOLO"""
-    <div class="sg-auth__providers" data-cy="provider-buttons">
+    <div class="nd-auth__providers" data-cy="provider-buttons">
       {%for p <- @providers}
         {%if p.configured}
-          <p><a class="btn btn-black" href={href(p.id, @invite, @return_to)} data-cy={"sign-in-" <> p.id}>{p.label}</a></p>
+          <p><a class="nd-btn nd-btn--primary" href={href(p.id, @invite, @return_to)} data-cy={"sign-in-" <> p.id}>{p.label}</a></p>
         {%else}
-          <p><button type="button" class="btn btn-black" disabled aria-disabled="true">{p.label}</button></p>
-          <p class="sg-auth__note" role="status" data-cy={"sign-in-unconfigured-" <> p.id}>{p.name} sign-in is not configured yet.</p>
+          <p><button type="button" class="nd-btn nd-btn--primary" disabled aria-disabled="true">{p.label}</button></p>
+          <p class="nd-auth__note" role="status" data-cy={"sign-in-unconfigured-" <> p.id}>{p.name} sign-in is not configured yet.</p>
         {/if}
       {/for}
     </div>

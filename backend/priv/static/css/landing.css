@@ -1,11 +1,22 @@
-/* annotate — marketing landing (Night Desk / Nocturne direction)
- * Tokens from design/landing/DIRECTIONS.md §2. Dark-native: hierarchy by
- * luminosity, one ember glow, no shadows. WCAG 2.2 AA verified pairs:
- *   #9A9AB0 on #111118 6.82:1 · #D6D6E4 on #111118 13.07:1 · #EDEDF4 16.13:1
- *   #F97316 on #0B0B10 7.00:1 · #FB923C on #111118 8.31:1 · void on ember 7.00:1
- *   #6B6B80 on canvas 3.62:1 — large text / UI accents ONLY (never body copy)
+/* annotate — marketing landing (Daylight Margin v2 direction)
+ * Tokens from design/landing/DIRECTIONS.md §1 (Margin) + the approved D3
+ * render (design/landing/prompts/d3-daylight-margin-v2/). Light paper-and-ink:
+ * hierarchy by weight and hairlines, one markup red, no glows. The comment
+ * widget stays DARK on it — floating inspector (tobor-kit vars below are
+ * deliberately not flipped).
+ * WCAG 2.2 AA verified pairs (on paper #FAFAF8 unless noted):
+ *   #17171C 17.1:1 · #5B5B66 6.41:1 · #B42318 6.29:1 · #2563EB 4.95:1
+ *   #FAFAF8 on #D92D20 fill 4.62:1 · on surface #F1F1EE: ink 15.8 · #5B5B66 5.92
+ *   #8A8A80 borders 3.31:1 (UI components) · #E4E4DF hairlines (decorative)
  */
 
+@font-face {
+  font-family: "Newsreader";
+  src: url("/fonts/newsreader-var.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
 @font-face {
   font-family: "Geist";
   src: url("/fonts/geist-var.woff2") format("woff2-variations");
@@ -29,39 +40,44 @@
 }
 
 :root {
-  /* Night Desk surfaces */
-  --nd-void: #0b0b10;
-  --nd-canvas: #111118;
-  --nd-surface: #1a1a23;
-  --nd-raised: #23232e;
-  --nd-mist: #2a2a3a;
-  --nd-fog: #3a3a4f;
-  /* Night Desk text */
-  --nd-text-dim: #6b6b80;      /* UI accents + large text only */
-  --nd-text-secondary: #9a9ab0;
-  --nd-text-primary: #d6d6e4;
-  --nd-text-bright: #ededf4;
-  /* Ember glow */
-  --nd-ember: #f97316;
-  --nd-ember-bright: #fb923c;
-  --nd-ambient: rgba(249, 115, 22, 0.08);
+  /* Daylight Margin surfaces */
+  --nd-void: #fafaf8;          /* paper — page background */
+  --nd-canvas: #f1f1ee;        /* alternate section canvas */
+  --nd-surface: #ffffff;       /* cards on paper */
+  --nd-raised: #f1f1ee;        /* code panels, wells */
+  --nd-mist: #e4e4df;          /* hairline borders */
+  --nd-fog: #8a8a80;           /* interactive borders (3.31:1) */
+  /* Daylight Margin text */
+  --nd-text-dim: #5b5b66;      /* labels, captions */
+  --nd-text-secondary: #5b5b66;
+  --nd-text-primary: #17171c;  /* body ink */
+  --nd-text-bright: #17171c;   /* headings ink */
+  /* Markup red (accent) — rings, pins, chips, primary CTA */
+  --nd-ember: #d92d20;
+  --nd-ember-bright: #b42318;  /* red for TEXT (6.29:1) */
+  --nd-ambient: rgba(217, 45, 32, 0.06);
+  --nd-link: #2563eb;
 
-  /* Type */
-  --nd-font-display: "Geist", "Inter", system-ui, sans-serif;
+  /* Type — serif display is the Daylight Margin signature */
+  --nd-font-display: "Newsreader", Georgia, "Times New Roman", serif;
   --nd-font-body: "Inter", system-ui, -apple-system, sans-serif;
   --nd-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  /* Space (8px scale; Nocturne spacing = light-native +25%) */
+  /* Space (8px scale) */
   --nd-space-1: 8px;
   --nd-space-2: 16px;
   --nd-space-3: 24px;
   --nd-space-4: 32px;
+  --nd-space-5: 40px;
   --nd-space-6: 48px;
   --nd-space-8: 64px;
   --nd-space-12: 96px;
   --nd-max: 1160px;
 
-  /* tobor-kit widget theming (see tobor-kit page-comments docs/configuration.md §6) */
+  /* tobor-kit widget theming — the comment widget stays DARK on the paper
+   * page: the floating inspector (see tobor-kit page-comments
+   * docs/configuration.md §6). Only the page-level ring/picker follow the
+   * markup red. */
   --tobor-kit-font-family: var(--nd-font-body);
   --tobor-kit-bg: #111118;
   --tobor-kit-surface: #1a1a23;
@@ -73,9 +89,9 @@
   --tobor-kit-danger: #f87171;
   --tobor-kit-warn: #f97316;
   --tobor-kit-radius: 12px;
-  --tobor-kit-shadow: 0 12px 32px rgb(0 0 0 / 45%);
-  --pc-ring-color: #fb923c;
-  --pc-picker-color: #f97316;
+  --tobor-kit-shadow: 0 24px 48px rgb(23 23 28 / 28%);
+  --pc-ring-color: #d92d20;
+  --pc-picker-color: #d92d20;
 }
 
 *,
@@ -104,16 +120,16 @@ h1,
 h2,
 h3,
 h4 {
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   font-family: var(--nd-font-display);
-  font-weight: 300;
+  font-weight: 500;
   line-height: 1.12;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 a {
-  color: var(--nd-ember-bright);
+  color: var(--nd-link);
   text-decoration: none;
 }
 
@@ -133,10 +149,11 @@ a:hover {
   left: -9999px;
   top: 0;
   z-index: 100;
-  background: var(--nd-raised);
+  background: var(--nd-surface);
   color: var(--nd-text-bright);
   padding: 12px 20px;
   border-radius: 0 0 8px 0;
+  border: 1px solid var(--nd-mist);
 }
 .nd-skip:focus {
   left: 0;
@@ -147,7 +164,7 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(11, 11, 16, 0.82);
+  background: rgba(250, 250, 248, 0.9);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--nd-mist);
 }
@@ -162,8 +179,8 @@ a:hover {
 }
 .nd-nav__brand {
   font-family: var(--nd-font-display);
-  font-weight: 500;
-  font-size: 19px;
+  font-weight: 600;
+  font-size: 21px;
   letter-spacing: -0.01em;
   color: var(--nd-text-bright);
   display: inline-flex;
@@ -178,7 +195,6 @@ a:hover {
   height: 9px;
   border-radius: 50%;
   background: var(--nd-ember);
-  box-shadow: 0 0 8px var(--nd-ember);
 }
 .nd-nav__links {
   display: flex;
@@ -208,32 +224,28 @@ a:hover {
   padding: 14px 28px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: box-shadow 0.18s ease-out, transform 0.15s ease-out,
-    border-color 0.18s ease-out, color 0.18s ease-out;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out,
+    transform 0.15s ease-out;
   text-decoration: none;
 }
 .nd-btn:hover {
   text-decoration: none;
 }
 .nd-btn--primary {
-  background: var(--nd-ember-bright);
+  background: var(--nd-ember);
   color: var(--nd-void);
-  box-shadow: 0 0 1px var(--nd-ember-bright),
-    0 0 12px rgba(251, 146, 60, 0.3);
 }
 .nd-btn--primary:hover {
-  box-shadow: 0 0 1px var(--nd-ember-bright),
-    0 0 20px rgba(251, 146, 60, 0.45);
+  background: var(--nd-ember-bright);
   transform: translateY(-1px);
 }
 .nd-btn--secondary {
   background: transparent;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   border-color: var(--nd-fog);
 }
 .nd-btn--secondary:hover {
   border-color: var(--nd-ember);
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.15);
 }
 .nd-btn--sm {
   padding: 9px 18px;
@@ -245,22 +257,7 @@ a:hover {
   position: relative;
   overflow: hidden;
   background: var(--nd-canvas);
-}
-.nd-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    640px 640px at 78% 40%,
-    var(--nd-ambient),
-    transparent 70%
-  );
-  pointer-events: none;
-  animation: nd-drift 20s ease-in-out infinite alternate;
-}
-@keyframes nd-drift {
-  0% { transform: translate(-6%, -4%); }
-  100% { transform: translate(6%, 4%); }
+  border-bottom: 1px solid var(--nd-mist);
 }
 .nd-hero__inner {
   position: relative;
@@ -279,7 +276,7 @@ a:hover {
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--nd-ember-bright);
+  color: var(--nd-text-dim);
   margin-bottom: var(--nd-space-2);
 }
 .nd-hero__eyebrow::before {
@@ -288,14 +285,10 @@ a:hover {
   height: 8px;
   border-radius: 50%;
   background: var(--nd-ember);
-  animation: nd-pulse 4s ease-in-out infinite;
-}
-@keyframes nd-pulse {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(249, 115, 22, 0.5); }
-  50% { box-shadow: 0 0 12px 3px rgba(249, 115, 22, 0.85); }
 }
 .nd-hero h1 {
-  font-size: clamp(40px, 5.2vw, 66px);
+  font-size: clamp(40px, 5.2vw, 64px);
+  font-weight: 500;
   color: var(--nd-text-bright);
 }
 .nd-hero__sub {
@@ -329,9 +322,123 @@ a:hover {
   color: var(--nd-text-secondary);
   padding-top: 10px;
 }
-.nd-hero__art figcaption span[aria-hidden="true"] {
-  color: var(--nd-ember-bright);
+
+/* Hero mock — flat light browser window: heavy red ring on an Export button,
+ * connector to a WHITE rail card flush-docked against the window's right
+ * edge. Decorative only (aria-hidden in markup); abstract bars, no fake copy
+ * beyond the one real control name. */
+.nd-hero__mock {
+  position: relative;
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgb(23 23 28 / 8%);
 }
+.nd-hero__mock-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--nd-mist);
+  background: var(--nd-raised);
+}
+.nd-hero__mock-bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--nd-mist);
+}
+.nd-hero__mock-body {
+  position: relative;
+  padding: var(--nd-space-4);
+  padding-right: 34%;
+  min-height: 300px;
+}
+.nd-hero__mock-line {
+  height: 12px;
+  border-radius: 6px;
+  background: #ecece7;
+  margin-bottom: 12px;
+}
+.nd-hero__mock-line--w80 { width: 80%; }
+.nd-hero__mock-line--w60 { width: 60%; }
+.nd-hero__mock-line--w45 { width: 45%; }
+.nd-hero__mock-line--w70 { width: 70%; }
+.nd-hero__mock-card {
+  border: 1px solid var(--nd-mist);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: var(--nd-space-3);
+}
+.nd-hero__mock-export {
+  position: absolute;
+  top: 38%;
+  right: 30%;
+  display: inline-block;
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-fog);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--nd-text-bright);
+  outline: 3px solid var(--nd-ember);
+  outline-offset: 5px;
+}
+.nd-hero__mock-pin {
+  position: absolute;
+  top: calc(38% - 22px);
+  right: calc(30% + 46px);
+  width: 12px;
+  height: 12px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--nd-ember);
+  transform: rotate(-45deg);
+}
+.nd-hero__mock-connector {
+  position: absolute;
+  top: calc(38% + 18px);
+  right: 6%;
+  width: 22%;
+  height: 0;
+  border-top: 1.5px solid var(--nd-ember);
+}
+.nd-hero__mock-rail {
+  position: absolute;
+  top: 26%;
+  right: 0;
+  width: 30%;
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  box-shadow: -12px 16px 32px rgb(23 23 28 / 10%);
+}
+.nd-hero__mock-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.nd-hero__mock-row i {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--nd-ambient);
+  border: 1px solid rgba(217, 45, 32, 0.35);
+}
+.nd-hero__mock-row span {
+  height: 9px;
+  border-radius: 5px;
+  background: #ecece7;
+}
+.nd-hero__mock-row span:first-of-type { width: 70%; }
+.nd-hero__mock-row span:last-of-type { width: 45%; }
 
 /* ── Sections ────────────────────────────────────────────────── */
 .nd-section {
@@ -351,7 +458,7 @@ a:hover {
   font-size: 13px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--nd-ember-bright);
+  color: var(--nd-text-dim);
   margin-bottom: var(--nd-space-1);
 }
 .nd-section h2 {
@@ -363,7 +470,7 @@ a:hover {
   margin: 0 0 var(--nd-space-6);
 }
 
-/* ── How it works ────────────────────────────────────────────── */
+/* ── Steps ───────────────────────────────────────────────────── */
 .nd-steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -388,13 +495,92 @@ a:hover {
 }
 .nd-step h3 {
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 500;
   margin: var(--nd-space-1) 0 8px;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-step p {
   margin: 0;
   font-size: 16px;
+}
+
+/* ── Live demo band ──────────────────────────────────────────── */
+.nd-demo__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--nd-space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--nd-space-4);
+}
+.nd-demo__grid li {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  padding: var(--nd-space-3);
+  font-size: 15px;
+}
+.nd-demo__grid li::before {
+  content: attr(data-step);
+  display: block;
+  font-family: var(--nd-font-mono);
+  font-size: 13px;
+  color: var(--nd-ember-bright);
+  margin-bottom: 6px;
+}
+.nd-demo__stage {
+  position: relative;
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  background: var(--nd-surface);
+  padding: var(--nd-space-6) var(--nd-space-4);
+  overflow: hidden;
+}
+.nd-demo__target {
+  position: relative;
+  margin: 0 auto;
+  max-width: 420px;
+}
+.nd-demo__target .nd-demo__line {
+  height: 12px;
+  border-radius: 6px;
+  background: #ecece7;
+  margin-bottom: 12px;
+}
+.nd-demo__target .nd-demo__line--w70 { width: 70%; }
+.nd-demo__target .nd-demo__line--w50 { width: 50%; }
+.nd-demo__ring {
+  position: absolute;
+  inset: -14px -18px;
+  border: 2px dashed var(--nd-ember);
+  border-radius: 10px;
+  pointer-events: none;
+}
+.nd-demo__pill {
+  position: absolute;
+  right: -18px;
+  bottom: -26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-fog);
+  border-radius: 999px;
+  padding: 7px 14px;
+  box-shadow: 0 8px 20px rgb(23 23 28 / 10%);
+}
+.nd-demo__pill i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nd-ember);
+}
+.nd-demo__pill span {
+  display: block;
+  width: 64px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ecece7;
 }
 
 /* ── Bento ───────────────────────────────────────────────────── */
@@ -408,11 +594,10 @@ a:hover {
   border: 1px solid var(--nd-mist);
   border-radius: 12px;
   padding: var(--nd-space-4);
-  transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out;
+  transition: border-color 0.15s ease-out;
 }
 .nd-tile:hover {
-  border-color: rgba(249, 115, 22, 0.4);
-  box-shadow: 0 0 24px rgba(249, 115, 22, 0.08);
+  border-color: rgba(217, 45, 32, 0.45);
 }
 .nd-tile--wide {
   grid-column: span 3;
@@ -422,16 +607,16 @@ a:hover {
 }
 .nd-tile h3 {
   font-size: 19px;
-  font-weight: 400;
+  font-weight: 500;
   margin-bottom: 8px;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-tile p {
   margin: 0;
   font-size: 16px;
 }
 .nd-tile__glyph {
-  color: var(--nd-ember-bright);
+  color: var(--nd-text-dim);
   font-family: var(--nd-font-mono);
   font-size: 13px;
   display: block;
@@ -450,7 +635,7 @@ a:hover {
 }
 .nd-tile__media figcaption {
   font-size: 13px;
-  color: var(--nd-text-secondary); /* 6.27:1 on surface — AA for small text */
+  color: var(--nd-text-secondary); /* 5.92:1 on white — AA for small text */
   padding: 6px 10px;
 }
 
@@ -495,7 +680,40 @@ a:hover {
   font-size: 14px;
 }
 
-/* ── Privacy ─────────────────────────────────────────────────── */
+/* ── Embed steps ─────────────────────────────────────────────── */
+.nd-embedsteps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--nd-space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--nd-space-4);
+  counter-reset: nd-embed;
+}
+.nd-embedsteps li {
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 12px;
+  padding: var(--nd-space-3);
+  font-size: 16px;
+}
+.nd-embedsteps li::before {
+  counter-increment: nd-embed;
+  content: counter(nd-embed);
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  margin-right: 10px;
+  border-radius: 999px;
+  background: var(--nd-ember);
+  color: var(--nd-void);
+  font-family: var(--nd-font-mono);
+  font-size: 13px;
+}
+
+/* ── Privacy strip ───────────────────────────────────────────── */
 .nd-privacy {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -522,11 +740,7 @@ a:hover {
 /* ── Dogfood ─────────────────────────────────────────────────── */
 .nd-dogfood {
   border-top: 1px solid var(--nd-mist);
-  background: linear-gradient(
-    180deg,
-    rgba(249, 115, 22, 0.05),
-    transparent 80%
-  );
+  background: var(--nd-ambient);
 }
 .nd-dogfood__inner {
   max-width: var(--nd-max);
@@ -548,6 +762,29 @@ a:hover {
   font-weight: 500;
 }
 
+/* ── Final CTA ───────────────────────────────────────────────── */
+.nd-final__ctas {
+  display: flex;
+  gap: var(--nd-space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--nd-space-4) 0 var(--nd-space-6);
+}
+.nd-final__quiet {
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+}
+.nd-final__privacy {
+  margin-top: var(--nd-space-6);
+  padding-top: var(--nd-space-4);
+  border-top: 1px solid var(--nd-mist);
+}
+.nd-final__privacy h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: var(--nd-space-2);
+}
+
 /* ── FAQ ─────────────────────────────────────────────────────── */
 .nd-faq {
   max-width: 780px;
@@ -560,7 +797,7 @@ a:hover {
   padding: var(--nd-space-2) 0;
   font-size: 18px;
   font-weight: 400;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   list-style: none;
   display: flex;
   justify-content: space-between;
@@ -602,7 +839,7 @@ a:hover {
 .nd-legal__inner p, .nd-legal__inner li { max-width: 68ch; }
 .nd-legal__inner ul { padding-left: 1.25rem; }
 .nd-legal__inner li { margin: 0 0 8px; }
-.nd-legal__inner a { color: var(--nd-ember-bright); }
+.nd-legal__inner a { color: var(--nd-link); }
 .nd-legal__meta { color: var(--nd-text-secondary); font-size: 14px; margin: 0 0 var(--nd-space-4); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
@@ -616,6 +853,9 @@ a:hover {
   .nd-tile--third:last-child {
     grid-column: span 6;
   }
+  .nd-demo__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 @media (max-width: 900px) {
   .nd-hero__inner {
@@ -628,7 +868,8 @@ a:hover {
   .nd-nav__links .nd-nav__link {
     display: none;
   }
-  .nd-steps {
+  .nd-steps,
+  .nd-embedsteps {
     grid-template-columns: 1fr;
   }
   .nd-privacy {
@@ -640,6 +881,9 @@ a:hover {
   .nd-bento {
     display: flex;
     flex-direction: column;
+  }
+  .nd-demo__grid {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 640px) {
@@ -664,11 +908,6 @@ a:hover {
   .nd-nav__brand {
     margin-right: auto;
   }
-}
-
-/* ── Hero art: soft 1.7x upscale, never wider than ~1100px ───── */
-.nd-hero__art img {
-  max-width: 1100px;
 }
 
 .nd-sr-only {
@@ -696,11 +935,11 @@ a:hover {
 }
 .nd-chip--live {
   color: var(--nd-ember-bright);
-  border-color: rgba(251, 146, 60, 0.55);
-  background: rgba(249, 115, 22, 0.1);
+  border-color: rgba(217, 45, 32, 0.5);
+  background: var(--nd-ambient);
 }
 .nd-chip--dev {
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   border-color: var(--nd-text-dim);
   border-style: dashed;
 }
@@ -778,7 +1017,7 @@ a:hover {
   border-bottom: 0;
 }
 
-/* ── Integrations roster ─────────────────────────────────────── */
+/* ── Roadmap roster ──────────────────────────────────────────── */
 .nd-roster {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -799,16 +1038,16 @@ a:hover {
 }
 .nd-roster h3 {
   font-size: 19px;
-  font-weight: 400;
+  font-weight: 500;
   margin: 0;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-roster p {
   margin: 0;
   font-size: 15px;
 }
 .nd-roster a {
-  color: var(--nd-ember-bright);
+  color: var(--nd-link);
   font-size: 15px;
   margin-top: auto;
 }
@@ -858,7 +1097,7 @@ a:hover {
 .nd-waitlist input[type="email"] {
   flex: 1 1 260px;
   min-width: 0;
-  background: var(--nd-void);
+  background: var(--nd-surface);
   color: var(--nd-text-bright);
   border: 1px solid var(--nd-fog);
   border-radius: 10px;
@@ -875,7 +1114,7 @@ a:hover {
   min-height: 1.4em;
   margin: var(--nd-space-1) 0 0;
   font-size: 15px;
-  color: #fca5a5;
+  color: var(--nd-ember-bright);
 }
 .nd-waitlist__note {
   margin: var(--nd-space-1) 0 0;
@@ -887,7 +1126,7 @@ a:hover {
 }
 .nd-waitlist__done h3 {
   font-size: 22px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--nd-text-bright);
   margin: 0 0 8px;
 }
@@ -921,28 +1160,13 @@ a:hover {
   }
 }
 
-/* ── Reduced motion: strip halos/ambient, keep solid outlines ── */
+/* ── Reduced motion: flat page, hover shifts only ────────────── */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .nd-hero::before {
-    animation: none;
-  }
-  .nd-hero__eyebrow::before {
-    animation: none;
-    box-shadow: none;
-  }
-  .nd-btn--primary {
-    box-shadow: none;
-  }
   .nd-btn--primary:hover {
-    box-shadow: none;
     transform: none;
-  }
-  .nd-tile:hover {
-    box-shadow: none;
-    border-color: var(--nd-ember);
   }
   .nd-btn,
   .nd-tile {
@@ -957,16 +1181,16 @@ noizu-auth.annotate-auth--nd {
   --auth-color: var(--nd-text-bright);
   --auth-muted: var(--nd-text-secondary);
   --auth-background: var(--nd-surface);
-  --auth-border: var(--nd-fog);
-  --auth-backdrop: rgb(11 11 16 / 0.78);
+  --auth-border: var(--nd-mist);
+  --auth-backdrop: rgb(23 23 28 / 0.55);
   --auth-accent: var(--nd-ember);
-  --auth-on-accent: var(--nd-void);
-  --auth-link: var(--nd-ember-bright);
+  --auth-on-accent: #ffffff;
+  --auth-link: var(--nd-link);
   --auth-input-background: var(--nd-raised);
   --auth-button-background: var(--nd-raised);
   --auth-focus: var(--nd-ember-bright);
   --auth-font: var(--nd-font-body);
-  --auth-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+  --auth-shadow: 0 25px 50px -12px rgb(23 23 28 / 0.25);
   --auth-provider-background: var(--nd-text-bright);
   --auth-provider-color: var(--nd-void);
 }
@@ -997,7 +1221,7 @@ noizu-auth.annotate-auth--nd {
   border-radius: 12px;
   overflow: hidden;
   background: var(--nd-surface);
-  box-shadow: 0 18px 44px rgb(0 0 0 / 35%);
+  box-shadow: 0 18px 44px rgb(23 23 28 / 10%);
 }
 .nd-flow__media img {
   display: block;
@@ -1009,15 +1233,15 @@ noizu-auth.annotate-auth--nd {
   align-items: center;
   gap: 10px;
   font-size: 22px;
-  font-weight: 400;
-  color: var(--nd-text-primary);
+  font-weight: 500;
+  color: var(--nd-text-bright);
   margin: 0 0 var(--nd-space-2);
 }
 .nd-flow__num {
   font-family: var(--nd-font-mono);
   font-size: 15px;
-  color: var(--nd-void);
-  background: var(--nd-ember-bright);
+  color: #ffffff;
+  background: var(--nd-ember);
   border-radius: 999px;
   min-width: 26px;
   height: 26px;
@@ -1039,9 +1263,9 @@ noizu-auth.annotate-auth--nd {
 }
 .nd-mcp__title {
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 500;
   margin: 0 0 var(--nd-space-2);
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-mcp__steps {
   margin: 0;
@@ -1067,7 +1291,7 @@ noizu-auth.annotate-auth--nd {
 }
 .nd-mcp__note a,
 .nd-mcp__trust a {
-  color: var(--nd-ember-bright);
+  color: var(--nd-link);
 }
 .nd-mcp__tools {
   width: 100%;
@@ -1089,7 +1313,7 @@ noizu-auth.annotate-auth--nd {
   letter-spacing: 0.05em;
 }
 .nd-mcp__tools tbody th {
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1113,6 +1337,11 @@ noizu-auth.annotate-auth--nd {
 .nd-mcp__snippet .nd-snippet__code {
   margin: 0;
 }
+.nd-mcp__caption {
+  margin: 0 0 var(--nd-space-3);
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+}
 .nd-mcp__trust ul {
   margin: 0;
   padding-left: 20px;
@@ -1134,9 +1363,9 @@ noizu-auth.annotate-auth--nd {
 /* ── Doc page (e.g. /mcp-server) ─────────────────────────────── */
 .nd-doc h1 {
   font-size: clamp(30px, 4vw, 44px);
-  font-weight: 400;
+  font-weight: 500;
   margin: 0 0 var(--nd-space-3);
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-doc__panel {
   background: var(--nd-surface);
@@ -1147,18 +1376,17 @@ noizu-auth.annotate-auth--nd {
 }
 .nd-doc__panel h2 {
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 500;
   margin: 0 0 var(--nd-space-3);
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
 }
 .nd-btn--ghost {
   background: transparent;
-  color: var(--nd-text-primary);
+  color: var(--nd-text-bright);
   border: 1px solid var(--nd-mist);
 }
 .nd-btn--ghost:hover {
   border-color: var(--nd-ember);
-  color: var(--nd-text-bright);
 }
 
 @media (max-width: 900px) {
@@ -1172,4 +1400,51 @@ noizu-auth.annotate-auth--nd {
   .nd-mcp__snippet {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Clickable plan tiles ────────────────────────────────────── */
+a.nd-tile--plan {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.nd-tile--plan:hover {
+  border-color: var(--nd-ember-bright);
+}
+.nd-tile__cta {
+  display: inline-block;
+  margin-top: var(--nd-space-1);
+  color: var(--nd-ember-bright);
+  font-weight: 500;
+  font-size: 15px;
+}
+.nd-tile--plan h3 {
+  color: var(--nd-text-bright);
+}
+
+/* ── Waitlist text fields (email + about + use case) ─────────── */
+.nd-waitlist__field {
+  margin-top: var(--nd-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nd-waitlist__field label {
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+}
+.nd-waitlist__field label span {
+  color: var(--nd-text-dim);
+}
+.nd-waitlist__field input[type="text"] {
+  background: var(--nd-void);
+  color: var(--nd-text-bright);
+  border: 1px solid var(--nd-fog);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px;
+}
+.nd-waitlist__field input[type="text"]:focus-visible {
+  outline: 2px solid var(--nd-ember-bright);
+  outline-offset: 2px;
 }

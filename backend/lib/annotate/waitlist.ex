@@ -8,10 +8,12 @@ defmodule Annotate.Waitlist do
   alias Annotate.Repo
   alias Annotate.Schema.Annotate.WaitlistSignup
 
-  # The only interests the form offers; anything else is rejected. `plan-*`
-  # and `agent-addon` power the pricing/dashboard waitlists (full plans and
-  # the coming-soon agent add-on — see Annotate.Billing).
-  @interests ~w(mcp robot-plans jira notion clickup asana agent-addon
+  # The interests the form offered historically plus the dashboard waitlists;
+  # anything else is rejected. `plan-*` and `agent-addon` power the
+  # pricing/dashboard waitlists (see Annotate.Billing). The landing form no
+  # longer asks about interests — it records a single `waitlist` row with
+  # about/use_case text instead (feedback a90465e3, 2026-10-18).
+  @interests ~w(waitlist mcp robot-plans jira notion clickup asana agent-addon
                 plan-start plan-standard plan-team)
 
   # Pragmatic address shape check: one @, no spaces, a dotted domain.
@@ -20,23 +22,43 @@ defmodule Annotate.Waitlist do
   def interests, do: @interests
 
   @doc """
-  Validates and records a signup. `params` is the raw request map
-  (`"email"`, `"interests"`, honeypot `"website"`).
+  Validates and records a signup.
+
+  Two shapes:
+
+    * the landing "for you" form — `params` carries `"email"`, `"about"`
+      (required), optional `"use_case"`, honeypot `"website"`; one row with
+      interest `"waitlist"` and the text stored on it;
+    * the dashboard plan/agent waitlists — `params` carries `"interests"`;
+      one row per (email, interest) as before.
 
   Returns `{:ok, n}` (n rows newly inserted; 0 when the honeypot tripped or
-  every pair already existed) or `{:error, :invalid_email | :no_interest}`.
-  A filled honeypot returns `{:ok, 0}` without touching the database, so
-  bots see the same response as a real signup.
+  every row already existed) or `{:error, :invalid_email | :no_interest |
+  :no_about}`. A filled honeypot returns `{:ok, 0}` without touching the
+  database, so bots see the same response as a real signup.
   """
   def signup(params) when is_map(params) do
     email = params |> Map.get("email") |> normalize_email()
-    interests = params |> Map.get("interests") |> normalize_interests()
 
-    cond do
-      honeypot?(params) -> {:ok, 0}
-      not valid_email?(email) -> {:error, :invalid_email}
-      interests == [] -> {:error, :no_interest}
-      true -> insert(email, interests)
+    if Map.has_key?(params, "interests") do
+      interests = params |> Map.get("interests") |> normalize_interests()
+
+      cond do
+        honeypot?(params) -> {:ok, 0}
+        not valid_email?(email) -> {:error, :invalid_email}
+        interests == [] -> {:error, :no_interest}
+        true -> insert(email, interests, nil, nil)
+      end
+    else
+      about = params |> Map.get("about") |> normalize_text()
+      use_case = params |> Map.get("use_case") |> normalize_text()
+
+      cond do
+        honeypot?(params) -> {:ok, 0}
+        not valid_email?(email) -> {:error, :invalid_email}
+        about == nil or about == "" -> {:error, :no_about}
+        true -> insert(email, ["waitlist"], about, use_case)
+      end
     end
   end
 
@@ -56,6 +78,12 @@ defmodule Annotate.Waitlist do
   defp normalize_email(v) when is_binary(v), do: v |> String.trim() |> String.downcase()
   defp normalize_email(_), do: nil
 
+  defp normalize_text(v) when is_binary(v) do
+    v |> String.trim() |> String.slice(0, 500)
+  end
+
+  defp normalize_text(_), do: nil
+
   defp normalize_interests(v) when is_binary(v), do: normalize_interests([v])
 
   defp normalize_interests(v) when is_list(v) do
@@ -68,12 +96,16 @@ defmodule Annotate.Waitlist do
 
   defp normalize_interests(_), do: []
 
-  defp insert(email, interests) do
+  defp insert(email, interests, about, use_case) do
     now = DateTime.utc_now()
 
     rows =
       Enum.map(interests, fn i ->
-        %{email: email, interest: i, source: "landing", created_at: now}
+        base = %{email: email, interest: i, source: "landing", created_at: now}
+
+        if i == "waitlist",
+          do: Map.merge(base, %{about: about, use_case: use_case}),
+          else: base
       end)
 
     {n, _} =

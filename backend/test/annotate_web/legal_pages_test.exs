@@ -16,7 +16,7 @@ defmodule AnnotateWeb.LegalPagesTest do
     assert body =~ "CF-Connecting-IP"
     assert body =~ "Cloudflare"
     assert body =~ "GitHub"
-    assert body =~ "keith.brings@noizu.com"
+    assert body =~ "support@noizu.com"
     assert body =~ ~s(rel="canonical" href="https://annotate.therobotlives.com/privacy")
     assert body =~ ~s(name="description")
     assert get_resp_header(conn, "x-frame-options") == ["DENY"]

@@ -1,13 +1,14 @@
 defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
   @moduledoc """
-  Marketing landing layout (Night Desk / Nocturne direction).
+  Marketing landing layout (Daylight Margin v2 direction — light paper-and-ink).
 
   Standalone by design: it does NOT touch `Annotate.StyleGuide.Catalog` or the
   theme YAML machinery (see #20 — compile-time `__DIR__` theme paths broke
-  release builds). Dark-native head: SEO meta, Open Graph / Twitter cards with
+  release builds). Head: SEO meta, Open Graph / Twitter cards with
   absolute og:image computed from the marketing host config, self-hosted font
   preloads, `/css/landing.css`, skip link, and the dogfood widget embed at the
-  end of body (module script — deferred by default, never blocks render).
+  end of body (module script — deferred by default, never blocks render). The
+  widget itself stays dark on the paper page — floating inspector.
   """
 
   use Hologram.Component
@@ -82,6 +83,7 @@ defmodule AnnotateWeb.Hologram.Layouts.LandingLayout do
         <meta name="twitter:description" content={@og_description} />
         <meta name="twitter:image" content={@og_image} />
         <meta name="twitter:image:alt" content={@og_image_alt} />
+        <link rel="preload" href="/fonts/newsreader-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href={@landing_css} />

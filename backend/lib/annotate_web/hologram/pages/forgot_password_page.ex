@@ -6,11 +6,11 @@ defmodule AnnotateWeb.Hologram.Pages.ForgotPasswordPage do
   use Hologram.Page
 
   alias Hologram.UI.Link
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Pages.LoginPage
 
   route "/forgot-password"
-  layout MainLayout, page_title: "Forgot Password"
+  layout AuthLayout, page_title: "Forgot Password"
   middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   # <REMOVED UUID HERE> init :: auto-generated pointer for public function init
@@ -31,44 +31,44 @@ defmodule AnnotateWeb.Hologram.Pages.ForgotPasswordPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Forgot Password</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Forgot Password</h1>
 
       {%if @step == "request"}
-        <p class="sg-page-intro">Enter your email and we'll send a reset code if an account exists.</p>
-        <form class="sg-form" $submit.prevent_default={:submit_request}>
+        <p class="nd-auth__intro">Enter your email and we'll send a reset code if an account exists.</p>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_request}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="reset-email">Email</label>
             <input id="reset-email" type="email" value={@email} required autocomplete="email" $change={:set_email} />
           </div>
-          <button type="submit" class="btn btn-black" disabled={@loading}>
+          <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
             {%if @loading}Sending...{%else}Send reset code{/if}
           </button>
-          <div class="sg-form-footer">
+          <div class="nd-auth__footer">
             <p><Link to={LoginPage}>Back to log in</Link></p>
           </div>
         </form>
       {/if}
 
       {%if @step == "verify"}
-        <p class="sg-page-intro">
+        <p class="nd-auth__intro">
           Enter the code sent to <strong>{@email}</strong> and choose a new password.
         </p>
         {%if @dev_code}
-          <p class="sg-page-intro">Dev code: <code>{@dev_code}</code></p>
+          <p class="nd-auth__intro">Dev code: <code>{@dev_code}</code></p>
         {/if}
-        <form class="sg-form" $submit.prevent_default={:submit_verify}>
+        <form class="nd-auth__form" $submit.prevent_default={:submit_verify}>
           {%if @error}
-            <p class="sg-error" role="alert">{@error}</p>
+            <p class="nd-auth__error" role="alert">{@error}</p>
           {/if}
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="reset-code">Reset code</label>
             <input id="reset-code" type="text" value={@code} required autocomplete="one-time-code" $change={:set_code} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="reset-new-password">New password</label>
             <input
               id="reset-new-password"
@@ -80,7 +80,7 @@ defmodule AnnotateWeb.Hologram.Pages.ForgotPasswordPage do
               $change={:set_new_password}
             />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="reset-confirm-password">Confirm password</label>
             <input
               id="reset-confirm-password"
@@ -92,12 +92,12 @@ defmodule AnnotateWeb.Hologram.Pages.ForgotPasswordPage do
               $change={:set_confirm_password}
             />
           </div>
-          <button type="submit" class="btn btn-black" disabled={@loading}>
+          <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
             {%if @loading}Updating...{%else}Update password{/if}
           </button>
-          <div class="sg-form-footer">
+          <div class="nd-auth__footer">
             <p>
-              <button type="button" class="btn btn-outline btn-sm" $click={:back_to_request}>Use a different email</button>
+              <button type="button" class="nd-btn nd-btn--ghost nd-btn--sm" $click={:back_to_request}>Use a different email</button>
             </p>
           </div>
         </form>

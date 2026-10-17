@@ -17,7 +17,7 @@ defmodule AnnotateWeb.Legal do
   @common %{
     product_name: "annotate",
     site_url: "https://annotate.therobotlives.com",
-    contact_email: "keith.brings@noizu.com",
+    contact_email: "support@noizu.com",
     operator_legal_name: "Noizu Labs, Inc.",
     last_updated: @last_updated,
     widget_commenting: true,
