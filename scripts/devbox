@@ -8,12 +8,13 @@
 #   scripts/devbox restart [--local|--cluster]  bounce the app (and switch data source)
 #   scripts/devbox reset                   down + wipe LOCAL volumes/keys, then up --local
 #   scripts/devbox shell                   iex attached to the running app (--remsh)
+#   scripts/devbox cluster-site SLUG NAME ORIGINS   insert ONE new site into the cluster DB (refuses existing slugs)
 #   scripts/devbox test [mix test args]    mix test against LOCAL docker Postgres only
 #
 # DATA SOURCES
 #   cluster (default)  kubectl port-forward (context `noizu` only) to the REAL annotate backing
-#                      services: Postgres app-timescaledb/annotate, Valkey db 16, MinIO bucket
-#                      `annotate`. THIS IS PROD DATA. Guardrails: dev server only; Repo is
+#                      services: Postgres app-timescaledb/annotate, Valkey db 16, dedicated MinIO
+#                      (svc annotate-files, bucket `annotate`). THIS IS PROD DATA. Guardrails: dev server only; Repo is
 #                      READ-ONLY (default_transaction_read_only) unless DEVBOX_CLUSTER_WRITES=1;
 #                      Oban queues/plugins are off (no sweepers/cron against prod); no migrations,
 #                      Liquibase, seeds, or tests ever run against it; credentials are read from the
@@ -110,8 +111,9 @@ cluster_env() {
   REDIS_URL="$(sec ANNOTATE_REDIS_URL | sed -E "s#@[^/]+#@localhost:$CL_REDIS_PORT#")"; export REDIS_URL
   export REDIS_KEY_PREFIX="annotate:devbox:"
   export S3_BUCKET=annotate S3_REGION=us-east-1 S3_SCHEME="http://" S3_ENDPOINT="localhost:$CL_MINIO_PORT"
-  AWS_ACCESS_KEY_ID="$(sec AWS_ACCESS_KEY_ID)"; export AWS_ACCESS_KEY_ID
-  AWS_SECRET_ACCESS_KEY="$(sec AWS_SECRET_ACCESS_KEY)"; export AWS_SECRET_ACCESS_KEY
+  # Dedicated annotate MinIO (#48): the app's keys are ANNOTATE_FILES_* in annotate-secrets.
+  AWS_ACCESS_KEY_ID="$(sec ANNOTATE_FILES_ACCESS_KEY_ID)"; export AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY="$(sec ANNOTATE_FILES_SECRET_ACCESS_KEY)"; export AWS_SECRET_ACCESS_KEY
   # Local-only token secrets: dev must not be able to mint tokens valid against prod.
 }
 
@@ -211,7 +213,7 @@ cmd_up() {
     banner
     pf_start pg "$CL_NS" app-timescaledb "$CL_PG_PORT" 5432
     pf_start valkey "$CL_NS" app-valkey "$CL_REDIS_PORT" 6379
-    pf_start minio "$CL_INFRA" minio-service "$CL_MINIO_PORT" 9000
+    pf_start minio "$CL_NS" annotate-files "$CL_MINIO_PORT" 9000
     wait_port "$CL_PG_PORT"; wait_port "$CL_REDIS_PORT"; wait_port "$CL_MINIO_PORT"
     cluster_env
   else
@@ -259,6 +261,25 @@ cmd_logs() {
 
 cmd_shell() { base_env; exec iex --sname "dbg_$$" --cookie "$NODE" --remsh "$NODE@$(hostname -s)"; }
 
+cmd_cluster_site() { # slug name origins  -- the ONE sanctioned additive cluster write; never edits existing sites
+  local slug="${1:?slug}" name="${2:?name}" origins="${3:?comma-separated origins}"
+  base_env
+  [ -f "$STATE/pf-pg.pid" ] && kill -0 "$(cat "$STATE/pf-pg.pid")" 2>/dev/null || die "cluster port-forwards not up (run: scripts/devbox up --cluster)"
+  [ ! -f "$STATE/site-$slug.key" ] || die "site-$slug.key already exists locally; refusing"
+  cluster_env
+  local n
+  # psql comes from the local docker db container, reaching the host forward.
+  n="$("${COMPOSE[@]}" exec -T -e PGPASSWORD="$DB_PASS" db psql -h host.docker.internal -p "$CL_PG_PORT" -U "$DB_USER" -d annotate -Atc "select count(*) from sites where slug='$slug'" 2>/dev/null)" \
+    || die "cannot read cluster sites (forward down?)"
+  [ "$n" = "0" ] || die "site '$slug' already exists in the cluster DB; refusing to touch it"
+  say "inserting ONE new site '$slug' into the cluster DB (additive; existing sites untouched)"
+  local out
+  out="$(cd "$BACKEND" && DEVBOX_CLUSTER_WRITES=1 PORT=4101 PHX_SERVER= MIX_ENV=dev mix annotate.site.create --slug "$slug" --name "$name" --origins "$origins" 2>&1)" || { echo "$out" | grep -v -i "key" | tail -5; die "create failed"; }
+  echo "$out" | awk 'f{print; exit} /Service key/{f=1}' >"$STATE/site-$slug.key"; chmod 600 "$STATE/site-$slug.key"
+  echo "$out" | grep "^Site created" || true
+  say "service key stored in $STATE/site-$slug.key (not printed)"
+}
+
 cmd_test() { # ALWAYS local docker PG — never the forwarded cluster DB
   base_env; infra_up; local_env
   export MIX_ENV=test
@@ -273,6 +294,7 @@ case "${1:-status}" in
   reset) cmd_reset ;;
   restart) shift; base_env; app_stop; sleep 1; cmd_up "$@" ;;
   shell) cmd_shell ;;
+  cluster-site) shift; cmd_cluster_site "$@" ;;
   test) shift; cmd_test "$@" ;;
   *) sed -n "2,26p" "${BASH_SOURCE[0]}"; exit 2 ;;
 esac
