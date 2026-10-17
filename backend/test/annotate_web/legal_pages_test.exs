@@ -66,7 +66,9 @@ defmodule AnnotateWeb.SiteFooterTest do
   use AnnotateWeb.ConnCase, async: false
 
   for path <- ["/", "/privacy", "/terms"] do
-    test "#{path} carries the shared tobor-kit footer, no sitemap link, no AI disclosure", %{conn: conn} do
+    test "#{path} carries the shared tobor-kit footer, no sitemap link, no AI disclosure", %{
+      conn: conn
+    } do
       body = conn |> get(unquote(path)) |> html_response(200)
 
       assert body =~ "<noizu-footer-brand"

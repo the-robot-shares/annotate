@@ -20,7 +20,6 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
   alias Annotate.Hologram.Auth
   alias AnnotateWeb.Hologram.Layouts.MainLayout
   alias AnnotateWeb.Hologram.Middleware.RequireAuth
-  alias AnnotateWeb.Hologram.Pages.AppHomePage
 
   route "/auth/invite-required"
   layout MainLayout, page_title: "Invite required"
@@ -29,24 +28,39 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
   def init(_params, component, server) do
     user = Auth.current_user(server)
 
-    if Auth.user_needs_invite?(user) do
-      put_state(component,
-        email: user.email,
-        unverified: user.status in [:unverified, "unverified"],
-        token: "",
-        error: nil,
-        notice: nil,
-        loading: false
-      )
-    else
-      {component, Hologram.Server.put_redirect(server, AppHomePage)}
-    end
+    invite_error =
+      case query_param(server, "invite_error") do
+        "invalid_token" ->
+          "That invite link is invalid, expired, revoked, or for a different email address."
+
+        "invite_exhausted" ->
+          "That invite link has already been used."
+
+        _ ->
+          nil
+      end
+
+    # Hologram ignores a redirect set in page init/3, so an already-active user
+    # gets a link to the dashboard instead of the redeem form.
+    put_state(component,
+      active: not Auth.user_needs_invite?(user),
+      email: user && user.email,
+      unverified: user != nil and user.status in [:unverified, "unverified"],
+      token: "",
+      error: invite_error,
+      notice: nil,
+      loading: false
+    )
   end
 
   def template do
     ~HOLO"""
     <div class="content sg-auth-page" data-cy="invite-required">
-      <h1 class="sg-page-title">invite required</h1>
+      {%if @active}
+        <h1 class="sg-page-title">you're in</h1>
+        <p><a class="btn btn-black" href="/dashboard">Open your dashboard</a></p>
+      {%else}
+      <h1 class="sg-page-title">annotate is invite-only</h1>
 
       {%if @unverified}
         <p class="sg-page-intro">
@@ -60,7 +74,9 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
         </p>
       {%else}
         <p class="sg-page-intro">
-          Your account ({@email}) was created but needs an invite code. Redeem one to continue.
+          You're signed in as {@email}, but the annotate dashboard is invite-only right now.
+          Have an invite link? Open it, or paste the code below.
+          No invite yet? <a href="/#waitlist">Join the waitlist</a>.
         </p>
       {/if}
 
@@ -91,6 +107,7 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
           <button type="button" class="btn btn-outline btn-sm" data-cy="invite-sign-out" $click={action: :logout, target: "layout"}>sign out</button>
         </p>
       </div>
+      {/if}
     </div>
     """
   end
@@ -106,7 +123,7 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
   def action(:redeemed, _params, component) do
     component
     |> put_state(loading: false)
-    |> put_page(AppHomePage)
+    |> put_page(AnnotateWeb.Hologram.Pages.DashboardSitesPage)
   end
 
   def action(:redeem_failed, params, component) do
@@ -145,5 +162,10 @@ defmodule AnnotateWeb.Hologram.Pages.InviteRequiredPage do
       end
 
     put_action(server, :resent, notice: notice)
+  end
+
+  defp query_param(server, key) do
+    q = Map.get(server, :query) || %{}
+    Map.get(q, key)
   end
 end

@@ -1,4 +1,4 @@
-// Copy for the tobor-kit <noizu-auth> sign-in modal (GitHub-only, provider-redirect
+// Copy for the tobor-kit <noizu-auth> sign-in modal (GitHub + Google, provider-redirect
 // mode). `text` is a property, not an attribute, so it is set here from a static
 // same-origin module (CSP-safe). Hologram's client boot may re-create the element
 // after first paint (dropping JS properties), so the copy is (re)applied on every
@@ -6,7 +6,7 @@
 const TEXT = {
   loginTitle: 'Sign in to annotate',
   signupTitle: 'Create your annotate account',
-  description: 'GitHub is the only sign-in. Your first sign-in creates the account; we use your GitHub account’s verified email. By continuing you agree to the Terms of Service and Privacy Policy (annotate.therobotlives.com/terms and /privacy).',
+  description: 'Sign in with GitHub or Google; we use your account’s verified email. By continuing you agree to the Terms of Service and Privacy Policy (annotate.therobotlives.com/terms and /privacy).',
   close: 'Close sign-in dialog',
   login: 'Sign in',
   signup: 'Sign up',

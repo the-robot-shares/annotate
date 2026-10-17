@@ -71,7 +71,8 @@ defmodule Annotate.Sites do
   def create_site_with_owner(attrs, %{id: user_id} = user) when is_binary(user_id) do
     origins = attrs["allowed_origins"] || []
 
-    with {:ok, origins} <- normalize_origins(origins),
+    with :ok <- check_dashboard_access(user_id),
+         {:ok, origins} <- normalize_origins(origins),
          :ok <- check_site_limit(user_id) do
       Repo.transaction(fn ->
         case create_site(%{
@@ -94,6 +95,12 @@ defmodule Annotate.Sites do
         {:error, reason} -> {:error, reason}
       end
     end
+  end
+
+  # Invite gate at the context layer too (UI + commands also check): a
+  # pending (uninvited) account can never own a site.
+  defp check_dashboard_access(user_id) do
+    if Annotate.Dashboard.Access.allowed?(user_id), do: :ok, else: {:error, :invite_required}
   end
 
   defp check_site_limit(user_id) do
@@ -376,7 +383,15 @@ defmodule Annotate.Sites do
   Display name/avatar come from the user's GitHub identity.
   """
   def team_commenter_for_user(%Site{} = site, user_id) when is_binary(user_id) do
-    gh = Repo.get_by(Annotate.Schema.Annotate.GithubIdentity, user_id: user_id)
+    gh =
+      Repo.one(
+        from(i in Annotate.Schema.Annotate.OAuthIdentity,
+          where: i.user_id == ^user_id,
+          order_by: [desc: i.updated_at],
+          limit: 1
+        )
+      )
+
     display = (gh && (gh.name || gh.login)) || "Site team"
     avatar = gh && gh.avatar_url
 

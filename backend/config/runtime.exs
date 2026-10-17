@@ -41,7 +41,7 @@ config :annotate, :marketing,
   widget_src:
     System.get_env(
       "ANNOTATE_PUBLIC_WIDGET_SRC",
-      "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js"
+      "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
     ),
   dogfood_site: System.get_env("ANNOTATE_DOGFOOD_SITE", "annotate-landing")
 
@@ -207,7 +207,10 @@ if config_env() == :dev and System.get_env("ANNOTATE_GITHUB_STUB") == "1" and
      is_nil(System.get_env("GITHUB_CLIENT_ID")) do
   config :annotate, :github_stub_allowed, true
   config :annotate, :github_enabled, true
-  config :ueberauth, Ueberauth, providers: [github: {Annotate.Auth.GithubStub, []}]
+  config :annotate, :google_enabled, true
+
+  config :ueberauth, Ueberauth,
+    providers: [github: {Annotate.Auth.GithubStub, []}, google: {Annotate.Auth.GoogleStub, []}]
 end
 
 if config_env() == :prod do
@@ -417,14 +420,24 @@ if config_env() == :prod do
 
   oauth_providers = []
 
+  # Both halves non-blank (optional chart secretKeyRefs) or Google stays
+  # "not configured". Same shape as the GitHub block below. (Bind the ids
+  # BEFORE `oauth_providers =` — see the GitHub block's root-cause note.)
+  google_id = System.get_env("GOOGLE_CLIENT_ID", "") |> String.trim()
+  google_secret = System.get_env("GOOGLE_CLIENT_SECRET", "") |> String.trim()
+
   oauth_providers =
-    if google_id = System.get_env("GOOGLE_CLIENT_ID") do
+    if google_id != "" and google_secret != "" do
       config :ueberauth, Ueberauth.Strategy.Google.OAuth,
         client_id: google_id,
-        client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+        client_secret: google_secret
 
       config :annotate, :google_enabled, true
-      [{:google, {Ueberauth.Strategy.Google, [default_scope: "email profile"]}} | oauth_providers]
+
+      [
+        {:google, {Ueberauth.Strategy.Google, [default_scope: "openid email profile"]}}
+        | oauth_providers
+      ]
     else
       oauth_providers
     end

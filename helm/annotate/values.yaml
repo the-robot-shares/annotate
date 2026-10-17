@@ -76,8 +76,10 @@ secrets:
     # in the Secret as the rollback path; point these back at it to revert.
     awsAccessKeyId: ANNOTATE_FILES_ACCESS_KEY_ID
     awsSecretAccessKey: ANNOTATE_FILES_SECRET_ACCESS_KEY
-    googleClientId: ""
-    googleClientSecret: ""
+    # Dashboard sign-in (Google OAuth client; Infisical ANNOTATE_GOOGLE_*).
+    # Optional secretKeyRefs: "not configured" until populated.
+    googleClientId: ANNOTATE_GOOGLE_CLIENT_ID
+    googleClientSecret: ANNOTATE_GOOGLE_CLIENT_SECRET
     facebookClientId: ""
     facebookClientSecret: ""
     # Dashboard sign-in (GitHub OAuth App; dc services apps.annotate_github_*).

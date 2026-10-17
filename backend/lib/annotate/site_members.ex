@@ -144,8 +144,16 @@ defmodule Annotate.SiteMembers do
   """
   def add_member(site, who, role, inviter \\ nil)
 
-  def add_member(%Site{} = site, %User{verified: true, id: user_id}, role, inviter),
-    do: insert_member(site, user_id, role, inviter)
+  def add_member(
+        %Site{} = site,
+        %User{verified: true, status: :active, id: user_id},
+        role,
+        inviter
+      ),
+      do: insert_member(site, user_id, role, inviter)
+
+  # Verified but still held by the invite gate (pending): not addable yet.
+  def add_member(%Site{}, %User{verified: true}, _role, _inviter), do: {:error, :user_not_active}
 
   def add_member(%Site{}, %User{}, _role, _inviter), do: {:error, :user_not_verified}
 
@@ -324,7 +332,9 @@ defmodule Annotate.SiteMembers do
 
     Repo.one(
       from(u in User,
-        where: u.email == ^email and u.verified == true and is_nil(u.deleted_at),
+        where:
+          u.email == ^email and u.verified == true and u.status == :active and
+            is_nil(u.deleted_at),
         select: u.id,
         limit: 1
       )

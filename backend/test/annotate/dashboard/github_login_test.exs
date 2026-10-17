@@ -3,7 +3,7 @@ defmodule Annotate.Dashboard.GithubLoginTest do
 
   alias Annotate.Dashboard.GithubLogin
   alias Annotate.Repo
-  alias Annotate.Schema.Annotate.GithubIdentity
+  alias Annotate.Schema.Annotate.OAuthIdentity
   alias Annotate.Schema.Users.User
 
   defp profile(attrs \\ %{}) do
@@ -48,13 +48,20 @@ defmodule Annotate.Dashboard.GithubLoginTest do
   end
 
   describe "sign_in/1" do
-    test "first sign-in creates a verified, active user + identity + session" do
+    test "first sign-in creates a verified user + identity + session; uninvited → pending" do
       assert {:ok, %{user: user, session: session}} = GithubLogin.sign_in(profile())
       assert session
       user = Repo.get!(User, user.id)
-      assert user.email == "octo@example.com" and user.verified and user.status == :active
+      assert user.email == "octo@example.com" and user.verified and user.status == :pending
       assert user.handle == "octo"
-      assert %GithubIdentity{login: "octo"} = Repo.get_by!(GithubIdentity, github_id: 1001)
+
+      assert %OAuthIdentity{login: "octo"} =
+               Repo.get_by!(OAuthIdentity, provider: "github", provider_uid: "1001")
+    end
+
+    test "exempt @noizu.com verified email → active" do
+      {:ok, %{user: user}} = GithubLogin.sign_in(profile(%{email: "staff@noizu.com"}))
+      assert Repo.get!(User, user.id).status == :active
     end
 
     test "keyed by github id: renamed login / changed email → same user" do
@@ -64,10 +71,12 @@ defmodule Annotate.Dashboard.GithubLoginTest do
         GithubLogin.sign_in(profile(%{login: "octo2", email: "new@example.com"}))
 
       assert u1.id == u2.id
-      assert Repo.get_by!(GithubIdentity, github_id: 1001).login == "octo2"
+
+      assert Repo.get_by!(OAuthIdentity, provider: "github", provider_uid: "1001").login ==
+               "octo2"
     end
 
-    test "links an existing verified user by email" do
+    test "links an existing verified user by email; an existing ACTIVE user stays active" do
       existing =
         Repo.insert!(%User{
           id: Ecto.UUID.generate(),
@@ -78,9 +87,10 @@ defmodule Annotate.Dashboard.GithubLoginTest do
 
       {:ok, %{user: user}} = GithubLogin.sign_in(profile())
       assert user.id == existing.id
+      assert Repo.get!(User, user.id).status == :active
     end
 
-    test "an unverified squatter row is taken over and its password cleared" do
+    test "an unverified squatter row is taken over, password cleared, and re-gated" do
       squat =
         Repo.insert!(%User{
           id: Ecto.UUID.generate(),
@@ -95,12 +105,13 @@ defmodule Annotate.Dashboard.GithubLoginTest do
       reloaded = Repo.get!(User, squat.id)
       assert reloaded.verified == true
       assert reloaded.hashed_password == nil
+      assert reloaded.status == :pending
     end
 
     test "a user already linked to another GitHub account is refused" do
       {:ok, _} = GithubLogin.sign_in(profile())
 
-      assert {:error, :email_linked_to_other_github} =
+      assert {:error, :email_linked_to_other_account} =
                GithubLogin.sign_in(profile(%{github_id: 2002, login: "other"}))
     end
 

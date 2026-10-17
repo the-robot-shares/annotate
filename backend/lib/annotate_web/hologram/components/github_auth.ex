@@ -1,10 +1,12 @@
 defmodule AnnotateWeb.Hologram.Components.GithubAuth do
   @moduledoc """
   Navbar "Sign in" / "Sign up" triggers + the tobor-kit `<noizu-auth>` modal in
-  **provider-redirect mode** (`redirect-providers="github"`): GitHub is the only
-  dashboard sign-in (`Annotate.Auth.LoginMethods`), and the GitHub button is a
-  same-origin top-level redirect to `/auth/github` (server-side OAuth). Sign-up
-  and sign-in are the same round trip; the first sign-in creates the account.
+  **provider-redirect mode** (`redirect-providers="github,google"`): GitHub and
+  Google are the only dashboard sign-ins (`Annotate.Auth.LoginMethods`); each
+  button is a same-origin top-level redirect to `/auth/<provider>`
+  (server-side OAuth). The dashboard is invite-only: a first sign-in without
+  an invite creates a pending account held at `/auth/invite-required`
+  (`Annotate.Dashboard.Access`); the footer slot says so.
 
   The modal (centred dialog, backdrop, title per flow, close ×, Esc,
   click-outside, focus trap + return, scroll lock, `aria-modal`) is the kit's;
@@ -28,7 +30,8 @@ defmodule AnnotateWeb.Hologram.Components.GithubAuth do
 
   def init(_props, component, _server) do
     put_state(component,
-      unavailable: if(LoginMethods.github_configured?(), do: "", else: "github"),
+      providers: Enum.join(LoginMethods.dashboard_providers(), ","),
+      unavailable: Enum.join(LoginMethods.unconfigured_providers(), ","),
       src: kit_src(),
       dialog_id: @dialog_id
     )
@@ -39,7 +42,12 @@ defmodule AnnotateWeb.Hologram.Components.GithubAuth do
     <div class="sg-auth" data-cy="github-auth">
       <button type="button" class={trigger_class(@variant, "secondary")} aria-controls={@dialog_id} aria-haspopup="dialog" data-auth-open="login" data-cy="github-auth-signin">Sign in</button>
       <button type="button" class={trigger_class(@variant, "primary")} aria-controls={@dialog_id} aria-haspopup="dialog" data-auth-open="signup" data-cy="github-auth-signup">Sign up</button>
-      <noizu-auth id={@dialog_id} class={"annotate-auth annotate-auth--" <> @variant} mode="modal" backdrop-close redirect-providers="github" redirect-base="/auth" unavailable-providers={@unavailable} data-annotate-auth></noizu-auth>
+      <noizu-auth id={@dialog_id} class={"annotate-auth annotate-auth--" <> @variant} mode="modal" backdrop-close redirect-providers={@providers} redirect-base="/auth" unavailable-providers={@unavailable} data-annotate-auth>
+        <p slot="footer" class="annotate-auth-note" data-cy="auth-invite-note">
+          <strong>Invite-only.</strong> Have an invite link? Open it to sign up.
+          No invite yet? <a href="/#waitlist">Join the waitlist</a>.
+        </p>
+      </noizu-auth>
       <script type="module" src={@src}></script>
       <script type="module" src="/js/annotate-auth.js"></script>
     </div>
@@ -52,7 +60,7 @@ defmodule AnnotateWeb.Hologram.Components.GithubAuth do
       Keyword.get(
         Application.get_env(:annotate, :marketing) || [],
         :widget_src,
-        "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js"
+        "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
       )
 
     String.replace(

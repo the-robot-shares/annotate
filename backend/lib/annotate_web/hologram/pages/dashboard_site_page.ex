@@ -271,7 +271,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
                     <div class="dsh-field">
                       <label for="m-email">Add a member by email</label>
                       <input id="m-email" type="email" value={@member_email} required $change={:set_member_email} />
-                      <p class="dsh-hint">They must have signed in to annotate with GitHub (verified email) first.</p>
+                      <p class="dsh-hint">They must have signed in to annotate (GitHub or Google, verified email) and have access.</p>
                     </div>
                     <div class="dsh-field">
                       <label for="m-role">Role</label>
@@ -510,10 +510,14 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
           {:ok, site, "Member added.", reset_member: true}
 
         {:error, :user_not_found} ->
-          {:error, "No annotate account with that email. Ask them to sign in with GitHub first."}
+          {:error,
+           "No annotate account with that email. Ask them to sign in first (GitHub or Google)."}
 
         {:error, :user_not_verified} ->
           {:error, "That account's email is not verified."}
+
+        {:error, :user_not_active} ->
+          {:error, "That account hasn't been invited to annotate yet. Send them an invite first."}
 
         {:error, :already_member} ->
           {:error, "Already a member."}
@@ -662,7 +666,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitePage do
         Keyword.get(
           cfg,
           :widget_src,
-          "https://cdn.derobot.is/tobor-kit/sha-5239abef2237bb118cdd75f67eb8b38023ae6620/components/page-comments/page-comments.js"
+          "https://cdn.derobot.is/tobor-kit/sha-2ffba46c6991e9241d686c4e2fa7db6a97427aca/components/page-comments/page-comments.js"
         ),
       api_base: Keyword.get(cfg, :api_base, "https://annotate-srv.therobotlives.com")
     }

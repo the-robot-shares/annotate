@@ -139,8 +139,8 @@ defmodule AnnotateWeb.SSOController do
       })
   end
 
-  def oauth_request(conn, %{"provider" => "github"}),
-    do: redirect_with_error(conn, "github_not_configured")
+  def oauth_request(conn, %{"provider" => provider}) when provider in ["github", "google"],
+    do: redirect_with_error(conn, "#{provider}_not_configured")
 
   def oauth_request(conn, _params), do: send_resp(conn, :not_found, "")
 
@@ -149,18 +149,45 @@ defmodule AnnotateWeb.SSOController do
   # dedicated path that keys on the GitHub numeric id and accepts only a
   # GitHub-VERIFIED email (Annotate.Dashboard.GithubLogin). It deliberately
   # bypasses the scaffold's email-linking SSO path below.
-  def oauth_callback(%{assigns: %{ueberauth_auth: %{provider: :github} = auth}} = conn, _params) do
+  def oauth_callback(%{assigns: %{ueberauth_auth: %{provider: provider} = auth}} = conn, _params)
+      when provider in [:github, :google] do
+    name = Atom.to_string(provider)
+    # Read the invite carried through the OAuth round trip BEFORE the flow
+    # cookie is cleared (`/auth/<provider>?invite=<token>` → prepare_oauth).
+    invite_token = take_stashed_invite(conn)
     conn = clear_sso_session(conn)
 
-    with {:ok, profile} <- Annotate.Dashboard.GithubLogin.profile_from_auth(auth),
-         {:ok, %{session: session}} <- Annotate.Dashboard.GithubLogin.sign_in(profile) do
+    builder =
+      if provider == :github,
+        do: Annotate.Dashboard.GithubLogin,
+        else: Annotate.Dashboard.GoogleLogin
+
+    with {:ok, profile} <- builder.profile_from_auth(auth),
+         {:ok, %{session: session} = result} <-
+           Annotate.Dashboard.OAuthLogin.sign_in(profile, invite_token, conn) do
       {:ok, code} = Annotate.Auth.SSOCode.create(session.id)
-      redirect(conn, to: "/auth/sso-callback?code=#{URI.encode_www_form(code)}&provider=github")
+
+      invite_note =
+        case result.invite_error do
+          nil -> ""
+          reason -> "&invite_error=" <> URI.encode_www_form(to_string(reason))
+        end
+
+      redirect(conn,
+        to: "/auth/sso-callback?code=#{URI.encode_www_form(code)}&provider=#{name}" <> invite_note
+      )
     else
-      {:error, :no_verified_email} -> redirect_with_error(conn, "github_email_unverified")
-      {:error, :account_disabled} -> redirect_with_error(conn, "account_disabled")
-      {:error, :email_linked_to_other_github} -> redirect_with_error(conn, "github_email_in_use")
-      _ -> redirect_with_error(conn, "github_failed")
+      {:error, :no_verified_email} ->
+        redirect_with_error(conn, "#{name}_email_unverified")
+
+      {:error, :account_disabled} ->
+        redirect_with_error(conn, "account_disabled")
+
+      {:error, :email_linked_to_other_account} ->
+        redirect_with_error(conn, "#{name}_email_in_use")
+
+      _ ->
+        redirect_with_error(conn, "#{name}_failed")
     end
   end
 
@@ -181,8 +208,8 @@ defmodule AnnotateWeb.SSOController do
   end
 
   # Callback with no Ueberauth result: the provider is not configured.
-  def oauth_callback(conn, %{"provider" => "github"}),
-    do: redirect_with_error(conn, "github_not_configured")
+  def oauth_callback(conn, %{"provider" => provider}) when provider in ["github", "google"],
+    do: redirect_with_error(conn, "#{provider}_not_configured")
 
   def oauth_callback(conn, _params), do: send_resp(conn, :not_found, "")
 
