@@ -7,7 +7,7 @@ defmodule AnnotateWeb.SSOController do
   # code on the request phase — it only runs if a configured strategy does
   # not redirect.
   plug :prepare_oauth when action in [:oauth_request]
-  plug Ueberauth when action in [:oauth_request, :oauth_callback]
+  plug :ueberauth when action in [:oauth_request, :oauth_callback]
 
   alias Annotate.Guardian
   alias Annotate.Organizations
@@ -100,6 +100,19 @@ defmodule AnnotateWeb.SSOController do
   # redirect strategies, so in practice Ueberauth halts before this runs; the
   # invite was already stashed by `prepare_oauth`. A 404 keeps a future
   # pass-through strategy from silently rendering nothing.
+  # No usable provider configured (GitHub creds not deployed yet): skip the
+  # Ueberauth plug entirely. In the OTP 29 / Elixir 1.20 release the runtime
+  # `providers: []` value was observed as `""` (rpc, 2026-10-17), and
+  # Ueberauth.init/1 then crashes (`Enum.flat_map("")`) → every /auth/:provider
+  # 500'd. With no list of providers the request/callback actions below answer
+  # "<provider>_not_configured" instead.
+  defp ueberauth(conn, _opts) do
+    case Application.get_env(:ueberauth, Ueberauth, [])[:providers] do
+      [_ | _] -> Ueberauth.call(conn, Ueberauth.init([]))
+      _ -> conn
+    end
+  end
+
   def oauth_request(conn, %{"provider" => "github"}),
     do: redirect_with_error(conn, "github_not_configured")
 
@@ -140,6 +153,12 @@ defmodule AnnotateWeb.SSOController do
   def oauth_callback(%{assigns: %{ueberauth_failure: _}} = conn, %{"provider" => provider}) do
     redirect_with_error(conn, "#{provider}_failed")
   end
+
+  # Callback with no Ueberauth result: the provider is not configured.
+  def oauth_callback(conn, %{"provider" => "github"}),
+    do: redirect_with_error(conn, "github_not_configured")
+
+  def oauth_callback(conn, _params), do: send_resp(conn, :not_found, "")
 
   # ── Code Exchange ────────────────────────────────────────────
 
