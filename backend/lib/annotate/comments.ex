@@ -544,6 +544,46 @@ defmodule Annotate.Comments do
     end
   end
 
+  @doc """
+  A live comment, its thread and its site by comment id alone (MCP
+  `delete_comment`). nil for a malformed/unknown/already-deleted id. The
+  caller MUST authorize the returned site for the user.
+  """
+  def get_comment_and_site(comment_id) do
+    with {:ok, id} <- Ecto.UUID.cast(comment_id),
+         {%Comment{} = comment, %Thread{} = thread, %Site{} = site} <-
+           from(c in Comment,
+             join: t in assoc(c, :thread),
+             join: p in assoc(t, :page),
+             join: s in Site,
+             on: s.id == p.site_id,
+             where: c.id == ^id and is_nil(c.deleted_at),
+             select: {c, t, s}
+           )
+           |> Repo.one() do
+      {comment, thread, site}
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Dashboard/MCP team moderation rule (single source; was private to the
+  inbox panel): a site **admin or owner** may soft-delete any comment; any
+  member may delete their OWN team replies (the `(site_id, user_id)` team
+  commenter). `role` must be the user's CURRENT role on `site`.
+  """
+  def team_can_delete?(%Comment{} = comment, %Site{} = site, user_id, role)
+      when is_binary(user_id) do
+    Annotate.SiteMembers.role_at_least?(role, :admin) or
+      case Repo.get_by(Annotate.Schema.Annotate.Commenter, site_id: site.id, user_id: user_id) do
+        %{id: id} -> comment.author_id == id
+        nil -> false
+      end
+  end
+
+  def team_can_delete?(_, _, _, _), do: false
+
   @doc "True when the commenter may edit/delete: author, else site owner."
   def comment_manageable_by?(%Comment{} = comment, site, commenter)
       when commenter != nil do

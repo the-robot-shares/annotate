@@ -267,7 +267,7 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
   def command(:delete_comment, params, server) do
     with_site(server, params, :member, fn user, site, role ->
       with %{} = comment <- Comments.get_comment_for_site(to_string(params.comment_id), site.id),
-           true <- can_delete?(comment, site, user.id, role) || {:error, :forbidden},
+           true <- Comments.team_can_delete?(comment, site, user.id, role) || {:error, :forbidden},
            {:ok, _} <- Comments.soft_delete_comment(comment) do
         :ok
       else
@@ -314,20 +314,6 @@ defmodule AnnotateWeb.Hologram.Components.InboxPanel do
   end
 
   # ── helpers ───────────────────────────────────────────────────
-
-  defp can_delete?(comment, site, user_id, role) do
-    SiteMembers.role_at_least?(role, :admin) or own_team_comment?(comment, site, user_id)
-  end
-
-  defp own_team_comment?(comment, site, user_id) do
-    case Annotate.Repo.get_by(Annotate.Schema.Annotate.Commenter,
-           site_id: site.id,
-           user_id: user_id
-         ) do
-      %{id: id} -> comment.author_id == id
-      nil -> false
-    end
-  end
 
   defp serialize_thread(t, site, team, role) do
     page_path = t.page_path || (t.page && t.page.page_key) || "/"

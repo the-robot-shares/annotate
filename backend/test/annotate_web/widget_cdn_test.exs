@@ -21,11 +21,15 @@ defmodule AnnotateWeb.WidgetCdnTest do
   end
 
   test "auth_src derives noizu-auth from either widget entry form" do
-    auth = "https://cdn.derobot.is/tobor-kit/v1.0.1/components/auth/noizu-auth.js"
-    assert WidgetCdn.auth_src("https://cdn.derobot.is/tobor-kit/v1.0.1/annotate.js") == auth
+    auth = "https://cdn.derobot.is/tobor-kit/v1.0.2/components/auth/noizu-auth.js"
+    assert WidgetCdn.auth_src("https://cdn.derobot.is/tobor-kit/v1.0.2/annotate.js") == auth
 
     assert WidgetCdn.auth_src(
-             "https://cdn.derobot.is/tobor-kit/v1.0.1/components/page-comments/page-comments.js"
+             "https://cdn.derobot.is/tobor-kit/v1.0.2/components/page-comments/page-comments.js"
            ) == auth
+  end
+
+  test "client-run helpers avoid Regex (not ported to the Hologram runtime)" do
+    refute File.read!("lib/annotate_web/widget_cdn.ex") =~ "~r"
   end
 end

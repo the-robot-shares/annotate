@@ -24,6 +24,10 @@ defmodule Annotate.MCP.Server do
   tool(Annotate.MCP.Tools.GetSiteConfig)
   tool(Annotate.MCP.Tools.ListThreads)
   tool(Annotate.MCP.Tools.GetThread)
+  tool(Annotate.MCP.Tools.ReplyToThread)
+  tool(Annotate.MCP.Tools.ResolveThread)
+  tool(Annotate.MCP.Tools.ReopenThread)
+  tool(Annotate.MCP.Tools.DeleteComment)
 
   resource(Annotate.MCP.Resources.Sites)
   resource_template(Annotate.MCP.Resources.SiteThreads)

@@ -12,7 +12,7 @@ defmodule AnnotateWeb.WidgetCdn do
   pinned form. Bump `@version` to move annotate to a new tobor-kit release.
   """
 
-  @version "1.0.1"
+  @version "1.0.2"
   @base "https://cdn.derobot.is/tobor-kit"
 
   @doc "tobor-kit release annotate pins."
@@ -28,11 +28,14 @@ defmodule AnnotateWeb.WidgetCdn do
   The kit's `noizu-auth` module from the same release as `widget_src`
   (accepts either `annotate.js` or `components/page-comments/page-comments.js`).
   """
+  # Plain string patterns only: this runs inside Hologram templates on the
+  # client, where Regex (:re.import/1) is not ported.
   def auth_src(widget_src) when is_binary(widget_src) do
-    String.replace(
-      widget_src,
-      ~r{(components/page-comments/page-comments|annotate)\.js$},
+    widget_src
+    |> String.replace(
+      "components/page-comments/page-comments.js",
       "components/auth/noizu-auth.js"
     )
+    |> String.replace("/annotate.js", "/components/auth/noizu-auth.js")
   end
 end

@@ -55,6 +55,33 @@ defmodule Annotate.MCP.Tools.Helpers do
     end
   end
 
+  @doc """
+  Run a write and audit its outcome (`"ok"` / `"error"`) — every write is
+  in `mcp_audit_events`, whatever happens. `fun` returns `{:ok, map}` or
+  `{:error, reason}`.
+  """
+  def audited(caller, tool, args, fun) do
+    case fun.() do
+      {:ok, result} ->
+        Authz.audit(caller, tool, args, "ok")
+        {:ok, result}
+
+      {:error, reason} ->
+        Authz.audit(caller, tool, args, "error", reason)
+        {:error, write_message(reason)}
+    end
+  end
+
+  defp write_message(:forbidden), do: Authz.message(:forbidden)
+
+  defp write_message(:invalid_parent),
+    do: "invalid_parent: parent_id is not a live comment of this thread"
+
+  defp write_message(:empty_body), do: "invalid_body: write a reply (1–10000 characters)"
+  defp write_message(other) when is_atom(other), do: "error: #{other}"
+  defp write_message(%Ecto.Changeset{}), do: "error: invalid change"
+  defp write_message(_), do: "error: write failed"
+
   @doc "Parse an ISO-8601 timestamp argument (nil passes through)."
   def parse_since(nil), do: {:ok, nil}
   def parse_since(""), do: {:ok, nil}
