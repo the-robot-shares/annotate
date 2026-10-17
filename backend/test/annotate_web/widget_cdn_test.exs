@@ -21,11 +21,11 @@ defmodule AnnotateWeb.WidgetCdnTest do
   end
 
   test "auth_src derives noizu-auth from either widget entry form" do
-    auth = "https://cdn.derobot.is/tobor-kit/v1.0.3/components/auth/noizu-auth.js"
-    assert WidgetCdn.auth_src("https://cdn.derobot.is/tobor-kit/v1.0.3/annotate.js") == auth
+    auth = "https://cdn.derobot.is/tobor-kit/v1.0.4/components/auth/noizu-auth.js"
+    assert WidgetCdn.auth_src("https://cdn.derobot.is/tobor-kit/v1.0.4/annotate.js") == auth
 
     assert WidgetCdn.auth_src(
-             "https://cdn.derobot.is/tobor-kit/v1.0.3/components/page-comments/page-comments.js"
+             "https://cdn.derobot.is/tobor-kit/v1.0.4/components/page-comments/page-comments.js"
            ) == auth
   end
 
