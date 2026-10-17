@@ -103,18 +103,19 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentController do
 
           true ->
             case admit_attachment(attachment) do
-              :ok ->
-                case Comments.complete_attachment(attachment, params) do
-                  {:ok, attachment} ->
-                    run_rotation()
-                    json(conn, %{"attachment" => Renderer.attachment(attachment)})
-
-                  {:error, :not_pending} ->
-                    conn |> put_status(:conflict) |> json(%{"error" => "not_pending"})
-
-                  {:error, _} ->
-                    conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
+              # :ok and :storage_unavailable both proceed to the actual state
+              # change; finish_complete/3 keeps every status mapping (incl.
+              # 409 not_pending on a second complete) in one place.
+              outcome when outcome in [:ok, {:error, :storage_unavailable}] ->
+                if outcome == {:error, :storage_unavailable} do
+                  # Fail-open on the size/moderation leg (the declared size was
+                  # already checked at presign); completing is still allowed.
+                  Logger.warning(
+                    "[attachments] stored object unreadable, failing open id=#{attachment.id}"
+                  )
                 end
+
+                finish_complete(conn, attachment, params)
 
               {:error, :too_large} ->
                 Comments.reject_pending_attachment(attachment)
@@ -136,24 +137,25 @@ defmodule AnnotateWeb.AnnotateAPI.AttachmentController do
                   "message" =>
                     "That attachment doesn't meet this community's content guidelines. Please remove or replace it."
                 })
-
-              {:error, :storage_unavailable} ->
-                # Fail-open on the size/moderation leg (the declared size was
-                # already checked at presign); completing is still allowed.
-                Logger.warning("[attachments] stored object unreadable, failing open id=#{attachment.id}")
-
-                case Comments.complete_attachment(attachment, params) do
-                  {:ok, attachment} ->
-                    json(conn, %{"attachment" => Renderer.attachment(attachment)})
-
-                  _ ->
-                    conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
-                end
             end
         end
 
       nil ->
         conn |> put_status(:not_found) |> json(%{"error" => "not_found"})
+    end
+  end
+
+  defp finish_complete(conn, attachment, params) do
+    case Comments.complete_attachment(attachment, params) do
+      {:ok, attachment} ->
+        run_rotation()
+        json(conn, %{"attachment" => Renderer.attachment(attachment)})
+
+      {:error, :not_pending} ->
+        conn |> put_status(:conflict) |> json(%{"error" => "not_pending"})
+
+      {:error, _} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{"error" => "invalid_request"})
     end
   end
 
