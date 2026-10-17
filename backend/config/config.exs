@@ -109,7 +109,9 @@ config :annotate, Oban,
        {"30 * * * *", Annotate.Workers.AttachmentSweeper},
        # Fleet dashboard (fleet.noizu.com) daily metrics push. No-ops at
        # runtime when FLEET_INGEST_KEY is unset.
-       {"5 9 * * *", Annotate.FleetPush}
+       {"5 9 * * *", Annotate.FleetPush},
+       # MCP OAuth: purge expired login states / codes / tokens.
+       {"*/15 * * * *", Annotate.Workers.MCPOAuthPurge}
      ]}
   ]
 

@@ -26,6 +26,11 @@ defmodule AnnotateWeb.Endpoint do
     gzip: false,
     only: ~w(themes css js hologram favicon.ico favicon.svg apple-touch-icon.png fonts images)
 
+  # MCP (Streamable HTTP /mcp + OAuth discovery documents): before the CORS
+  # plugs and Plug.Parsers — the transport reads the raw body and each MCP
+  # plug answers its own CORS (claude.ai discovers from a browser).
+  plug AnnotateWeb.MCP.Plug
+
   if code_reloading? do
     plug Phoenix.CodeReloader
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :annotate
@@ -52,6 +57,10 @@ defmodule AnnotateWeb.Endpoint do
   # is read at runtime by AnnotateWeb.Plugs.Session instead of being committed
   # here as a literal.
   plug AnnotateWeb.Plugs.Session
+
+  # MCP OAuth authorization server (/oauth/*): needs the session (dashboard
+  # sign-in is the upstream identity), not the Hologram/Phoenix routers.
+  plug AnnotateWeb.MCP.OAuthPlug
 
   # Marketing host split (annotate.therobotlives.com vs annotate-srv…): "/" on
   # the API host redirects to the marketing host; landing path gets a CSP. Must
