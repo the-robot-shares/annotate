@@ -9,7 +9,7 @@ appDomain: annotate-srv.therobotlives.com
 cookieDomain: ".therobotlives.com"
 
 backend:
-  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-fedc7f5
+  image: ops.noizu.com/annotate.therobotlives.com/backend:sha-5cca788
   port: 4000
   resources:
     requests:
@@ -50,6 +50,14 @@ redis:
 fleetIngest:
   # Fleet dashboard ingest endpoint for the daily FleetPush push.
   url: "https://fleet.noizu.com/api/v1/ingest/metrics"
+
+# AI moderation (DashScope/qwen). dashscopeApiKey is the Infisical secret
+# KEY name (NOT the value) inside the synced annotate-secrets secret;
+# empty string ⇒ the ANNOTATE_DASHSCOPE_API_KEY env is omitted (moderation
+# runs fail-open). commentStorageCapGb caps rolling comment-attachment
+# storage in GB (FIFO eviction), default 1.
+moderation:
+  dashscopeApiKey: ""
 
 secrets:
   # Materialized by the InfisicalSecret CR (monorepo apps/init annotate-site.tf)
