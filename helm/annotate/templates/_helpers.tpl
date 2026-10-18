@@ -59,6 +59,30 @@ app.kubernetes.io/instance: {{ .Release.Name }}
       name: {{ .Values.secrets.name }}
       key: {{ .Values.secrets.keys.fleetIngestKey }}
       optional: true
+# Stripe billing (Annotate.Billing). All three refs are optional: until the
+# ANNOTATE_STRIPE_* keys land in the synced secret the pod boots without them
+# and billing is DISABLED (nothing locked/enforced; boot_check logs once).
+# Restore: #240 dropped this block by accident (commit message only adds the
+# moderation env) — runtime.exs still parses the vars, so losing it would
+# fail-soft-disable prod billing (beta join, checkout, webhook).
+- name: ANNOTATE_STRIPE_SECRET_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripeSecretKey }}
+      optional: true
+- name: ANNOTATE_STRIPE_WEBHOOK_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripeWebhookSecret }}
+      optional: true
+- name: ANNOTATE_STRIPE_PUBLISHABLE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.name }}
+      key: {{ .Values.secrets.keys.stripePublishableKey }}
+      optional: true
 {{- if .Values.secrets.keys.databaseUrl }}
 - name: DATABASE_URL
   valueFrom:
@@ -248,19 +272,21 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 - name: SSO_REQUIRE_INVITE
   value: "true"
 {{- end }}
-{{- if .Values.moderation.dashscopeApiKey }}
+{{- with .Values.moderation }}
+{{- if .dashscopeApiKey }}
 # Content moderation (qwen via DashScope). Optional ref: the filter runs
 # fail-open (allows + logs) until the key lands in the synced Infisical secret.
 - name: ANNOTATE_DASHSCOPE_API_KEY
   valueFrom:
     secretKeyRef:
-      name: {{ .Values.secrets.name }}
-      key: {{ .Values.moderation.dashscopeApiKey }}
+      name: {{ $.Values.secrets.name }}
+      key: {{ .dashscopeApiKey }}
       optional: true
 {{- end }}
 # Rolling comment-attachment storage cap (GB, FIFO eviction of the oldest).
 - name: ANNOTATE_COMMENT_STORAGE_CAP_GB
-  value: {{ .Values.moderation.commentStorageCapGb | default "1" | quote }}
+  value: {{ .commentStorageCapGb | default "1" | quote }}
+{{- end }}
 {{- end }}
 
 {{- define "annotate.otelEnv" -}}
