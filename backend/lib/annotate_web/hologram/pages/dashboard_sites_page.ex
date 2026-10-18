@@ -278,6 +278,11 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardSitesPage do
   def create_error(:site_limit),
     do: "You have reached the limit of #{Sites.max_owned_sites()} sites."
 
+  def create_error(:plan_site_limit),
+    do:
+      "Your plan's site limit has been reached — upgrade your plan or add capacity " <>
+        "from the Billing page."
+
   def create_error(%Ecto.Changeset{} = cs) do
     cs
     |> Ecto.Changeset.traverse_errors(fn {msg, opts} ->
