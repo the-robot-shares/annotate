@@ -1,0 +1,31 @@
+service: gemini
+model: gemini-2.5-flash-image
+timestamp: 1792219110
+eval_score: 0.680
+eval_notes: "No prices, logos, or faces present. All required strings appear and are legible, but they are duplicated across multiple disconnected panels rather than appearing once in a single cohesive scene. Composition is badly broken: the illustration is split into several fragments separated by a large white void, the scene is not centered or filling ~80% of the frame, and the aspect ratio is not 16:10. The left-to-right flow (ring+pin on Export, connector to thread, arrows to ticket then agent card) is "
+prompt: |
+  Polished dark product illustration, 16:10, the whole scene (browser plus cards) large, centered, and filling about 80 percent of the frame width and height, with generous but even margins; keep everything away from the top and bottom 8 percent of the frame, near-black background with one
+  soft warm ember glow. On the left, a flat browser window (ONE single title bar with exactly three small GRAY dots, never red, yellow or green, followed directly by the page content; no second toolbar, no second row of dots, no address bar) showing a generic dark web app page: a
+  sidebar of plain gray bars, a top nav of gray bars, a grid of raised dark
+  cards filled with abstract gray placeholder lines and small chart shapes,
+  NO readable text on the page except one small button labelled "Export" in
+  the top right. That "Export" button is surrounded by a crisp glowing
+  ember-orange ring with a small orange pin marker on its corner. A thin
+  luminous orange connector line runs from the ring to a comment thread
+  card to the right of the browser, outside the window. The card is a dark
+  raised panel with hairline gray border and exactly two comments, each with
+  a plain muted orange-tinted circle avatar (no letters, no faces, no blue or green): first comment text
+  "Export button is cut off on mobile", second comment (indented reply)
+  "Reproduced. Filing it.". Below the thread card a thin orange arrow flows
+  down to a compact ticket card with a small orange check icon and the text
+  "Ticket created". From the ticket card another thin orange arrow flows to
+  a compact terminal-style agent card with a monospaced font and two lines:
+  "agent: on it" and "patch ready" (the second line with a small
+  orange check). The ONLY text in the whole image is exactly these strings:
+  Export · Export button is cut off on mobile · Reproduced. Filing it. ·
+  Ticket created · agent: on it · patch ready. Clean
+  Inter-style grotesque sans for UI text, large type, each string in a single line where possible, crisp, correctly spelled, high
+  contrast, large enough to read, no duplicated or warped text. Calm,
+  precise, generous negative space, left-to-right flow.
+negative: |
+  garbled glyphs, pseudo-letters, misspelled words, duplicated text, prices, dollar signs, currency, any real brand name or logo (Jira, Notion, ClickUp, Asana), URLs, hex codes, hash symbols, photographic people or faces, initials in avatars, extra paragraphs of text, blue or green glow, light theme, rainbow gradients, lens flares, watermark
