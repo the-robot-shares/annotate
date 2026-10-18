@@ -4,8 +4,11 @@ name: CI
 #
 #   test          backend suite (Liquibase schema + Ecto migrations + ExUnit
 #                 --cover with the mix.exs threshold gate)
+#   helm-template render the chart with every values file (ArgoCD applies
+#                 this chart directly — a chart that fails `helm template`
+#                 bricks the app's sync while every other job stays green)
 #   docker-build  backend image smoke build (no push), from t=0 in parallel
-#   build-push    release image (main only, gated on `test`)
+#   build-push    release image (main only, gated on `test` + `helm-template`)
 #   bump-chart    CI commits the helm tag bump (main only)
 #
 # HYDRATED APPS: init-proj-scaffold extracts this template into <repo>/app, so
@@ -197,6 +200,24 @@ jobs:
           path: ${{ env.APP_DIR }}/backend/cover
           if-no-files-found: ignore
 
+  # Chart render gate (fleet rule 2026-10-18): ArgoCD applies this chart
+  # directly, so a chart that nil-pointers in `helm template` sticks the
+  # app on ComparisonError with every other job green (sha-5cca788 held
+  # prod on sha-fedc7f5: .Values.moderation was never declared in values).
+  # Cheap smoke — helm is preinstalled on the runner; run on every PR and
+  # push (no paths filter: top-level `paths:` would suppress test/build-push
+  # on non-helm pushes and break releases).
+  helm-template:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render chart with values.yaml
+        working-directory: ${{ env.APP_DIR }}
+        run: helm template annotate helm/annotate -f helm/annotate/values.yaml > /dev/null
+      - name: Render chart with values.yaml + values-sandbox.yaml
+        working-directory: ${{ env.APP_DIR }}
+        run: helm template annotate helm/annotate -f helm/annotate/values.yaml -f helm/annotate/values-sandbox.yaml > /dev/null
+
   # Smoke build on PRs, develop pushes and manual runs. develop seeds the gha
   # cache scope (exporting a PR-ref cache costs time on the critical path and
   # no other ref can read it, so PRs only read).
@@ -236,9 +257,11 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: ${{ github.event_name != 'pull_request' && 'type=gha,scope=backend,mode=max' || '' }}
 
-  # Releases are gated on the backend suite (fleet rule 2026-10-07).
+  # Releases are gated on the backend suite (fleet rule 2026-10-07) and the
+  # chart render gate (2026-10-18): never ship an image whose chart ArgoCD
+  # cannot render.
   build-push:
-    needs: [test]
+    needs: [test, helm-template]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
