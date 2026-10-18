@@ -5,11 +5,11 @@ defmodule AnnotateWeb.Hologram.Pages.PendingApprovalPage do
   """
   use Hologram.Page
 
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Pages.InviteRequiredPage
 
   route "/pending-approval"
-  layout MainLayout, page_title: "Invite required"
+  layout AuthLayout, page_title: "Invite required"
   middleware :to_interstitial
 
   def to_interstitial(server, _opts), do: Hologram.Server.put_redirect(server, InviteRequiredPage)
@@ -20,7 +20,7 @@ defmodule AnnotateWeb.Hologram.Pages.PendingApprovalPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content"><p><a href="/auth/invite-required">Continue</a></p></div>
+    <div class="nd-auth"><p><a href="/auth/invite-required">Continue</a></p></div>
     """
   end
 end

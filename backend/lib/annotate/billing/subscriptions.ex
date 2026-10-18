@@ -21,25 +21,52 @@ defmodule Annotate.Billing.Subscriptions do
 
   # ── Row lifecycle ─────────────────────────────────────────────
 
-  @doc "The user's subscription row, creating the 14-day trial row if absent."
+  @doc """
+  The user's subscription row, creating it if absent. The 14-day trial is
+  minted here (the trial-mint path): signups are never blocked — when the
+  trial intake cap is full the row is minted with NO trial (already-expired
+  trial), so the account exists but is usage-gated (`Billing.locked?/1`)
+  until it subscribes (user decision 2026-10-18, corrected model). With
+  billing disabled the trial is minted without claiming (nothing enforced).
+  """
   def ensure(user_id) when is_binary(user_id) do
     case Repo.get_by(Subscription, user_id: user_id) do
       %Subscription{} = row ->
         {:ok, row}
 
       nil ->
+        {:ok, mint_trial_row(user_id)}
+    end
+  end
+
+  # Claim and row commit atomically: `SignupCaps` reconciles the intake
+  # counter against live unexpired planless-trial rows, so a claim whose row
+  # doesn't exist yet would be reconciled away. At capacity the row still
+  # exists (admin visibility, one row per account) with `trial_ends_at: now`
+  # — an expired trial never holds an intake slot.
+  defp mint_trial_row(user_id) do
+    {:ok, row} =
+      Annotate.Repo.transaction(fn ->
+        trial? =
+          if Annotate.Billing.enabled?(),
+            do: match?(:ok, SignupCaps.claim_trial()),
+            else: true
+
         now = DateTime.utc_now() |> DateTime.truncate(:second)
+        ends_at = if trial?, do: DateTime.add(now, @trial_days * 86_400, :second), else: now
 
         %Subscription{}
         |> Subscription.changeset(%{
           user_id: user_id,
           status: "trialing",
-          trial_ends_at: DateTime.add(now, @trial_days * 86_400, :second)
+          trial_ends_at: ends_at
         })
         |> Repo.insert(conflict_target: :user_id, on_conflict: :nothing)
 
-        {:ok, Repo.get_by!(Subscription, user_id: user_id)}
-    end
+        Repo.get_by!(Subscription, user_id: user_id)
+      end)
+
+    row
   end
 
   def get(user_id) when is_binary(user_id), do: Repo.get_by(Subscription, user_id: user_id)
@@ -72,6 +99,24 @@ defmodule Annotate.Billing.Subscriptions do
   end
 
   def start_checkout(_, _), do: {:error, :unauthenticated}
+
+  @doc """
+  Starts the one-time $19.95 beta-join Checkout for a gated user (see
+  `Annotate.Billing.BetaJoin`). No signup cap is claimed — the webhook grants
+  a 90-day Team trial instead of a paid plan slot.
+  """
+  def start_beta_checkout(%{id: user_id, email: email}) do
+    with :ok <- ensure_billing(),
+         {:ok, row} <- ensure(user_id),
+         {:ok, customer_id} <- ensure_customer(row, user_id, email),
+         {:ok, session} <- Stripe.create_beta_checkout_session(customer_id, user_id: user_id) do
+      {:ok, session.url}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def start_beta_checkout(_), do: {:error, :unauthenticated}
 
   @doc "Billing Portal session for the user's Stripe customer."
   def start_portal(%{id: user_id}) do
@@ -176,12 +221,14 @@ defmodule Annotate.Billing.Subscriptions do
   defp handle_event(%{"type" => type, "data" => %{"object" => object}}) do
     case type do
       "checkout.session.completed" ->
-        sub_id = object["subscription"]
         user_id = get_in(object, ["metadata", "user_id"]) || object["client_reference_id"]
 
         cond do
-          is_binary(sub_id) and is_binary(user_id) ->
-            sync_from_stripe(user_id, sub_id, then_claim_cap: true)
+          get_in(object, ["metadata", "kind"]) == "beta_join" and is_binary(user_id) ->
+            Annotate.Billing.BetaJoin.activate(user_id)
+
+          is_binary(object["subscription"]) and is_binary(user_id) ->
+            sync_from_stripe(user_id, object["subscription"], then_claim_cap: true)
 
           true ->
             :ok
@@ -281,6 +328,11 @@ defmodule Annotate.Billing.Subscriptions do
       trial_ends_at: to_dt(sub["trial_end"]) || row.trial_ends_at
     }
 
+    # A webhook that moves a local trial out of the planless-trial state
+    # (paid plan takes over, or the trial is canceled) frees its intake slot.
+    if local_trial?(row) and not local_trial_attrs?(attrs),
+      do: SignupCaps.release(SignupCaps.trial_plan())
+
     row
     |> Subscription.changeset(attrs)
     |> Repo.update()
@@ -291,6 +343,16 @@ defmodule Annotate.Billing.Subscriptions do
   # The plan is the item whose price lookup key is a base plan key. Plans
   # with no lookup key (enterprise — ops-assigned) can never match a Stripe
   # price: `nil == nil` must not elect them.
+  # The local trial: planless, trialing, no Stripe subscription attached.
+  defp local_trial?(%Subscription{plan: nil, status: "trialing", stripe_subscription_id: nil}),
+    do: true
+
+  defp local_trial?(_), do: false
+
+  defp local_trial_attrs?(%{plan: nil, status: "trialing"}), do: true
+  defp local_trial_attrs?(_), do: false
+
+  # The plan is the item whose price lookup key is a base plan key.
   defp plan_from_sub(sub) do
     sub
     |> items()

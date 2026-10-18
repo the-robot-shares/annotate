@@ -3,13 +3,13 @@ defmodule AnnotateWeb.Hologram.Pages.CompleteRegistrationPage do
 
   alias Annotate.Hologram.Auth
   alias Annotate.Schema.Users.User, as: UserSchema
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
   alias AnnotateWeb.Hologram.Middleware.RequireAuth
   alias AnnotateWeb.Hologram.Pages.AppHomePage
   alias AnnotateWeb.Hologram.Pages.InviteRequiredPage
 
   route "/complete-registration"
-  layout MainLayout, page_title: "Complete registration"
+  layout AuthLayout, page_title: "Complete registration"
   # Profile completion stays reachable for invite-gated users (decision 3).
   middleware RequireAuth, invite: :exempt
 
@@ -32,35 +32,35 @@ defmodule AnnotateWeb.Hologram.Pages.CompleteRegistrationPage do
   # <REMOVED UUID HERE> template :: auto-generated pointer for public function template
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Complete registration</h1>
-      <p class="sg-page-intro">Finish your profile to continue.</p>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Complete registration</h1>
+      <p class="nd-auth__intro">Finish your profile to continue.</p>
 
-      <form class="sg-form" $submit.prevent_default={:submit}>
+      <form class="nd-auth__form" $submit.prevent_default={:submit}>
         {%if @error}
-          <p class="sg-error" role="alert">{@error}</p>
+          <p class="nd-auth__error" role="alert">{@error}</p>
         {/if}
-        <div class="sg-field">
+        <div class="nd-auth__field">
           <label for="cr-username">Username</label>
           <input id="cr-username" type="text" value={@user_name} required $change={:set_user_name} />
         </div>
-        <div class="sg-field">
+        <div class="nd-auth__field">
           <label for="cr-first">First name</label>
           <input id="cr-first" type="text" value={@first_name} required $change={:set_first_name} />
         </div>
-        <div class="sg-field">
+        <div class="nd-auth__field">
           <label for="cr-last">Last name</label>
           <input id="cr-last" type="text" value={@last_name} required $change={:set_last_name} />
         </div>
-        <div class="sg-field">
+        <div class="nd-auth__field">
           <label for="cr-phone">Mobile phone</label>
           <input id="cr-phone" type="tel" value={@mobile_phone} required $change={:set_mobile_phone} />
         </div>
-        <div class="sg-field">
+        <div class="nd-auth__field">
           <label for="cr-invite">Invite code (optional)</label>
           <input id="cr-invite" type="text" value={@invite_token} $change={:set_invite_token} />
         </div>
-        <button type="submit" class="btn btn-black" disabled={@loading}>
+        <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
           {%if @loading}Saving...{%else}Continue{/if}
         </button>
       </form>

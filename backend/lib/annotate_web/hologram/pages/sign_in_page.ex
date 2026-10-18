@@ -10,10 +10,10 @@ defmodule AnnotateWeb.Hologram.Pages.SignInPage do
 
   alias Annotate.Hologram.Auth
   alias AnnotateWeb.Hologram.Components.ProviderButtons
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
 
   route "/sign-in"
-  layout MainLayout, page_title: "Sign in — annotate"
+  layout AuthLayout, page_title: "Sign in — annotate"
 
   # `?return_to=` (MCP OAuth: `/oauth/authorize?login_state=…`) survives the
   # provider round trip; only a same-origin path is kept (ReturnTo.safe/1).
@@ -36,22 +36,22 @@ defmodule AnnotateWeb.Hologram.Pages.SignInPage do
 
   def template do
     ~HOLO"""
-    <div class="content sg-signin" data-cy="sign-in-page">
-      <h1 class="sg-page-title">Sign in to annotate</h1>
-      <p class="app-muted">
+    <div class="nd-auth" data-cy="sign-in-page">
+      <h1 class="nd-auth__title">Sign in to annotate</h1>
+      <p class="nd-auth__muted">
         Site owners sign in with GitHub or Google; we use your account's verified email.
         From the dashboard you can add a site, copy its embed snippet, and answer comments.
       </p>
       {%if @signed_in}
-        <p><a class="btn btn-black" href={@continue_path} data-cy="sign-in-dashboard">{%if @return_to != ""}Continue{%else}Go to your dashboard{/if}</a></p>
+        <p><a class="nd-btn nd-btn--primary" href={@continue_path} data-cy="sign-in-dashboard">{%if @return_to != ""}Continue{%else}Go to your dashboard{/if}</a></p>
       {%else}
         <ProviderButtons providers={@providers} return_to={@return_to} />
       {/if}
-      <p class="sg-auth__note" data-cy="sign-in-invite-only">
+      <p class="nd-auth__note" data-cy="sign-in-invite-only">
         annotate is invite-only. Have an invite link? Open it to sign up.
         No invite yet? <a href="/#waitlist">Join the waitlist</a>.
       </p>
-      <p class="sg-auth__note" data-cy="sign-in-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+      <p class="nd-auth__note" data-cy="sign-in-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
     </div>
     """
   end

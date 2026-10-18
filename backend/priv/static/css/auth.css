@@ -1,0 +1,311 @@
+/* ── annotate auth surfaces (Night Desk) ──────────────────────────────
+   Sign-in / sign-up / join / invite-gate pages. Tokens mirror
+   /css/landing.css (--nd-*); kept in lockstep by hand. Replaces the old
+   scaffold "Start-App" styling (landing feedback 178de5bc). */
+
+:root {
+  --nd-void: #0b0b10;
+  --nd-canvas: #111118;
+  --nd-surface: #1a1a23;
+  --nd-raised: #23232e;
+  --nd-mist: #2a2a3a;
+  --nd-fog: #3a3a4f;
+  --nd-text-dim: #6b6b80;
+  --nd-text-secondary: #9a9ab0;
+  --nd-text-primary: #d6d6e4;
+  --nd-text-bright: #ededf4;
+  --nd-ember: #f97316;
+  --nd-ember-bright: #fb923c;
+  --nd-ambient: rgba(249, 115, 22, 0.08);
+  --nd-font-display: "Geist", "Inter", system-ui, sans-serif;
+  --nd-font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --nd-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --tobor-kit-font-family: var(--nd-font-body);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--nd-void);
+  background-image: radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      rgba(249, 115, 22, 0.07),
+      transparent
+    );
+  color: var(--nd-text-secondary);
+  font-family: var(--nd-font-body);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--nd-ember-bright);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--nd-ember-bright);
+  outline-offset: 2px;
+}
+
+.nd-skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.nd-skip:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 100;
+  background: var(--nd-raised);
+  color: var(--nd-text-bright);
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+/* page scaffold: centered card */
+.nd-auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.nd-auth {
+  width: 100%;
+  max-width: 460px;
+  background: var(--nd-surface);
+  border: 1px solid var(--nd-mist);
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.nd-auth__title {
+  font-family: var(--nd-font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--nd-text-bright);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.nd-auth__intro {
+  color: var(--nd-text-secondary);
+  font-size: 16px;
+  margin: 0 0 20px;
+}
+
+.nd-auth__muted {
+  color: var(--nd-text-secondary);
+  font-size: 15px;
+  margin: 0 0 20px;
+}
+
+.nd-auth__flash {
+  background: var(--nd-ambient);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  color: var(--nd-text-primary);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+
+.nd-auth__error {
+  color: #f87171;
+  font-size: 15px;
+  margin: 0 0 14px;
+}
+
+.nd-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 0 8px;
+}
+
+.nd-auth__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nd-auth__field label {
+  font-size: 14px;
+  color: var(--nd-text-secondary);
+}
+
+.nd-auth__field input {
+  background: var(--nd-void);
+  color: var(--nd-text-bright);
+  border: 1px solid var(--nd-fog);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px;
+}
+
+.nd-auth__field input:focus-visible {
+  outline: 2px solid var(--nd-ember-bright);
+  outline-offset: 2px;
+}
+
+.nd-auth__hint {
+  font-size: 14px;
+  color: var(--nd-text-dim);
+  margin: 4px 0 0;
+}
+
+.nd-auth__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.nd-auth__note {
+  font-size: 14px;
+  color: var(--nd-text-dim);
+  margin: 18px 0 0;
+}
+
+.nd-auth__footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--nd-text-dim);
+}
+
+.nd-auth__footer p {
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.nd-auth__invite-note {
+  font-size: 14px;
+  color: var(--nd-text-dim);
+  margin: 14px 0 0;
+}
+
+/* beta join block (invite-required) */
+.nd-auth__beta {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--nd-mist);
+}
+
+.nd-auth__beta-title {
+  font-family: var(--nd-font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--nd-text-bright);
+  margin: 0 0 6px;
+}
+
+.nd-auth__beta p {
+  font-size: 15px;
+  color: var(--nd-text-secondary);
+  margin: 0 0 14px;
+}
+
+/* github_auth modal wrapper */
+.sg-auth,
+.annotate-auth-note {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--nd-text-dim);
+}
+
+/* buttons — same system as the landing sheet */
+.nd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 8px;
+  font-family: var(--nd-font-body);
+  font-weight: 500;
+  font-size: 16px;
+  padding: 12px 22px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: box-shadow 0.18s ease-out, transform 0.15s ease-out,
+    border-color 0.18s ease-out, color 0.18s ease-out;
+}
+
+.nd-btn:hover {
+  text-decoration: none;
+}
+
+.nd-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.nd-btn--primary {
+  background: var(--nd-ember-bright);
+  color: var(--nd-void);
+  box-shadow: 0 0 1px var(--nd-ember-bright), 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+.nd-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 0 1px var(--nd-ember-bright), 0 0 20px rgba(251, 146, 60, 0.45);
+  transform: translateY(-1px);
+}
+
+.nd-btn--ghost {
+  background: transparent;
+  color: var(--nd-text-primary);
+  border-color: var(--nd-fog);
+}
+
+.nd-btn--ghost:hover:not(:disabled) {
+  border-color: var(--nd-ember);
+  color: var(--nd-text-bright);
+}
+
+.nd-btn--sm {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .nd-auth {
+    padding: 24px 20px;
+  }
+}
+
+/* Provider button stack (ProviderButtons component). */
+.nd-auth__providers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0 6px;
+}
+
+.nd-auth__providers p {
+  margin: 0;
+}
+
+.nd-auth__providers .nd-btn {
+  width: 100%;
+  justify-content: center;
+}

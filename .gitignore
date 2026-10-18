@@ -11,6 +11,8 @@ frontend/.env
 
 # Dependencies (if running locally)
 backend/_build
+# MIX_BUILD_ROOT-isolated builds (worktrees share the main checkout's deps)
+backend/.build
 backend/deps
 frontend/node_modules
 frontend/.next/

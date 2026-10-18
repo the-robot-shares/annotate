@@ -59,14 +59,30 @@ defmodule Mix.Tasks.Annotate.Stripe.Setup do
           []
       end)
 
-    rows = base ++ extras
+    # The one-time, non-refundable beta join (Annotate.Billing.BetaJoin).
+    beta = Annotate.Billing.BetaJoin
+
+    {:ok, beta_price} =
+      ensure_price(product_id, beta.lookup_key(), beta.price_cents(),
+        "Beta join (one-time, non-refundable)",
+        recurring: false
+      )
+
+    rows =
+      (base ++ extras)
+      |> Enum.map(fn {plan_key, cents, price_id, lookup_key} ->
+        {"#{plan_key} /mo", cents, price_id, lookup_key}
+      end)
+      |> Kernel.++([
+        {"beta_join (one-time)", beta.price_cents(), beta_price["id"], beta_price["lookup_key"]}
+      ])
 
     Mix.shell().info("")
     Mix.shell().info("Product: #{product_id}")
 
     Enum.each(rows, fn {plan_key, cents, price_id, lookup_key} ->
       Mix.shell().info(
-        "  #{String.pad_trailing(plan_key, 30)} $#{:erlang.float_to_binary(cents / 100, decimals: 2)}/mo  #{price_id}  (#{lookup_key})"
+        "  #{String.pad_trailing(plan_key, 30)} $#{:erlang.float_to_binary(cents / 100, decimals: 2)}  #{price_id}  (#{lookup_key})"
       )
     end)
 
@@ -109,21 +125,28 @@ defmodule Mix.Tasks.Annotate.Stripe.Setup do
     end
   end
 
-  defp ensure_price(product_id, lookup_key, unit_amount_cents, nickname) do
+  defp ensure_price(product_id, lookup_key, unit_amount_cents, nickname, opts \\ []) do
     case Stripe.Price.list(%{lookup_keys: [lookup_key], limit: 10}) do
       {:ok, %{data: [%{"id" => _} = price | _]}} ->
         {:ok, price}
 
       {:ok, _} ->
-        Stripe.Price.create(%{
-          product: product_id,
-          currency: "usd",
-          unit_amount: unit_amount_cents,
-          recurring: %{interval: "month"},
-          lookup_key: lookup_key,
-          transfer_lookup_key: true,
-          nickname: "Annotate #{nickname} monthly"
-        })
+        params =
+          %{
+            product: product_id,
+            currency: "usd",
+            unit_amount: unit_amount_cents,
+            lookup_key: lookup_key,
+            transfer_lookup_key: true,
+            nickname: "Annotate #{nickname}"
+          }
+          |> then(fn p ->
+            if Keyword.get(opts, :recurring, true),
+              do: Map.put(p, :recurring, %{interval: "month"}),
+              else: p
+          end)
+
+        Stripe.Price.create(params)
 
       {:error, reason} ->
         Mix.raise("Looking up price #{lookup_key} failed: #{inspect(reason)}")

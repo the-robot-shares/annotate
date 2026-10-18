@@ -23,7 +23,10 @@ defmodule AnnotateWeb.Hologram.Pages.McpServerPage do
     path: "/mcp-server"
 
   def init(_params, component, _server) do
-    put_state(component, :mcp_url, AnnotateWeb.SEO.origin() <> "/mcp")
+    put_state(component,
+      mcp_url: AnnotateWeb.SEO.origin() <> "/mcp",
+      api_origin: AnnotateWeb.SEO.api_origin()
+    )
   end
 
   def template do
@@ -126,6 +129,33 @@ defmodule AnnotateWeb.Hologram.Pages.McpServerPage do
               scope is refused with <code>insufficient_scope</code>; send the user back
               through consent to grant more.
             </p>
+          </div>
+
+          <div class="nd-doc__panel" id="rest-api">
+            <h2>REST API</h2>
+            <p class="nd-section__intro">
+              Prefer plain HTTP? The same data the MCP tools serve is available as JSON
+              over <code>{@api_origin}/api/v1/…</code>, with live events over websocket.
+              Embed tokens (origin-bound) or a dashboard session authenticate writes;
+              reads are public unless you restrict the site. Full request/response
+              details in <code>docs/API.md</code> in the repository.
+            </p>
+            <table class="nd-mcp__tools">
+              <thead>
+                <tr><th scope="col">Endpoint</th><th scope="col">Does</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>GET /api/v1/sites/:site/config</code></td><td>The site's embed configuration and policy.</td></tr>
+                <tr><td><code>GET /api/v1/sites/:site/threads</code></td><td>List threads (filter by status, path, origin).</td></tr>
+                <tr><td><code>POST /api/v1/sites/:site/threads</code></td><td>Create a thread pinned to an element.</td></tr>
+                <tr><td><code>POST /api/v1/threads/:id/comments</code></td><td>Reply on a thread.</td></tr>
+                <tr><td><code>POST /api/v1/threads/:id/resolve</code> · <code>/reopen</code></td><td>Close a thread, or open it again.</td></tr>
+                <tr><td><code>PATCH /api/v1/threads/:id/anchor</code></td><td>Repair an anchor after a DOM change.</td></tr>
+                <tr><td><code>PATCH/DELETE /api/v1/comments/:id</code></td><td>Edit or soft-delete a comment.</td></tr>
+                <tr><td><code>POST /api/v1/attachments/presign</code> · <code>/:id/complete</code></td><td>Upload attachments.</td></tr>
+                <tr><td><code>POST /api/v1/token/refresh</code> · <code>/revoke</code></td><td>Rotate or kill an embed token.</td></tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="nd-doc__panel">

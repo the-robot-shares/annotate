@@ -10,10 +10,10 @@ defmodule AnnotateWeb.Hologram.Pages.JoinPage do
   use Hologram.Page
 
   alias Annotate.Hologram.Auth
-  alias AnnotateWeb.Hologram.Layouts.MainLayout
+  alias AnnotateWeb.Hologram.Layouts.AuthLayout
 
   route "/join/:token"
-  layout MainLayout, page_title: "Join"
+  layout AuthLayout, page_title: "Join"
   middleware AnnotateWeb.Hologram.Middleware.GithubOnly
 
   def init(params, component, _server) do
@@ -42,73 +42,73 @@ defmodule AnnotateWeb.Hologram.Pages.JoinPage do
 
   def template do
     ~HOLO"""
-    <div class="content">
-      <h1 class="sg-page-title">Join</h1>
+    <div class="nd-auth">
+      <h1 class="nd-auth__title">Join</h1>
 
       {%if @status == "checking"}
-        <p class="app-muted">Checking your invite…</p>
+        <p class="nd-auth__muted">Checking your invite…</p>
       {/if}
 
       {%if @status == "invalid"}
-        <p class="sg-error" role="alert">
+        <p class="nd-auth__error" role="alert">
           This invite link is invalid or has expired. Ask your inviter for a new one.
         </p>
-        <p><a href="/" class="btn btn-outline">Back to home</a></p>
+        <p><a href="/" class="nd-btn nd-btn--ghost">Back to home</a></p>
       {/if}
 
       {%if @status == "valid"}
         {%if @organization_name != ""}
-          <p class="sg-auth__invite-note">
+          <p class="nd-auth__invite-note">
             You've been invited to join <strong>{@organization_name}</strong>
             as <strong>{@role}</strong>.
           </p>
         {/if}
 
         {%if @error}
-          <p class="sg-error" role="alert">{@error}</p>
+          <p class="nd-auth__error" role="alert">{@error}</p>
         {/if}
 
         {%if @sso_providers != []}
-          <div class="sg-stack">
+          <div class="nd-auth__stack">
             {%for provider <- @sso_providers}
-              <a href={Auth.sso_invite_path(provider, @token)} class="btn btn-black">
+              <a href={Auth.sso_invite_path(provider, @token)} class="nd-btn nd-btn--primary">
                 {Auth.sso_label(provider)}
               </a>
             {/for}
-            <p class="app-muted">— or sign up with a password —</p>
+            <p class="nd-auth__muted">— or sign up with a password —</p>
           </div>
         {/if}
 
-        <form class="sg-form" $submit.prevent_default={:submit_register}>
-          <div class="sg-field">
+        <form class="nd-auth__form" $submit.prevent_default={:submit_register}>
+          <div class="nd-auth__field">
             <label for="join-email">Email</label>
             <input id="join-email" type="email" value={@email} required autocomplete="email" $change={:set_email} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-password">Password</label>
             <input id="join-password" type="password" value={@password} required autocomplete="new-password" $change={:set_password} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-username">Username</label>
             <input id="join-username" type="text" value={@user_name} required autocomplete="username" $change={:set_user_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-first">First name</label>
             <input id="join-first" type="text" value={@first_name} required autocomplete="given-name" $change={:set_first_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-last">Last name</label>
             <input id="join-last" type="text" value={@last_name} required autocomplete="family-name" $change={:set_last_name} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-phone">Mobile phone</label>
             <input id="join-phone" type="tel" value={@mobile_phone} required autocomplete="tel" $change={:set_mobile_phone} />
           </div>
-          <div class="sg-field">
+          <div class="nd-auth__field">
             <label for="join-invite">Invite token</label>
             <input id="join-invite" type="text" value={@token} required $change={:set_token} />
           </div>
-          <button type="submit" class="btn btn-black" disabled={@loading}>
+          <button type="submit" class="nd-btn nd-btn--primary" disabled={@loading}>
             {%if @loading}Creating account...{%else}Create account{/if}
           </button>
         </form>

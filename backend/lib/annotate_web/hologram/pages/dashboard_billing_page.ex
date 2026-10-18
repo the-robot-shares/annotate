@@ -31,7 +31,11 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
   def init(_params, component, server) do
     user = Auth.current_user(server)
 
-    put_state(component, snapshot(user) |> Map.merge(base_ui()))
+    # A plan picked on the landing/pricing page rides through sign-in as
+    # ?return_to=/dashboard/billing%3Fplan%3D<key> — highlight it here.
+    selected = selected_plan(server)
+
+    put_state(component, snapshot(user, selected) |> Map.merge(base_ui(selected)))
   end
 
   def template do
@@ -64,11 +68,19 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         <h2 class="dsh-panel__title">Your plan</h2>
         <div class="dsh-panel__body">
           {%if @billing.locked}
-            <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
-              Your trial has ended and no subscription is active. Your sites
-              are read-only — visitors still see every comment. Pick a plan
-              below to restore commenting.
-            </p>
+            {%if @billing.trial_at_capacity}
+              <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
+                {@billing.capacity_message} Your sites are read-only —
+                visitors still see every comment. Pick a plan below to
+                restore commenting.
+              </p>
+            {%else}
+              <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
+                Your trial has ended and no subscription is active. Your sites
+                are read-only — visitors still see every comment. Pick a plan
+                below to restore commenting.
+              </p>
+            {/if}
           {/if}
           <p>
             {%if @billing.comp}
@@ -140,7 +152,9 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
               <tbody>
                 {%for p <- @plans}
                   <tr data-cy="dsh-billing-plan-row">
-                    <td><strong>{p.name}</strong></td>
+                    <td><strong>{p.name}</strong>
+                      {%if p.selected}<span class="dsh-chip" data-cy="dsh-plan-picked">your pick</span>{/if}
+                    </td>
                     <td>{p.price}</td>
                     <td>{p.apps}</td>
                     <td>{p.users}</td>
@@ -267,11 +281,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         busy: false,
         billing: params.billing,
         plans: params.plans,
-        flash: params.flash || c.state.flash
+        flash: params.flash || nil
       )
-
-  def action(:plan_full, params, c),
-    do: put_state(c, busy: false, waitlist_plan: params.plan)
 
   def action(:waitlisted, params, c),
     do:
@@ -294,8 +305,13 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
       {:ok, url} ->
         put_action(server, :redirected, url: url)
 
+      # Purchases are blocked at capacity (intake control, 2026-10-18):
+      # a full plan refuses checkout; a 0-cap plan is switched off entirely.
       {:error, :plan_full} ->
-        put_action(server, :plan_full, plan: to_string(params.plan))
+        put_action(server, :failed, error: Plans.purchases_unavailable_message())
+
+      {:error, :plan_unavailable} ->
+        put_action(server, :failed, error: Plans.unavailable_message())
 
       {:error, :not_purchasable} ->
         put_action(server, :failed, error: "That plan isn't open for signups yet.")
@@ -403,10 +419,16 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
 
   # ── serialization (server-side only) ──────────────────────────
 
-  defp base_ui do
+  defp base_ui(selected_plan) do
+    name =
+      case selected_plan && Plans.get(selected_plan) do
+        %{name: n} -> n
+        _ -> selected_plan
+      end
+
     %{
       error: nil,
-      flash: nil,
+      flash: if(selected_plan, do: "Finish picking the #{name} plan below.", else: nil),
       busy: false,
       waitlist_plan: nil,
       waitlist_email: "",
@@ -414,7 +436,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
     }
   end
 
-  defp snapshot(user) do
+  defp snapshot(user, selected_plan) do
     {:ok, row} = Billing.ensure_subscription(user.id)
     state = Billing.state(user.id)
     limits = Billing.limits(row)
@@ -425,6 +447,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         stripe_configured: state.stripe_configured,
         comp: state.comp,
         locked: state.locked,
+        trial_at_capacity: trial_at_capacity?(state),
+        capacity_message: SignupCaps.intake_capacity_message(),
         plan: state.plan || "trial",
         plan_display: plan_display(state),
         status_display: state.status || "trialing",
@@ -446,8 +470,18 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         users_display: limit_display(limits.users),
         storage_display: limit_bytes_display(limits.storage_bytes)
       },
-      plans: serialize_plans(state.plan)
+      plans: serialize_plans(state.plan, selected_plan)
     }
+  end
+
+  defp selected_plan(server) do
+    case server |> Map.get(:query, %{}) |> Map.get("plan") do
+      key when is_binary(key) ->
+        if key in Plans.purchasable(), do: key, else: nil
+
+      _ ->
+        nil
+    end
   end
 
   defp refresh(server, flash) do
@@ -455,7 +489,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
 
     case user do
       %{id: id} when is_binary(id) ->
-        snap = snapshot(user)
+        snap = snapshot(user, nil)
 
         put_action(server, :refreshed,
           billing: snap.billing,
@@ -468,7 +502,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
     end
   end
 
-  defp serialize_plans(current_plan) do
+  defp serialize_plans(current_plan, selected_plan) do
     Enum.map(Plans.purchasable(), fn key ->
       plan = Plans.get(key)
       status = SignupCaps.status(key)
@@ -481,6 +515,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         users: plan_display_value(plan.users),
         storage: limit_bytes_display(plan.storage_bytes),
         current: current_plan == key,
+        selected: selected_plan == key,
         cta: if(current_plan == key, do: "Renew / manage", else: "Choose " <> plan.name),
         full: status != nil and status.full,
         taken: (status && status.taken) || 0,
@@ -521,6 +556,15 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
   end
 
   defp trial_display(_), do: nil
+
+  # Corrected model (2026-10-18): signups are never capacity-blocked — a full
+  # trial intake means the account was minted with NO trial. `locked: true`
+  # already excludes any active Stripe subscription, so a locked planless
+  # account with the cap still full shows the capacity copy.
+  defp trial_at_capacity?(%{locked: true, comp: false, plan: nil}),
+    do: SignupCaps.full?(SignupCaps.trial_plan())
+
+  defp trial_at_capacity?(_), do: false
 
   defp renews_display(%{status: "active", current_period_end: %DateTime{} = t}),
     do: "Renews " <> format_date(t)

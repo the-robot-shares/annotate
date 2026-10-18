@@ -68,11 +68,16 @@ defmodule Annotate.Billing do
 
   def locked?(%Subscription{} = row) do
     if enabled?() do
+      # Coverage = an active Stripe subscription (or its trial), or a local
+      # trial still running. No coverage → locked (read-only) — the usage
+      # gate (user decision 2026-10-18): caps limit who can USE the tool.
+      # (Was inverted pre-2026-10-18 — latent, since billing runs soft-off
+      # without Stripe keys.)
       stripe_active? =
         row.status in ["active", "trialing"] and
           after_now?(row.current_period_end, DateTime.utc_now())
 
-      stripe_active? or after_now?(row.trial_ends_at, DateTime.utc_now())
+      not (stripe_active? or after_now?(row.trial_ends_at, DateTime.utc_now()))
     else
       false
     end
@@ -352,4 +357,101 @@ defmodule Annotate.Billing do
   end
 
   def set_invite_quota_by_email(_, _), do: {:error, :invalid}
+
+  # ── Admin: subscriptions + per-account quota controls ─────────
+  # (admin UI commands re-check `users.admin` per call; these helpers are
+  # the single write seam for local subscription-row overrides.)
+
+  @plan_keys MapSet.new(Map.keys(Plans.all()))
+
+  @doc "Admin: recent subscription rows with their owner's email/admin flag."
+  def admin_subscriptions(limit \\ 100) when is_integer(limit) and limit > 0 do
+    from(s in Subscription,
+      join: u in User,
+      on: u.id == s.user_id,
+      order_by: [desc: s.updated_at],
+      limit: ^limit,
+      select: %{subscription: s, email: u.email, user_admin: u.admin}
+    )
+    |> Repo.all()
+  end
+
+  @doc "Admin: set the plan on a user's subscription row (nil clears it)."
+  def admin_set_plan_by_email(email, plan) when is_binary(email) do
+    if valid_plan?(plan) do
+      with_subscription_by_email(email, fn sub ->
+        sub |> Subscription.changeset(%{plan: plan}) |> Repo.update()
+      end)
+    else
+      {:error, :invalid_plan}
+    end
+  end
+
+  def admin_set_plan_by_email(_, _), do: {:error, :invalid}
+
+  @doc "Admin: set extra_users / extra_gb quantities (both >= 0)."
+  def admin_set_extras_by_email(email, extra_users, extra_gb)
+      when is_binary(email) and is_integer(extra_users) and extra_users >= 0 and
+             is_integer(extra_gb) and extra_gb >= 0 do
+    with_subscription_by_email(email, fn sub ->
+      sub
+      |> Subscription.changeset(%{extra_users: extra_users, extra_gb: extra_gb})
+      |> Repo.update()
+    end)
+  end
+
+  def admin_set_extras_by_email(_, _, _), do: {:error, :invalid}
+
+  @doc "Admin: flip the comp flag (comp accounts are never locked)."
+  def admin_toggle_comp_by_email(email) when is_binary(email) do
+    with_subscription_by_email(email, fn sub ->
+      sub |> Subscription.changeset(%{comp: !sub.comp}) |> Repo.update()
+    end)
+  end
+
+  def admin_toggle_comp_by_email(_), do: {:error, :invalid}
+
+  @doc """
+  Admin: extend `trial_ends_at` by `days` from the later of now / the
+  current trial end. Does not change `status`.
+  """
+  def admin_extend_trial_by_email(email, days)
+      when is_binary(email) and is_integer(days) and days >= 1 do
+    with_subscription_by_email(email, fn sub ->
+      base =
+        case sub.trial_ends_at do
+          %DateTime{} = t -> max_dt(t, DateTime.utc_now())
+          _ -> DateTime.utc_now()
+        end
+
+      sub
+      |> Subscription.changeset(%{
+        trial_ends_at: DateTime.add(base, days * 86_400, :second) |> DateTime.truncate(:second)
+      })
+      |> Repo.update()
+    end)
+  end
+
+  def admin_extend_trial_by_email(_, _), do: {:error, :invalid}
+
+  defp valid_plan?(nil), do: true
+  defp valid_plan?(plan) when is_binary(plan), do: MapSet.member?(@plan_keys, plan)
+  defp valid_plan?(_), do: false
+
+  defp with_subscription_by_email(email, fun) do
+    email = email |> String.trim() |> String.downcase()
+
+    case Repo.one(from(u in User, where: u.email == ^email, limit: 1)) do
+      nil ->
+        {:error, :not_found}
+
+      user ->
+        case Repo.get_by(Subscription, user_id: user.id) do
+          %Subscription{} = sub -> fun.(sub)
+          nil -> {:error, :no_subscription}
+        end
+    end
+  end
+
+  defp max_dt(a, b), do: if(DateTime.compare(a, b) == :gt, do: a, else: b)
 end

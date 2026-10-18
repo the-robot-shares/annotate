@@ -13,6 +13,7 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
   use Hologram.Page
 
   alias Annotate.Billing.Plans
+  alias Annotate.Billing.SignupCaps
   alias AnnotateWeb.Hologram.Layouts.LandingLayout
   alias AnnotateWeb.Hologram.Components.SiteFooter
 
@@ -39,15 +40,32 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
             else
               nil
             end,
-          featured: key == "standard"
+          featured: key == "standard",
+          # Same flow as the landing cards: signed-out goes through sign-in,
+          # which bounces back to billing with the plan highlighted; a signed-in
+          # visitor lands on billing directly.
+          href:
+            "/sign-in?return_to=" <>
+              URI.encode_www_form("/dashboard/billing?plan=" <> key),
+          cta: "Pick " <> plan.name
         }
       end)
 
     agent = Plans.get("agent_addon")
 
+    # The agent add-on is a real, shipping plan — its cap row gates it
+    # (cap 0 until the full agent implementation lands). Availability is
+    # derived from plan_signup_caps only: flipping cap > 0 re-enables the
+    # card and checkout end-to-end with no code change (user decision
+    # 2026-10-18).
+    agent_status = SignupCaps.status("agent_addon")
+    agent_available = is_map(agent_status) and agent_status.cap > 0
+
     put_state(component,
       plans: plans,
       agent_price: price_display(agent.price_cents),
+      agent_unavailable: not agent_available,
+      agent_unavailable_message: Plans.unavailable_message(),
       faq_trial: "Every account starts with a 14-day free trial of everything."
     )
   end
@@ -86,13 +104,14 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
         <h2>Pick a size, change any time</h2>
         <div class="nd-bento">
           {%for p <- @plans}
-            <div class="nd-tile nd-tile--third" data-cy="pricing-plan">
+            <a class="nd-tile nd-tile--third nd-tile--plan" href={p.href} data-cy="pricing-plan">
               <h3>{p.name} — {p.price}{p.per}</h3>
               <p>
                 {p.apps} · {p.users} · {p.storage} · unlimited comments.
                 {%if p.note}{p.note}.{/if}
               </p>
-            </div>
+              <span class="nd-tile__cta">{p.cta} →</span>
+            </a>
           {/for}
         </div>
         <p class="nd-footnote">
@@ -107,13 +126,26 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
     <section class="nd-section nd-section--canvas" data-cy="pricing-agent">
       <div class="nd-section__inner">
         <p class="nd-section__label">Add-on</p>
-        <h2>Agent triage — coming soon</h2>
+        <h2>Agent triage</h2>
         <p>
           An AI agent that triages your comment inbox for {@agent_price}/mo:
           deduplicates, drafts replies and marks threads resolved.
-          Not purchasable yet — join the waitlist on your dashboard
-          Billing page and we'll email you when it ships.
         </p>
+        {%if @agent_unavailable}
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--ghost" aria-disabled="true"
+            $click={:agent_unavailable} data-cy="pricing-agent-cta">
+            Get the agent add-on — {@agent_price}/mo
+          </button>
+          <p class="nd-footnote" role="status" data-cy="pricing-agent-unavailable">{@agent_unavailable_message}</p>
+          <p class="nd-footnote">
+            The agent is rolling out in limited batches — join the waitlist on
+            your dashboard Billing page and we'll email you when a spot opens.
+          </p>
+        {%else}
+          <a class="nd-btn nd-btn--sm nd-btn--primary" href="/dashboard/billing" data-cy="pricing-agent-cta">
+            Get the agent add-on — {@agent_price}/mo
+          </a>
+        {/if}
       </div>
     </section>
 
@@ -151,6 +183,9 @@ defmodule AnnotateWeb.Hologram.Pages.PricingPage do
   end
 
   # ── display helpers (init-only, server side) ──────────────────
+
+  def action(:agent_unavailable, _params, c),
+    do: put_state(c, agent_unavailable: true)
 
   defp price_display(cents) when is_integer(cents),
     do: "$" <> :erlang.float_to_binary(cents / 100, decimals: 2)

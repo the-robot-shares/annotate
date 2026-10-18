@@ -83,6 +83,10 @@ defmodule Annotate.Auth.SSO do
     # membership grant commit together. A redemption that loses an exhaustion
     # race rolls the account back entirely — no stranded approved user with
     # no membership. The session is only created afterwards, on success.
+    # Signups are never capacity-blocked (user decision 2026-10-18): the
+    # trial is minted on first billing touch (`Subscriptions.ensure/1`),
+    # which claims an intake slot — at capacity the account gets no trial
+    # and is usage-gated until it subscribes.
     result =
       Annotate.Repo.transaction(fn ->
         user =

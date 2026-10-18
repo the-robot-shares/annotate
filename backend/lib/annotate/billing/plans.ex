@@ -95,7 +95,30 @@ defmodule Annotate.Billing.Plans do
   def purchasable, do: @purchasable
 
   @doc "Seed values for `plan_signup_caps` (user decision 2026-10-17)."
-  def cap_seeds, do: %{"start" => 25, "standard" => 25, "agent_addon" => 10, "team" => 5}
+  def cap_seeds,
+    do: %{
+      "start" => 25,
+      "standard" => 25,
+      # The agent add-on is a real, shipping plan — cap 0 is a deliberate
+      # temporary gate until the full agent implementation lands. Enabling
+      # it = `UPDATE plan_signup_caps SET cap = <n> WHERE plan = 'agent_addon'`
+      # (admin SQL — no code change, no redeploy): pricing card, dashboard
+      # checkout and claim! all key off this row alone.
+      "agent_addon" => 0,
+      "team" => 5,
+      # Global concurrent-trial / intake cap (user decision 2026-10-18).
+      "trial" => 25
+    }
+
+  @unavailable_message "This subscription type is temporarily unavailable due to demand."
+
+  @doc "Copy for a plan whose cap is 0 (unavailable due to demand)."
+  def unavailable_message, do: @unavailable_message
+
+  @purchases_unavailable_message "Subscriptions are temporarily unavailable due to demand."
+
+  @doc "Copy for a checkout that cannot claim a paid-plan slot."
+  def purchases_unavailable_message, do: @purchases_unavailable_message
 
   @doc "Lookup keys that ride a Team subscription as metered quantities."
   def extra_lookup_keys, do: @extra_lookup_keys
