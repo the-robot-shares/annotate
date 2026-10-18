@@ -12,10 +12,22 @@ defmodule AnnotateWeb.Hologram.Layouts.AuthLayout do
 
   use Hologram.Component
 
+  alias AnnotateWeb.Hologram.Components.AnalyticsConsent
+
   prop :page_title, :string, default: "annotate"
 
-  def init(_props, component, _server) do
-    put_state(component, auth_css: AnnotateWeb.Assets.versioned("/css/auth.css"))
+  def init(_props, component, server) do
+    ga_id = AnnotateWeb.Analytics.for_server(server)
+
+    # Sign-in is a marketing surface (AnnotateWeb.Analytics): gtag + consent
+    # banner render here exactly as on the landing/legal layouts, and only
+    # when the request host is the marketing host (`ga_id` is nil otherwise).
+    put_state(component,
+      auth_css: AnnotateWeb.Assets.versioned("/css/auth.css"),
+      ga_css: AnnotateWeb.Assets.versioned("/css/ga-consent.css"),
+      ga_js: AnnotateWeb.Assets.versioned("/js/ga-init.js"),
+      ga_id: ga_id
+    )
   end
 
   def template do
@@ -34,6 +46,10 @@ defmodule AnnotateWeb.Hologram.Layouts.AuthLayout do
         <link rel="preload" href="/fonts/geist-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
         <link rel="stylesheet" href={@auth_css} />
+        {%if @ga_id}
+          <link rel="stylesheet" href={@ga_css} />
+          <script src={@ga_js} data-ga-id={@ga_id}></script>
+        {/if}
         <Hologram.UI.Runtime />
       </head>
       <body>
@@ -41,6 +57,9 @@ defmodule AnnotateWeb.Hologram.Layouts.AuthLayout do
         <main id="main" class="nd-auth-page">
           <slot />
         </main>
+        {%if @ga_id}
+          <AnalyticsConsent />
+        {/if}
       </body>
     </html>
     """
