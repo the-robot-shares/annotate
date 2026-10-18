@@ -18,6 +18,54 @@ defmodule Annotate.Billing.SignupCaps do
   alias Annotate.Schema.Billing.Subscription
 
   @active ~w(active trialing)
+  @trial_plan "trial"
+
+  @claim_sql """
+  UPDATE plan_signup_caps
+  SET taken = taken + 1, updated_at = now()
+  WHERE plan = $1
+    AND taken < cap
+    AND (
+      SELECT count(*) FROM billing_subscriptions
+      WHERE plan = $1 AND status = ANY($2)
+    ) < cap
+  RETURNING taken
+  """
+
+  # Trial rows carry plan IS NULL (the local 14-day trial precedes any plan),
+  # so the live count keys on the planless trialing rows that are not yet
+  # expired; expired trials free their slot without a webhook. Stripe-backed
+  # rows never hold an intake slot, even when their plan is unresolvable.
+  @trial_claim_sql """
+  UPDATE plan_signup_caps
+  SET taken = taken + 1, updated_at = now()
+  WHERE plan = $1
+    AND taken < cap
+    AND (
+      SELECT count(*) FROM billing_subscriptions
+      WHERE plan IS NULL AND status = 'trialing'
+        AND stripe_subscription_id IS NULL
+        AND (trial_ends_at IS NULL OR trial_ends_at > now())
+    ) < cap
+  RETURNING taken
+  """
+
+  @intake_capacity_message "Free trials are at capacity right now — subscribe to start using annotate."
+
+  @doc "The `plan_signup_caps` row key that caps concurrent trials."
+  def trial_plan, do: @trial_plan
+
+  @doc "Copy shown when a new account cannot get a trial (intake cap full)."
+  def intake_capacity_message, do: @intake_capacity_message
+
+  @doc """
+  Claims one intake (trial) slot. Called from the trial-mint path
+  (`Subscriptions.ensure/1`) — signups themselves are never blocked
+  (user decision 2026-10-18, corrected model): at capacity the account is
+  minted with NO trial and is usage-gated until it subscribes. `{:error,
+  :plan_full}` when the trial cap is reached.
+  """
+  def claim_trial, do: claim!(@trial_plan)
 
   @doc "Cap rows for every known plan, seeded on first read."
   def list do
@@ -42,33 +90,53 @@ defmodule Annotate.Billing.SignupCaps do
   end
 
   @doc """
-  Atomically claims one slot for `plan`. Returns `:ok` or `{:error, :plan_full}`.
+  Atomically claims one slot for `plan`. Returns `:ok`,
+  `{:error, :plan_unavailable}` (cap is 0) or `{:error, :plan_full}`.
   """
   def claim!(plan) when is_binary(plan) do
     seed()
 
-    plan_trimmed = plan
+    trial? = plan == @trial_plan
+    if trial?, do: reconcile_trial()
 
-    result =
-      Repo.query!(
-        """
-        UPDATE plan_signup_caps
-        SET taken = taken + 1, updated_at = now()
-        WHERE plan = $1
-          AND taken < cap
-          AND (
-            SELECT count(*) FROM billing_subscriptions
-            WHERE plan = $1 AND status = ANY($2)
-          ) < cap
-        RETURNING taken
-        """,
-        [plan_trimmed, @active]
-      )
+    # The trial claim counts planless rows in-SQL; the paid-plan claim binds
+    # the active statuses as $2 — the two statements take different arities.
+    params = if(trial?, do: [plan], else: [plan, @active])
+    result = Repo.query!(if(trial?, do: @trial_claim_sql, else: @claim_sql), params)
 
     case result.rows do
       [[_taken]] -> :ok
-      [] -> {:error, :plan_full}
+      [] -> {:error, failure_reason(plan)}
     end
+  end
+
+  # A 0-cap row is a plan switched off for demand, not a full one.
+  defp failure_reason(plan) do
+    case Repo.get(SignupCap, plan) do
+      %{cap: 0} -> :plan_unavailable
+      _ -> :plan_full
+    end
+  end
+
+  # Expired trials never see a webhook, so `taken` drifts upward against the
+  # real live count. Re-sync the trial row's counter from the live count
+  # before every trial claim (single global row — one statement, self-healing).
+  defp reconcile_trial do
+    Repo.query!(
+      """
+      UPDATE plan_signup_caps
+      SET taken = GREATEST((
+        SELECT count(*) FROM billing_subscriptions
+        WHERE plan IS NULL AND status = 'trialing'
+          AND stripe_subscription_id IS NULL
+          AND (trial_ends_at IS NULL OR trial_ends_at > now())
+      ), 0), updated_at = now()
+      WHERE plan = $1
+      """,
+      [@trial_plan]
+    )
+
+    :ok
   end
 
   @doc "Releases a claimed slot (checkout expired/failed). Floors at 0."
@@ -91,6 +159,16 @@ defmodule Annotate.Billing.SignupCaps do
   end
 
   def set_cap(_, _), do: {:error, :invalid}
+
+  defp live_count("trial") do
+    from(s in Subscription,
+      where:
+        is_nil(s.plan) and s.status == "trialing" and is_nil(s.stripe_subscription_id) and
+          (is_nil(s.trial_ends_at) or s.trial_ends_at > ^DateTime.utc_now()),
+      select: count(s.id)
+    )
+    |> Repo.one() || 0
+  end
 
   defp live_count(plan) do
     from(s in Subscription,

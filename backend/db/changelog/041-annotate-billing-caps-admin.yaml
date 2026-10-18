@@ -1,0 +1,76 @@
+databaseChangeLog:
+  # ── Annotate: signup-cap gating + admin grant (2026-10-18) ──────
+  # Additive only — guarded UPDATEs on existing rows, no DDL, no drops.
+  # The agent add-on is a real shipping plan: cap 0 is a deliberate
+  # temporary gate (demand) until the full agent implementation lands.
+  # Enabling it later = set cap > 0 on this row (admin SQL; no code
+  # change, no redeploy). The 'trial' row caps new signups globally
+  # (intake control). ids continue from 040 (annotate-0063).
+
+  - changeSet:
+      id: annotate-0064-agent-addon-cap-zero
+      author: annotate
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 1
+            sql: SELECT count(*) FROM plan_signup_caps WHERE plan = 'agent_addon';
+      changes:
+        - sql:
+            sql: |
+              UPDATE plan_signup_caps
+              SET cap = 0, updated_at = now()
+              WHERE plan = 'agent_addon' AND cap <> 0;
+      rollback:
+        - sql:
+            sql: |
+              UPDATE plan_signup_caps
+              SET cap = 10, updated_at = now()
+              WHERE plan = 'agent_addon';
+
+  - changeSet:
+      id: annotate-0065-seed-trial-intake-cap
+      author: annotate
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO plan_signup_caps (plan, cap, taken, inserted_at, updated_at)
+              SELECT 'trial', 25, 0, now(), now()
+              WHERE NOT EXISTS (
+                SELECT 1 FROM plan_signup_caps WHERE plan = 'trial'
+              );
+      rollback:
+        - sql:
+            sql: DELETE FROM plan_signup_caps WHERE plan = 'trial';
+
+  # Platform-admin grant for keith.brings@noizu.com. Fires only when the
+  # email matches exactly one live user and the flag isn't already set;
+  # MARK_RAN otherwise (never touches a soft-deleted or duplicated row).
+  - changeSet:
+      id: annotate-0066-admin-grant-keith-brings
+      author: annotate
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 1
+            sql: >-
+              SELECT count(*) FROM users
+              WHERE email = 'keith.brings@noizu.com' AND deleted_at IS NULL;
+      changes:
+        - sql:
+            sql: |
+              UPDATE users
+              SET admin = true, updated_at = now()
+              WHERE email = 'keith.brings@noizu.com'
+                AND deleted_at IS NULL
+                AND admin IS NOT TRUE
+                AND (SELECT count(*) FROM users
+                     WHERE email = 'keith.brings@noizu.com' AND deleted_at IS NULL) = 1;
+      rollback:
+        # Reverts only this grant; a pre-existing admin flag would also be
+        # cleared on rollback — accepted (single-maintainer dev system).
+        - sql:
+            sql: |
+              UPDATE users
+              SET admin = false, updated_at = now()
+              WHERE email = 'keith.brings@noizu.com' AND admin IS TRUE;

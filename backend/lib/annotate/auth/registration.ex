@@ -12,7 +12,10 @@ defmodule Annotate.Auth.Registration do
   @doc """
   Registers a password user and consumes `invite` (may be nil on open
   deployments) in a single transaction. Returns `{:ok, user}` or
-  `{:error, reason}`.
+  `{:error, reason}`. Signups are never capacity-blocked (user decision
+  2026-10-18): the trial is minted on first billing touch
+  (`Subscriptions.ensure/1`), which claims an intake slot — at capacity the
+  account simply gets no trial and is usage-gated until it subscribes.
   """
   def register_user_with_invite(user_attrs, credential, opts, invite, conn \\ nil) do
     Annotate.Repo.transaction(fn ->

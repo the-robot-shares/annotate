@@ -68,11 +68,19 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         <h2 class="dsh-panel__title">Your plan</h2>
         <div class="dsh-panel__body">
           {%if @billing.locked}
-            <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
-              Your trial has ended and no subscription is active. Your sites
-              are read-only — visitors still see every comment. Pick a plan
-              below to restore commenting.
-            </p>
+            {%if @billing.trial_at_capacity}
+              <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
+                {@billing.capacity_message} Your sites are read-only —
+                visitors still see every comment. Pick a plan below to
+                restore commenting.
+              </p>
+            {%else}
+              <p class="dsh-error" role="alert" data-cy="dsh-billing-locked">
+                Your trial has ended and no subscription is active. Your sites
+                are read-only — visitors still see every comment. Pick a plan
+                below to restore commenting.
+              </p>
+            {/if}
           {/if}
           <p>
             {%if @billing.comp}
@@ -276,9 +284,6 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         flash: params.flash || nil
       )
 
-  def action(:plan_full, params, c),
-    do: put_state(c, busy: false, waitlist_plan: params.plan)
-
   def action(:waitlisted, params, c),
     do:
       put_state(c,
@@ -300,8 +305,13 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
       {:ok, url} ->
         put_action(server, :redirected, url: url)
 
+      # Purchases are blocked at capacity (intake control, 2026-10-18):
+      # a full plan refuses checkout; a 0-cap plan is switched off entirely.
       {:error, :plan_full} ->
-        put_action(server, :plan_full, plan: to_string(params.plan))
+        put_action(server, :failed, error: Plans.purchases_unavailable_message())
+
+      {:error, :plan_unavailable} ->
+        put_action(server, :failed, error: Plans.unavailable_message())
 
       {:error, :not_purchasable} ->
         put_action(server, :failed, error: "That plan isn't open for signups yet.")
@@ -437,6 +447,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         stripe_configured: state.stripe_configured,
         comp: state.comp,
         locked: state.locked,
+        trial_at_capacity: trial_at_capacity?(state),
+        capacity_message: SignupCaps.intake_capacity_message(),
         plan: state.plan || "trial",
         plan_display: plan_display(state),
         status_display: state.status || "trialing",
@@ -500,8 +512,8 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
         name: plan.name,
         price: format_cents(plan.price_cents) <> "/mo",
         apps: plan_display_value(plan.apps),
-        users: Integer.to_string(plan.users),
-        storage: format_bytes(plan.storage_bytes),
+        users: plan_display_value(plan.users),
+        storage: limit_bytes_display(plan.storage_bytes),
         current: current_plan == key,
         selected: selected_plan == key,
         cta: if(current_plan == key, do: "Renew / manage", else: "Choose " <> plan.name),
@@ -545,6 +557,15 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
 
   defp trial_display(_), do: nil
 
+  # Corrected model (2026-10-18): signups are never capacity-blocked — a full
+  # trial intake means the account was minted with NO trial. `locked: true`
+  # already excludes any active Stripe subscription, so a locked planless
+  # account with the cap still full shows the capacity copy.
+  defp trial_at_capacity?(%{locked: true, comp: false, plan: nil}),
+    do: SignupCaps.full?(SignupCaps.trial_plan())
+
+  defp trial_at_capacity?(_), do: false
+
   defp renews_display(%{status: "active", current_period_end: %DateTime{} = t}),
     do: "Renews " <> format_date(t)
 
@@ -562,6 +583,7 @@ defmodule AnnotateWeb.Hologram.Pages.DashboardBillingPage do
   defp limit_display(v) when is_integer(v), do: Integer.to_string(v)
 
   defp limit_bytes_display(nil), do: "—"
+  defp limit_bytes_display(:unlimited), do: "Unlimited"
   defp limit_bytes_display(v) when is_integer(v), do: format_bytes(v)
 
   defp format_bytes(b) when is_integer(b) and b >= 1_073_741_824,
