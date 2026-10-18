@@ -167,7 +167,11 @@ defmodule Annotate.Billing do
     |> Repo.all()
   end
 
-  @doc "Effective limits for a user's plan row: %{apps, users, storage_bytes} (nil = unlimited/unknown)."
+  @doc """
+  Effective limits for a user's plan row: %{apps, users, storage_bytes}.
+  `:unlimited` (team/enterprise/comp semantics) or nil (unknown plan) mean
+  no cap on that axis.
+  """
   def limits(%Subscription{} = row) do
     plan = row.plan
 
@@ -217,6 +221,23 @@ defmodule Annotate.Billing do
   def check_site_creation(_), do: :ok
 
   @doc """
+  True when `user_id`'s account has NO per-account site cap: a `comp`
+  subscription, or a plan whose apps limit is `:unlimited` (team,
+  enterprise). Read-only on purpose — `Annotate.Sites` consults this before
+  its self-serve abuse bound, and that check must never create a trial row
+  as a side effect. Billing off → only the row's own plan/comp decides.
+  """
+  def site_limit_exempt?(user_id) when is_binary(user_id) do
+    case Subscriptions.get(user_id) do
+      %Subscription{comp: true} -> true
+      %Subscription{} = row -> limits(row).apps == :unlimited
+      nil -> false
+    end
+  end
+
+  def site_limit_exempt?(_), do: false
+
+  @doc """
   Users-limit check for `SiteMembers.add_member` against the SITE OWNER's
   plan (distinct members across all of the owner's sites).
   """
@@ -231,7 +252,7 @@ defmodule Annotate.Billing do
           :ok
         else
           case limits(row).users do
-            nil ->
+            unlimited when unlimited in [nil, :unlimited] ->
               :ok
 
             limit when is_integer(limit) ->
@@ -263,7 +284,7 @@ defmodule Annotate.Billing do
           :ok
         else
           case limits(row).storage_bytes do
-            nil ->
+            unlimited when unlimited in [nil, :unlimited] ->
               :ok
 
             limit when is_integer(limit) ->

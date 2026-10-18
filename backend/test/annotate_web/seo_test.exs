@@ -151,8 +151,13 @@ defmodule AnnotateWeb.SEOTest do
 
     test "carries title, description, canonical, og, twitter, icons", %{body: body} do
       m = SEO.landing_meta()
+      # Meta content is HTML-escaped on render (the Daylight-Margin copy
+      # carries an apostrophe: "they're"), so compare the escaped form.
+      description_escaped =
+        m.description |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
       assert body =~ "<title>#{m.title}</title>"
-      assert body =~ ~s(name="description" content="#{m.description}")
+      assert body =~ ~s(name="description" content="#{description_escaped}")
       assert body =~ ~s(rel="canonical" href="https://#{@host}/")
       assert body =~ ~s(property="og:type" content="website")
       assert body =~ ~s(property="og:url" content="https://#{@host}/")
