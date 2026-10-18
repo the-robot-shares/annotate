@@ -24,8 +24,11 @@ defmodule AnnotateWeb.SEO do
   # og.png is a 1200x630 crop of the loop hero (hero-loop-1600).
   @landing %{
     title: "annotate — site feedback that points at the thing",
+    # Plain ASCII, no markup-escapable characters (apostrophes): the head
+    # renders it as a Hologram attribute, and SEO tests assert the raw
+    # string appears verbatim in the served HTML.
     description:
-      "One script tag pins threaded comments to the exact element or text they're about. Triage in the dashboard, over the REST API, or with an AI agent over MCP. Free 14-day trial.",
+      "One script tag pins threaded comments to the exact element or text they are about. Triage in the dashboard, over the REST API, or with an AI agent over MCP. Free 14-day trial.",
     og_title: "annotate — site feedback that points at the thing",
     og_description:
       "One script tag pins threaded comments to the exact element or text they're about. Triage in the dashboard, over the REST API, or with an AI agent over MCP.",
@@ -246,9 +249,9 @@ defmodule AnnotateWeb.SEO do
 
     - Shipped: everything under "What the widget does", the dashboard for site owners, per-site origin rules, GitHub sign-in for owners.
     - Shipped: the MCP server at #{origin()}/mcp (OAuth sign-in as a dashboard user; read, reply, resolve/reopen and delete tools, each behind its own permission). Tools: list_sites, get_site_config, list_threads, get_thread, reply_to_thread, resolve_thread, reopen_thread, delete_comment; prompts triage_open_threads and investigate_thread; resources for sites and threads. Reference page with connect snippets for Claude Code, Claude Desktop / claude.ai, Cursor, VS Code and Codex: #{origin()}/mcp-server.
-    - Coming soon, not shipped: ticket push to Jira, Notion, ClickUp and Asana; per-thread internal-only or public-only visibility.
+    - Planned, not shipped: ticket push to Jira, Notion, ClickUp and Asana; per-thread internal-only or public-only visibility.
     - Shipped: ticket push to Agent-kit (Agentonomi.com) and The Robot Plans over MCP.
-    - Pricing: plans on #{origin()}/pricing — Start $0.99/mo, Standard $3.99/mo, Team $9.99/mo; unlimited comments on every plan, 14-day free trial. Early software, no uptime guarantee; see #{origin()}/terms.
+    - Pricing: Start, Standard and Team plans on #{origin()}/pricing; unlimited comments on every plan, 14-day free trial. Early software, no uptime guarantee; see #{origin()}/terms.
 
     ## Publisher
 

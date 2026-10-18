@@ -119,3 +119,6 @@ databaseChangeLog:
   - include:
       file: 040-annotate-waitlist-about.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 041-annotate-billing-caps-admin.yaml
+      relativeToChangelogFile: true
