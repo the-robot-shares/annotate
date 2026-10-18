@@ -36,6 +36,10 @@ database:
   port: 5432
   name: start_app
 
+# AI moderation knob (see values.yaml) — empty key ⇒ env omitted (fail-open).
+moderation:
+  dashscopeApiKey: ""
+
 secrets:
   name: startapp-secrets
   keys:
